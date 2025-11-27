@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finance_db
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./server:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/finance
+      - AUTH0_DOMAIN=dev-yxlju5n75et0q146.us.auth0.com
+      - AUTH0_CLIENT_ID=IVXqFVBSKbgIod8S9DDNRM2jSKFfM0ZN
+      - AUTH0_CLIENT_SECRET=N1v-hUJLXuzjQBmE3B0BH-zi18jfUUzWYoc95UEIIdEjRJi8xn2y4qotTi-2I1q1
+      - AUTH0_CALLBACK_URL=/api/auth/callback
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    depends_on:
+      - db
+    command: sh -c "apk add --no-cache openssl && npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run dev"
+
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "5173:5173"
+    networks:
+      - app-network
+    environment:
+      VITE_API_URL: http://localhost:3000
+    depends_on:
+      - api
+    command: sh -c "npm install && npm run dev -- --host"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token eyJhIjoiNmNlNjQyMzkxYjFlMzcxYzkxNDI4NmJhN2I2Y2E3YzciLCJ0IjoiNzdlOGViMmQtZDA4NC00ZjBkLTgwODgtMTQyYzc3NmRmZDhjIiwicyI6IlpHVmxaalZsTWpFdE1qYzNZeTAwWTJJMUxXRTJNakF0TXpabU9URmhNVFUxTURWaSJ9
+    networks:
+      - app-network
+    depends_on:
+      - web
+      - api
+
+networks:
+  app-network:
+
+
+volumes:
+  postgres_data:
