@@ -28,4 +28,5 @@ export interface FinanceSummary {
     netBalance: number; // Couple settlement
     mePaidShared: number;
     spousePaidShared: number;
+    hasSharedTransactions: boolean;
 }

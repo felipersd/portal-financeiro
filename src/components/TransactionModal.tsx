@@ -199,7 +199,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                     <input type="checkbox" checked={isShared} onChange={e => setIsShared(e.target.checked)} />
                                     <span className="slider round"></span>
                                 </label>
-                                <label>Dividir com Esposa?</label>
+                                <label>Dividir com Cônjuge?</label>
                             </div>
 
                             {isShared && (
@@ -228,7 +228,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                                 color: payer === 'spouse' ? 'var(--primary)' : 'inherit'
                                             }}
                                         >
-                                            Esposa
+                                            Cônjuge
                                         </div>
                                     </div>
                                 </div>

@@ -12,7 +12,7 @@ export const Dashboard: React.FC = () => {
     const balanceText = summary.netBalance === 0
         ? "Tudo zerado!"
         : summary.netBalance > 0
-            ? `Esposa te deve R$ ${summary.netBalance.toFixed(2)}`
+            ? `Cônjuge te deve R$ ${summary.netBalance.toFixed(2)}`
             : `Você deve R$ ${Math.abs(summary.netBalance).toFixed(2)}`;
 
     const balanceClass = summary.netBalance >= 0 ? 'text-success' : 'text-danger';
@@ -21,7 +21,8 @@ export const Dashboard: React.FC = () => {
     const expensesByCategory = filteredTransactions
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => {
-            acc[t.category] = (acc[t.category] || 0) + t.amount;
+            const amount = t.isShared ? t.amount / 2 : t.amount;
+            acc[t.category] = (acc[t.category] || 0) + amount;
             return acc;
         }, {} as Record<string, number>);
 
@@ -47,7 +48,10 @@ export const Dashboard: React.FC = () => {
         });
 
         const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-        const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+        const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
+            const amount = t.isShared ? t.amount / 2 : t.amount;
+            return acc + amount;
+        }, 0);
 
         return { income, expense };
     });
@@ -99,10 +103,12 @@ export const Dashboard: React.FC = () => {
                         R$ {summary.currentBalance.toFixed(2)}
                     </span>
                 </div>
-                <div className="card">
-                    <h3 className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Balanço Casal</h3>
-                    <span className={balanceClass} style={{ fontSize: '1.25rem', fontWeight: 700 }}>{balanceText}</span>
-                </div>
+                {summary.hasSharedTransactions && (
+                    <div className="card">
+                        <h3 className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Balanço Casal</h3>
+                        <span className={balanceClass} style={{ fontSize: '1.25rem', fontWeight: 700 }}>{balanceText}</span>
+                    </div>
+                )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>

@@ -158,7 +158,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         const totalSpent = filteredTransactions
             .filter(t => t.type === 'expense')
-            .reduce((acc, t) => acc + t.amount, 0);
+            .reduce((acc, t) => {
+                const amount = t.isShared ? t.amount / 2 : t.amount;
+                return acc + amount;
+            }, 0);
 
         const currentBalance = totalIncome - totalSpent;
 
@@ -183,7 +186,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             currentBalance,
             netBalance,
             mePaidShared,
-            spousePaidShared
+            spousePaidShared,
+            hasSharedTransactions: filteredTransactions.some(t => t.isShared)
         };
     };
 

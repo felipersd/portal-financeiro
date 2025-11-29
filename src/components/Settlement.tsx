@@ -8,8 +8,8 @@ export const Settlement: React.FC = () => {
     const balanceText = summary.netBalance === 0
         ? "Tudo zerado! Ninguém deve nada."
         : summary.netBalance > 0
-            ? `A Esposa deve pagar a você`
-            : `Você deve pagar a Esposa`;
+            ? `O Cônjuge deve pagar a você`
+            : `Você deve pagar ao Cônjuge`;
 
     const amount = Math.abs(summary.netBalance).toFixed(2);
 
@@ -29,7 +29,7 @@ export const Settlement: React.FC = () => {
                         <p style={{ fontSize: '1.25rem', fontWeight: 600 }}>R$ {summary.mePaidShared.toFixed(2)}</p>
                     </div>
                     <div>
-                        <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Ela pagou (Compartilhado)</p>
+                        <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Cônjuge pagou (Compartilhado)</p>
                         <p style={{ fontSize: '1.25rem', fontWeight: 600 }}>R$ {summary.spousePaidShared.toFixed(2)}</p>
                     </div>
                 </div>
@@ -38,9 +38,9 @@ export const Settlement: React.FC = () => {
             <div className="card" style={{ width: '100%', padding: '1.5rem' }}>
                 <h3 style={{ marginBottom: '1rem' }}>Como funciona o cálculo?</h3>
                 <p className="text-secondary" style={{ lineHeight: 1.6 }}>
-                    Somamos tudo que foi marcado como <strong>"Dividir com Esposa"</strong>.<br />
-                    Se você pagou R$ 100,00, ela te deve R$ 50,00.<br />
-                    Se ela pagou R$ 100,00, você deve R$ 50,00 a ela.<br />
+                    Somamos tudo que foi marcado como <strong>"Dividir com Cônjuge"</strong>.<br />
+                    Se você pagou R$ 100,00, o cônjuge te deve R$ 50,00.<br />
+                    Se o cônjuge pagou R$ 100,00, você deve R$ 50,00 a ele.<br />
                     No final, subtraímos um do outro para ver a diferença.
                 </p>
             </div>

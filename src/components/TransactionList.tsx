@@ -27,7 +27,7 @@ export const TransactionList: React.FC = () => {
                             {t.description}
                             {t.isShared && (
                                 <span style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '2px 8px', borderRadius: '12px' }}>
-                                    Compartilhado ({t.payer === 'me' ? 'Eu' : 'Ela'})
+                                    Compartilhado ({t.payer === 'me' ? 'Eu' : 'Cônjuge'})
                                 </span>
                             )}
                             {t.recurrenceId && (
@@ -41,8 +41,13 @@ export const TransactionList: React.FC = () => {
                         </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ fontWeight: 700, fontSize: '1.125rem', color: t.type === 'income' ? 'var(--success)' : 'var(--text-primary)' }}>
-                            {t.type === 'income' ? '+' : '-'} R$ {t.amount.toFixed(2)}
+                        <div style={{ fontWeight: 700, fontSize: '1.125rem', color: t.type === 'income' ? 'var(--success)' : 'var(--text-primary)', textAlign: 'right' }}>
+                            {t.type === 'income' ? '+' : '-'} R$ {(t.isShared && t.type === 'expense' ? t.amount / 2 : t.amount).toFixed(2)}
+                            {t.isShared && t.type === 'expense' && (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                                    (Total: R$ {t.amount.toFixed(2)})
+                                </div>
+                            )}
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button

@@ -11,9 +11,11 @@ import { useFinance } from '../context/FinanceContext';
 type View = 'dashboard' | 'transactions' | 'settlement' | 'categories';
 
 export const Layout: React.FC = () => {
-    const { user, logout } = useFinance();
+    const { user, logout, getSummary } = useFinance();
     const [currentView, setCurrentView] = useState<View>('dashboard');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const { hasSharedTransactions } = getSummary();
 
     const renderContent = () => {
         switch (currentView) {
@@ -64,12 +66,14 @@ export const Layout: React.FC = () => {
                     >
                         <List size={20} /> Transações
                     </li>
-                    <li
-                        onClick={() => setCurrentView('settlement')}
-                        className={`nav-item ${currentView === 'settlement' ? 'active' : ''}`}
-                    >
-                        <Scale size={20} /> Acerto de Contas
-                    </li>
+                    {hasSharedTransactions && (
+                        <li
+                            onClick={() => setCurrentView('settlement')}
+                            className={`nav-item ${currentView === 'settlement' ? 'active' : ''}`}
+                        >
+                            <Scale size={20} /> Acerto de Contas
+                        </li>
+                    )}
                     <li
                         onClick={() => setCurrentView('categories')}
                         className={`nav-item ${currentView === 'categories' ? 'active' : ''}`}
@@ -134,13 +138,15 @@ export const Layout: React.FC = () => {
                     </div>
                     <span>Novo</span>
                 </button>
-                <button
-                    onClick={() => setCurrentView('settlement')}
-                    className={`nav-item-mobile ${currentView === 'settlement' ? 'active' : ''}`}
-                >
-                    <Scale size={24} />
-                    <span>Casal</span>
-                </button>
+                {hasSharedTransactions && (
+                    <button
+                        onClick={() => setCurrentView('settlement')}
+                        className={`nav-item-mobile ${currentView === 'settlement' ? 'active' : ''}`}
+                    >
+                        <Scale size={24} />
+                        <span>Casal</span>
+                    </button>
+                )}
                 <button
                     onClick={() => setCurrentView('categories')}
                     className={`nav-item-mobile ${currentView === 'categories' ? 'active' : ''}`}
