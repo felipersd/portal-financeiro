@@ -90,25 +90,18 @@ export const Layout: React.FC = () => {
 
             {/* Main Content */}
             <main className="main-content">
-                <header className="top-bar" style={{ justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                        <h1 className="hide-mobile">{getTitle()}</h1>
-
-                        {/* Mobile Header Logo/Title */}
-                        <div className="show-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <img src="/logo-icon.png" alt="Logo" style={{ height: '32px' }} />
-                            <span style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Portal</span>
-                        </div>
-
-                        <div className="hide-mobile">
-                            <MonthYearPicker />
-                        </div>
+                <header className="top-bar" style={{ justifyContent: 'space-between', position: 'relative' }}>
+                    <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                        <h1>{getTitle()}</h1>
+                        <MonthYearPicker />
                     </div>
 
+                    {/* Mobile Date Selector - Centered */}
+                    <div className="show-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                        <MobileDateSelector />
+                    </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', zIndex: 50 }}>
-                        <MobileDateSelector className="show-mobile" />
-
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', zIndex: 50 }}>
                         {/* Mobile Profile Menu */}
                         <div
                             className="show-mobile"
