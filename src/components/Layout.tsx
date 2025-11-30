@@ -92,7 +92,7 @@ export const Layout: React.FC = () => {
             <main className="main-content">
                 <header className="top-bar" style={{ justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                        <h1>{getTitle()}</h1>
+                        <h1 className="hide-mobile">{getTitle()}</h1>
                         <div className="hide-mobile">
                             <MonthYearPicker />
                         </div>
