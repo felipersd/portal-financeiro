@@ -17,17 +17,8 @@ export const Login: React.FC = () => {
             backgroundColor: 'var(--bg-body)',
             padding: '2rem'
         }}>
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontSize: '2.5rem',
-                fontWeight: 700,
-                color: 'var(--primary)',
-                marginBottom: '3rem'
-            }}>
-                <Wallet size={48} />
-                <span>Finanças</span>
+            <div style={{ marginBottom: '3rem' }}>
+                <img src="/logo-full.png" alt="Portal Financeiro" style={{ height: '80px', maxWidth: '100%' }} />
             </div>
 
             <div className="card" style={{

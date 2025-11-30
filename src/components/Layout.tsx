@@ -40,9 +40,8 @@ export const Layout: React.FC = () => {
         <div className="app-container">
             {/* Desktop Sidebar */}
             <nav className="sidebar">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '2rem' }}>
-                    <Wallet />
-                    <span>Finanças</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
+                    <img src="/logo-full.png" alt="Portal Financeiro" style={{ height: '40px', maxWidth: '100%' }} />
                 </div>
 
                 {/* User Profile */}
