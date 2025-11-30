@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { Trash2, Plus, Tag } from 'lucide-react';
+import { Trash2, Plus, Tag, Edit2 } from 'lucide-react';
+import { CategoryModal } from './CategoryModal';
+import type { Category } from '../types';
 
 export const CategoryManager: React.FC = () => {
     const { categories, addCategory, removeCategory } = useFinance();
     const [newCatName, setNewCatName] = useState('');
     const [newCatType, setNewCatType] = useState<'income' | 'expense'>('expense');
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,15 +57,31 @@ export const CategoryManager: React.FC = () => {
                             }}></div>
                             <span>{cat.name}</span>
                         </div>
-                        <button
-                            onClick={() => removeCategory(cat.id)}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                        >
-                            <Trash2 size={18} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                                onClick={() => setEditingCategory(cat)}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}
+                                title="Editar"
+                            >
+                                <Edit2 size={18} />
+                            </button>
+                            <button
+                                onClick={() => removeCategory(cat.id)}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                title="Excluir"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
+
+            <CategoryModal
+                isOpen={!!editingCategory}
+                onClose={() => setEditingCategory(null)}
+                category={editingCategory}
+            />
         </div>
     );
 };

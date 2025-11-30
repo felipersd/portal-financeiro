@@ -16,7 +16,8 @@ services:
     image: node:20-alpine
     working_dir: /app
     volumes:
-      - ./server:/app
+      - ${PROJECT_ROOT:-.}/server:/app
+      - /app/node_modules
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/finance
       - AUTH0_DOMAIN=dev-yxlju5n75et0q146.us.auth0.com
@@ -35,7 +36,8 @@ services:
     image: node:20-alpine
     working_dir: /app
     volumes:
-      - .:/app
+      - ${PROJECT_ROOT:-.}:/app
+      - /app/node_modules
     ports:
       - "5173:5173"
     networks:
@@ -61,6 +63,7 @@ services:
       - "7000:7000"
     environment:
       - WEBHOOK_SECRET=csetytpNVal0mHJGX2xA7D5LomCe6UKH
+      - HOST_PROJECT_ROOT=c:/Users/felip/Documents/portal-financeiro
     networks:
       - app-network
     volumes:

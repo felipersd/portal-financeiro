@@ -20,6 +20,7 @@ interface FinanceContextType {
     updateTransaction: (id: string, t: any) => Promise<void>;
     removeTransaction: (id: string) => Promise<void>;
     addCategory: (name: string, type: 'income' | 'expense') => Promise<void>;
+    updateCategory: (id: string, name: string, type: 'income' | 'expense') => Promise<void>;
     removeCategory: (id: string) => Promise<void>;
     getSummary: () => FinanceSummary;
     logout: () => void;
@@ -137,6 +138,22 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
     };
 
+    const updateCategory = async (id: string, name: string, type: 'income' | 'expense') => {
+        try {
+            const res = await fetch(`${API_URL}/categories/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, type })
+            });
+            if (res.ok) {
+                const updatedCat = await res.json();
+                setCategories(prev => prev.map(c => c.id === id ? updatedCat : c));
+            }
+        } catch (error) {
+            console.error('Error updating category:', error);
+        }
+    };
+
     const removeCategory = async (id: string) => {
         try {
             await fetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
@@ -204,7 +221,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             user, transactions, filteredTransactions, categories,
             selectedDate, setSelectedDate,
             addTransaction, updateTransaction, removeTransaction,
-            addCategory, removeCategory,
+            addCategory, updateCategory, removeCategory,
             getSummary, logout
         }}>
             {children}
