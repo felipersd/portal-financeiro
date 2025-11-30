@@ -39,7 +39,8 @@ export const MobileDateSelector: React.FC = () => {
     }, [selectedDate, isExpanded]);
 
     const currentMonthName = selectedDate.toLocaleString('pt-BR', { month: 'long' });
-    const currentYear = selectedDate.getFullYear();
+    const isDifferentYear = selectedDate.getFullYear() !== new Date().getFullYear();
+    const currentYear = isDifferentYear ? ` ${selectedDate.getFullYear()}` : '';
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '0.5rem' }}>
