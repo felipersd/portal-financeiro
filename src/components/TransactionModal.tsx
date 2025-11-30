@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowUpCircle, ArrowDownCircle, Repeat } from 'lucide-react';
+import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import type { Category, Payer, TransactionType, Transaction } from '../types';
 
@@ -42,7 +42,10 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setDescription('');
                 setAmountStr('');
                 setCategoryId('');
-                setDate(new Date().toISOString().split('T')[0]);
+                // Use local date to avoid timezone issues
+                const today = new Date();
+                const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+                setDate(localDate);
                 setIsShared(false);
                 setPayer('me');
                 setRecurrenceFrequency('none');
@@ -91,6 +94,12 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
     };
 
     const filteredCategories = categories.filter(c => c.type === type);
+
+    const formatDateDisplay = (dateString: string) => {
+        if (!dateString) return 'Selecione uma data';
+        const [y, m, d] = dateString.split('-');
+        return `${d}/${m}/${y}`;
+    };
 
     return (
         <div style={{
@@ -157,7 +166,27 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
                     <div className="form-group">
                         <label>Data</label>
-                        <input type="date" required value={date} onChange={e => setDate(e.target.value)} />
+                        <div style={{ position: 'relative' }}>
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                backgroundColor: 'var(--bg-body)', border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius-md)', padding: '1rem', color: 'var(--text-primary)',
+                                height: '58px' // Match typical input height
+                            }}>
+                                <span>{formatDateDisplay(date)}</span>
+                                <Calendar size={20} color="var(--text-secondary)" />
+                            </div>
+                            <input
+                                type="date"
+                                required
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                style={{
+                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                    opacity: 0, cursor: 'pointer'
+                                }}
+                            />
+                        </div>
                     </div>
 
                     {/* Recurrence (Only for new expenses) */}
