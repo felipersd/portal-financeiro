@@ -106,13 +106,13 @@ export const Layout: React.FC = () => {
                     </div>
 
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: 'auto', justifyContent: 'flex-end' }}>
-                        <div className="show-mobile" style={{ width: 'auto' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div className="show-mobile">
                             <MobileDateSelector />
                         </div>
 
                         {/* Mobile Profile Menu */}
-                        <div className="show-mobile" style={{ position: 'relative' }}>
+                        <div className="show-mobile" style={{ position: 'relative', marginLeft: '0.5rem' }}>
                             <div
                                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                                 style={{
@@ -120,14 +120,17 @@ export const Layout: React.FC = () => {
                                     padding: '2px',
                                     border: isProfileMenuOpen ? '2px solid var(--primary)' : '2px solid transparent',
                                     borderRadius: '50%',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
                             >
                                 {user?.avatar ? (
-                                    <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'block' }} />
+                                    <img src={user.avatar} alt="Avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'block', objectFit: 'cover' }} />
                                 ) : (
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{user?.name?.charAt(0)}</span>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
+                                        <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name?.charAt(0) || 'U'}</span>
                                     </div>
                                 )}
                             </div>
