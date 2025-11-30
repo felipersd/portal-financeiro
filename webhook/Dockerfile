@@ -1,9 +1,21 @@
-FROM python:3.11-slim
+# webhook/Dockerfile
+FROM python:3.11-alpine
 
-WORKDIR /app
+# Instala dependências do sistema
+RUN apk add --no-cache bash git docker-cli docker-cli-compose
 
-COPY webhook.py .
-
+# Instala Flask
 RUN pip install flask
 
-CMD ["python3", "webhook.py"]
+# Define o diretório de trabalho
+WORKDIR /app
+
+# Copia os arquivos do webhook para a pasta webhook/ para manter a estrutura do repo
+COPY webhook.py webhook/
+COPY deploy.sh webhook/
+
+# Dá permissão de execução para o deploy.sh
+RUN chmod +x webhook/deploy.sh
+
+# Comando para iniciar o webhook
+CMD ["python", "webhook/webhook.py"]

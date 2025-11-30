@@ -1,5 +1,4 @@
-#!/bin/bash
-cd /Users/felipediniz/Documents/Projetos/portal-financeiro
+Set-Location "C:\Users\felip\Documents\portal-financeiro"
 
 git pull
 

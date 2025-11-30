@@ -52,17 +52,20 @@ services:
     networks:
       - app-network
     depends_on:
-      - web
-      - api
+      - webhook
 
   webhook:
     build: ./webhook
     container_name: webhook
     ports:
-      - "7001:5173"
+      - "7000:7000"
+    environment:
+      - WEBHOOK_SECRET=csetytpNVal0mHJGX2xA7D5LomCe6UKH
     networks:
       - app-network
-
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock # PERMITE CONTROLAR O DOCKER DO HOST
 
 networks:
   app-network:
