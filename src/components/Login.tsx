@@ -18,7 +18,7 @@ export const Login: React.FC = () => {
             padding: '2rem'
         }}>
             <div style={{ marginBottom: '2rem' }}>
-                <img src="/logo-full.png" alt="Portal Financeiro" style={{ height: '120px', maxWidth: '100%', filter: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.3))' }} />
+                <img src="/logo-full.png?v=2" alt="Portal Financeiro" style={{ height: '120px', maxWidth: '100%', filter: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.3))' }} />
             </div>
 
             <div className="card" style={{

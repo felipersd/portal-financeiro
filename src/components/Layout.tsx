@@ -41,7 +41,7 @@ export const Layout: React.FC = () => {
             {/* Desktop Sidebar */}
             <nav className="sidebar">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3rem', marginTop: '1rem' }}>
-                    <img src="/logo-full.png" alt="Portal Financeiro" style={{ height: '60px', maxWidth: '100%', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))' }} />
+                    <img src="/logo-full.png?v=2" alt="Portal Financeiro" style={{ height: '60px', maxWidth: '100%', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))' }} />
                 </div>
 
                 {/* User Profile */}
