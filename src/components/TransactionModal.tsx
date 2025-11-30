@@ -26,6 +26,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
     useEffect(() => {
         if (isOpen) {
+            document.body.style.overflow = 'hidden';
             if (editTransaction) {
                 // Edit Mode
                 setType(editTransaction.type);
@@ -51,7 +52,12 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setRecurrenceFrequency('none');
                 setRecurrenceCount(1);
             }
+        } else {
+            document.body.style.overflow = 'unset';
         }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isOpen, editTransaction]);
 
     if (!isOpen) return null;

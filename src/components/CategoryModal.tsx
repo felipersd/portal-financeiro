@@ -15,10 +15,18 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
     const [type, setType] = useState<'income' | 'expense'>('expense');
 
     useEffect(() => {
-        if (isOpen && category) {
-            setName(category.name);
-            setType(category.type);
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+            if (category) {
+                setName(category.name);
+                setType(category.type);
+            }
+        } else {
+            document.body.style.overflow = 'unset';
         }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isOpen, category]);
 
     if (!isOpen || !category) return null;
