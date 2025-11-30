@@ -84,7 +84,7 @@ app.get('/transactions', isAuthenticated, async (req: any, res) => {
 // Create Transaction
 app.post('/transactions', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
-    const { description, amount, type, category, date, isShared, payer, recurrenceFrequency, recurrenceCount } = req.body;
+    const { description, amount, type, category, date, isShared, payer, recurrenceFrequency, recurrenceCount, splitDetails } = req.body;
 
     try {
         const baseDate = new Date(date);
@@ -107,6 +107,7 @@ app.post('/transactions', isAuthenticated, async (req: any, res) => {
                 isShared,
                 payer,
                 recurrenceId,
+                splitDetails,
                 userId // Link to user
             });
         }
@@ -122,7 +123,7 @@ app.post('/transactions', isAuthenticated, async (req: any, res) => {
 app.put('/transactions/:id', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-    const { description, amount, type, category, date, isShared, payer } = req.body;
+    const { description, amount, type, category, date, isShared, payer, splitDetails } = req.body;
 
     try {
         // Ensure user owns transaction
@@ -138,7 +139,8 @@ app.put('/transactions/:id', isAuthenticated, async (req: any, res) => {
                 category,
                 date: new Date(date),
                 isShared,
-                payer
+                payer,
+                splitDetails
             }
         });
         res.json(updated);

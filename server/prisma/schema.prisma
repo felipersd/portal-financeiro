@@ -19,6 +19,7 @@ model Transaction {
   payer       String   // 'me' | 'spouse'
   createdAt   DateTime @default(now())
   recurrenceId String? // Optional: to group recurring transactions
+  splitDetails Json?   // Custom split details
   
   userId      String?
   user        User?    @relation(fields: [userId], references: [id])
