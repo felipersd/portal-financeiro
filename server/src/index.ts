@@ -112,7 +112,7 @@ app.post('/transactions', isAuthenticated, async (req: any, res) => {
             });
         }
 
-        await prisma.transaction.createMany({ data: transactionsToCreate });
+        await prisma.transaction.createMany({ data: transactionsToCreate as any });
         res.json({ message: 'Transactions created' });
     } catch (error) {
         console.error('Error creating transaction:', error);
@@ -142,7 +142,7 @@ app.put('/transactions/:id', isAuthenticated, async (req: any, res) => {
                 isShared,
                 payer,
                 splitDetails
-            }
+            } as any
         });
         res.json(updated);
     } catch (error) {
