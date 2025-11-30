@@ -49,7 +49,7 @@ export const MobileDateSelector: React.FC = () => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 'auto', gap: '0.5rem' }}>
             {/* Header */}
-            <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ position: 'relative', width: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <div
                     onClick={() => setIsExpanded(!isExpanded)}
                     style={{
