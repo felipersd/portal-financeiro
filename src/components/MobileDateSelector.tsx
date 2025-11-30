@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 
-export const MobileDateSelector: React.FC = () => {
+interface MobileDateSelectorProps {
+    className?: string;
+}
+
+export const MobileDateSelector: React.FC<MobileDateSelectorProps> = ({ className }) => {
     const { selectedDate, setSelectedDate } = useFinance();
     const [isExpanded, setIsExpanded] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,7 +51,7 @@ export const MobileDateSelector: React.FC = () => {
     const currentYear = isDifferentYear ? ` ${selectedDate.getFullYear()}` : '';
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+        <div className={className} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
             {/* Header */}
             <div style={{ position: 'relative', width: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <div

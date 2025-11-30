@@ -106,13 +106,14 @@ export const Layout: React.FC = () => {
                     </div>
 
 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <div className="show-mobile">
-                            <MobileDateSelector />
-                        </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', zIndex: 50 }}>
+                        <MobileDateSelector className="show-mobile" />
 
                         {/* Mobile Profile Menu */}
-                        <div className="show-mobile" style={{ position: 'relative', marginLeft: '0.5rem' }}>
+                        <div
+                            className="show-mobile"
+                            style={{ position: 'relative', marginLeft: '0.25rem' }}
+                        >
                             <div
                                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                                 style={{
