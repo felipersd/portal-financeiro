@@ -78,7 +78,7 @@ export const Layout: React.FC = () => {
                         onClick={() => setCurrentView('categories')}
                         className={`nav-item ${currentView === 'categories' ? 'active' : ''}`}
                     >
-                        <Tag size={20} /> Categorias
+                        <Tag size={20} /> Categorias -aaaaa
                     </li>
                 </ul>
 
