@@ -115,6 +115,7 @@ app.post('/transactions', isAuthenticated, async (req: any, res) => {
         await prisma.transaction.createMany({ data: transactionsToCreate });
         res.json({ message: 'Transactions created' });
     } catch (error) {
+        console.error('Error creating transaction:', error);
         res.status(500).json({ error: 'Error creating transaction' });
     }
 });
@@ -145,6 +146,7 @@ app.put('/transactions/:id', isAuthenticated, async (req: any, res) => {
         });
         res.json(updated);
     } catch (error) {
+        console.error('Error updating transaction:', error);
         res.status(500).json({ error: 'Error updating transaction' });
     }
 });
