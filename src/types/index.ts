@@ -19,6 +19,11 @@ export interface Transaction {
     payer: Payer;
     recurrenceId?: string;
     createdAt: string;
+    splitDetails?: {
+        mode: 'equal' | 'custom';
+        myShare: number;
+        spouseShare: number;
+    };
 }
 
 export interface FinanceSummary {

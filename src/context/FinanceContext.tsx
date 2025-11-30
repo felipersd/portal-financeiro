@@ -176,7 +176,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const totalSpent = filteredTransactions
             .filter(t => t.type === 'expense')
             .reduce((acc, t) => {
-                const amount = t.isShared ? t.amount / 2 : t.amount;
+                let amount = t.amount;
+                if (t.isShared) {
+                    if (t.splitDetails && t.splitDetails.mode === 'custom') {
+                        amount = t.splitDetails.myShare;
+                    } else {
+                        amount = t.amount / 2;
+                    }
+                }
                 return acc + amount;
             }, 0);
 
@@ -186,6 +193,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         let spousePaidShared = 0;
 
         filteredTransactions.filter(t => t.isShared && t.type === 'expense').forEach(t => {
+            // If I paid
             if (t.payer === 'me') {
                 mePaidShared += t.amount;
             } else {
@@ -193,8 +201,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             }
         });
 
-        const spouseOwesMe = mePaidShared / 2;
-        const meOwesSpouse = spousePaidShared / 2;
+        // Calculate who owes whom based on SHARES, not just 50/50
+        let spouseOwesMe = 0;
+        let meOwesSpouse = 0;
+
+        filteredTransactions.filter(t => t.isShared && t.type === 'expense').forEach(t => {
+            const myShare = (t.splitDetails && t.splitDetails.mode === 'custom')
+                ? t.splitDetails.myShare
+                : t.amount / 2;
+
+            const spouseShare = (t.splitDetails && t.splitDetails.mode === 'custom')
+                ? t.splitDetails.spouseShare
+                : t.amount / 2;
+
+            if (t.payer === 'me') {
+                // I paid everything, so spouse owes me their share
+                spouseOwesMe += spouseShare;
+            } else {
+                // Spouse paid everything, so I owe spouse my share
+                meOwesSpouse += myShare;
+            }
+        });
+
         const netBalance = spouseOwesMe - meOwesSpouse;
 
         return {

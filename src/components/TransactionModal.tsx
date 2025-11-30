@@ -20,6 +20,11 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
     const [isShared, setIsShared] = useState(false);
     const [payer, setPayer] = useState<Payer>('me');
 
+    // Split State
+    const [splitMode, setSplitMode] = useState<'equal' | 'custom'>('equal');
+    const [customAmount, setCustomAmount] = useState('');
+    const [customOwner, setCustomOwner] = useState<'me' | 'spouse'>('me');
+
     // Recurrence State
     const [recurrenceFrequency, setRecurrenceFrequency] = useState('none');
     const [recurrenceCount, setRecurrenceCount] = useState(1);
@@ -37,6 +42,19 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setIsShared(editTransaction.isShared);
                 setPayer(editTransaction.payer);
                 setRecurrenceFrequency('none');
+
+                if (editTransaction.splitDetails && editTransaction.splitDetails.mode === 'custom') {
+                    setSplitMode('custom');
+                    // If my share is stored, show it as "Minha" custom amount
+                    // Or we could infer based on logic. For simplicity, let's just load myShare
+                    setCustomAmount(editTransaction.splitDetails.myShare.toString());
+                    setCustomOwner('me');
+                } else {
+                    setSplitMode('equal');
+                    setCustomAmount('');
+                    setCustomOwner('me');
+                }
+
             } else {
                 // Create Mode
                 setType('expense');
@@ -51,6 +69,9 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setPayer('me');
                 setRecurrenceFrequency('none');
                 setRecurrenceCount(1);
+                setSplitMode('equal');
+                setCustomAmount('');
+                setCustomOwner('me');
             }
         } else {
             document.body.style.overflow = 'unset';
@@ -79,16 +100,46 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const totalAmount = getNumericAmount();
+        let splitDetails = undefined;
+
+        if (isShared && type === 'expense') {
+            if (splitMode === 'custom' && customAmount) {
+                const cAmount = parseFloat(customAmount);
+                if (customOwner === 'me') {
+                    splitDetails = {
+                        mode: 'custom' as const,
+                        myShare: cAmount,
+                        spouseShare: totalAmount - cAmount
+                    };
+                } else {
+                    splitDetails = {
+                        mode: 'custom' as const,
+                        myShare: totalAmount - cAmount,
+                        spouseShare: cAmount
+                    };
+                }
+            } else {
+                splitDetails = {
+                    mode: 'equal' as const,
+                    myShare: totalAmount / 2,
+                    spouseShare: totalAmount / 2
+                };
+            }
+        }
+
         const data = {
             description,
-            amount: getNumericAmount(),
+            amount: totalAmount,
             type,
             category: categoryId,
             date,
             isShared: type === 'expense' ? isShared : false,
             payer,
             recurrenceFrequency: !editTransaction ? recurrenceFrequency : undefined,
-            recurrenceCount: !editTransaction ? recurrenceCount : undefined
+            recurrenceCount: !editTransaction ? recurrenceCount : undefined,
+            splitDetails
         };
 
         if (editTransaction) {
@@ -242,33 +293,116 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                             </div>
 
                             {isShared && (
-                                <div className="form-group">
-                                    <label>Quem pagou?</label>
-                                    <div style={{ display: 'flex', gap: '1rem' }}>
-                                        <div
-                                            onClick={() => setPayer('me')}
-                                            style={{
-                                                flex: 1, padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                                cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
-                                                backgroundColor: payer === 'me' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                                                borderColor: payer === 'me' ? 'var(--primary)' : 'var(--border)',
-                                                color: payer === 'me' ? 'var(--primary)' : 'inherit'
-                                            }}
-                                        >
-                                            Eu
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
+                                    <div className="form-group">
+                                        <label>Quem pagou?</label>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <div
+                                                onClick={() => setPayer('me')}
+                                                style={{
+                                                    flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                                    cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
+                                                    backgroundColor: payer === 'me' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                                                    borderColor: payer === 'me' ? 'var(--primary)' : 'var(--border)',
+                                                    color: payer === 'me' ? 'var(--primary)' : 'inherit'
+                                                }}
+                                            >
+                                                Eu
+                                            </div>
+                                            <div
+                                                onClick={() => setPayer('spouse')}
+                                                style={{
+                                                    flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                                    cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
+                                                    backgroundColor: payer === 'spouse' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                                                    borderColor: payer === 'spouse' ? 'var(--primary)' : 'var(--border)',
+                                                    color: payer === 'spouse' ? 'var(--primary)' : 'inherit'
+                                                }}
+                                            >
+                                                Cônjuge
+                                            </div>
                                         </div>
-                                        <div
-                                            onClick={() => setPayer('spouse')}
-                                            style={{
-                                                flex: 1, padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                                cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
-                                                backgroundColor: payer === 'spouse' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                                                borderColor: payer === 'spouse' ? 'var(--primary)' : 'var(--border)',
-                                                color: payer === 'spouse' ? 'var(--primary)' : 'inherit'
-                                            }}
-                                        >
-                                            Cônjuge
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Divisão</label>
+                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                                            <div
+                                                onClick={() => setSplitMode('equal')}
+                                                style={{
+                                                    flex: 1, padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                                    cursor: 'pointer', textAlign: 'center', fontSize: '0.875rem',
+                                                    backgroundColor: splitMode === 'equal' ? 'var(--bg-card)' : 'transparent',
+                                                    borderColor: splitMode === 'equal' ? 'var(--primary)' : 'var(--border)',
+                                                    color: splitMode === 'equal' ? 'var(--primary)' : 'var(--text-secondary)'
+                                                }}
+                                            >
+                                                Meio a Meio (50%)
+                                            </div>
+                                            <div
+                                                onClick={() => setSplitMode('custom')}
+                                                style={{
+                                                    flex: 1, padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                                    cursor: 'pointer', textAlign: 'center', fontSize: '0.875rem',
+                                                    backgroundColor: splitMode === 'custom' ? 'var(--bg-card)' : 'transparent',
+                                                    borderColor: splitMode === 'custom' ? 'var(--primary)' : 'var(--border)',
+                                                    color: splitMode === 'custom' ? 'var(--primary)' : 'var(--text-secondary)'
+                                                }}
+                                            >
+                                                Personalizado
+                                            </div>
                                         </div>
+
+                                        {splitMode === 'custom' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Quanto foi a parte de quem?</label>
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Valor"
+                                                            value={customAmount}
+                                                            onChange={e => setCustomAmount(e.target.value)}
+                                                            style={{ width: '100%' }}
+                                                        />
+                                                    </div>
+                                                    <div style={{ flex: 1, display: 'flex', gap: '0.5rem' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setCustomOwner('me')}
+                                                            style={{
+                                                                flex: 1, border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                                                backgroundColor: customOwner === 'me' ? 'var(--primary)' : 'transparent',
+                                                                color: customOwner === 'me' ? 'white' : 'var(--text-secondary)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Minha
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setCustomOwner('spouse')}
+                                                            style={{
+                                                                flex: 1, border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                                                backgroundColor: customOwner === 'spouse' ? 'var(--primary)' : 'transparent',
+                                                                color: customOwner === 'spouse' ? 'white' : 'var(--text-secondary)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Dele(a)
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {customAmount && (
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                                                        {customOwner === 'me'
+                                                            ? `Você paga R$ ${parseFloat(customAmount).toFixed(2)} e Cônjuge paga R$ ${(getNumericAmount() - parseFloat(customAmount)).toFixed(2)}`
+                                                            : `Cônjuge paga R$ ${parseFloat(customAmount).toFixed(2)} e Você paga R$ ${(getNumericAmount() - parseFloat(customAmount)).toFixed(2)}`
+                                                        }
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
