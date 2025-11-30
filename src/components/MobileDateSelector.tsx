@@ -51,73 +51,110 @@ export const MobileDateSelector: React.FC<MobileDateSelectorProps> = ({ classNam
     const currentYear = isDifferentYear ? ` ${selectedDate.getFullYear()}` : '';
 
     return (
-        <div className={className} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+        <div className={className} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {/* Header */}
-            <div style={{ position: 'relative', width: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                        fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer',
-                        padding: '0.5rem', borderRadius: '0.5rem', transition: 'background-color 0.2s'
-                    }}
-                >
-                    <span style={{ textTransform: 'capitalize' }}>{currentMonthName} {currentYear}</span>
-                    <ChevronDown size={20} style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                </div>
+            <div
+                onClick={() => setIsExpanded(!isExpanded)}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    borderRadius: '0.5rem',
+                    backgroundColor: isExpanded ? 'var(--bg-card)' : 'transparent',
+                    transition: 'background-color 0.2s',
+                    zIndex: 20
+                }}
+            >
+                <img src="/logo-icon.png" alt="Logo" style={{ height: '24px', width: '24px' }} />
+                <span style={{
+                    fontSize: '1.125rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    textTransform: 'capitalize'
+                }}>
+                    {currentMonthName} {currentYear}
+                </span>
+                <ChevronDown size={20} style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
             </div>
 
-            {/* Expandable Carousel */}
-            <div style={{
-                width: '100%',
-                maxHeight: isExpanded ? '80px' : '0',
-                opacity: isExpanded ? 1 : 0,
-                overflow: 'hidden',
-                transition: 'all 0.3s ease-in-out',
-            }}>
-                <div
-                    ref={scrollRef}
-                    style={{
-                        display: 'flex', gap: '0.75rem', overflowX: 'auto', padding: '0.5rem 1rem',
-                        scrollbarWidth: 'none', msOverflowStyle: 'none',
-                        scrollBehavior: 'smooth',
-                        scrollSnapType: 'x mandatory'
-                    }}
-                >
-                    {months.map((date, index) => {
-                        const isSelected = date.getMonth() === selectedDate.getMonth() && date.getFullYear() === selectedDate.getFullYear();
-                        const isDifferentYear = date.getFullYear() !== new Date().getFullYear();
-                        const label = date.toLocaleString('pt-BR', { month: 'long' });
-                        const yearLabel = isDifferentYear ? ` ${date.getFullYear()}` : '';
+            {/* Expandable Carousel - Absolutely Positioned */}
+            {isExpanded && (
+                <>
+                    <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                        onClick={() => setIsExpanded(false)}
+                    />
+                    <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '90vw',
+                        maxWidth: '350px',
+                        backgroundColor: 'var(--bg-card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '1rem',
+                        padding: '1rem 0',
+                        marginTop: '0.5rem',
+                        boxShadow: 'var(--shadow-lg)',
+                        zIndex: 20,
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                        <div
+                            ref={scrollRef}
+                            style={{
+                                display: 'flex',
+                                gap: '0.5rem',
+                                overflowX: 'auto',
+                                padding: '0 50%', // Large padding to allow centering first/last items
+                                scrollbarWidth: 'none',
+                                msOverflowStyle: 'none',
+                                scrollBehavior: 'smooth',
+                                scrollSnapType: 'x mandatory'
+                            }}
+                        >
+                            {months.map((date, index) => {
+                                const isSelected = date.getMonth() === selectedDate.getMonth() && date.getFullYear() === selectedDate.getFullYear();
+                                const isDifferentYear = date.getFullYear() !== new Date().getFullYear();
+                                const label = date.toLocaleString('pt-BR', { month: 'long' });
+                                const yearLabel = isDifferentYear ? ` ${date.getFullYear()}` : '';
 
-                        return (
-                            <button
-                                key={index}
-                                ref={isSelected ? selectedRef : null}
-                                onClick={() => changeMonth(date)}
-                                style={{
-                                    flex: '0 0 auto',
-                                    minWidth: '30%', // Approx 3 items visible
-                                    padding: '0.5rem 0',
-                                    borderRadius: '2rem',
-                                    border: isSelected ? 'none' : '1px solid var(--border)',
-                                    backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg-card)',
-                                    color: isSelected ? 'white' : 'var(--text-secondary)',
-                                    fontWeight: isSelected ? 600 : 400,
-                                    cursor: 'pointer',
-                                    textTransform: 'capitalize',
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: isSelected ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none',
-                                    scrollSnapAlign: 'center'
-                                }}
-                            >
-                                {label}{yearLabel}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
+                                return (
+                                    <button
+                                        key={index}
+                                        ref={isSelected ? selectedRef : null}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            changeMonth(date);
+                                        }}
+                                        style={{
+                                            flex: '0 0 auto',
+                                            width: '100px',
+                                            padding: '0.5rem 0',
+                                            borderRadius: '2rem',
+                                            border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                                            backgroundColor: isSelected ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
+                                            color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                            fontWeight: isSelected ? 700 : 400,
+                                            cursor: 'pointer',
+                                            textTransform: 'capitalize',
+                                            whiteSpace: 'nowrap',
+                                            transition: 'all 0.2s ease',
+                                            scrollSnapAlign: 'center',
+                                            textAlign: 'center'
+                                        }}
+                                    >
+                                        {label}{yearLabel}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };
