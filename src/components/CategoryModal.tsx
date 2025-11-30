@@ -35,9 +35,9 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
         <div style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 1000, backdropFilter: 'blur(4px)'
+            zIndex: 1000, backdropFilter: 'blur(4px)', overflow: 'hidden'
         }}>
-            <div className="card" style={{ width: '100%', maxWidth: '400px', boxShadow: 'var(--shadow-lg)' }}>
+            <div className="card" style={{ width: '90%', maxWidth: '400px', boxShadow: 'var(--shadow-lg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Tag size={20} /> Editar Categoria
