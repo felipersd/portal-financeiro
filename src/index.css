@@ -1,42 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
-:root {
-  /* Colors */
-  --bg-body: #0f172a;
-  --bg-sidebar: #1e293b;
-  --bg-card: #1e293b;
-  --bg-hover: #334155;
+/* Colors */
+--bg-body: #020617;
+/* Slate 950 - Darker premium background */
+--bg-sidebar: #0f172a;
+/* Slate 900 */
+--bg-card: #0f172a;
+--bg-hover: #1e293b;
 
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+--text-primary: #f8fafc;
+--text-secondary: #94a3b8;
 
-  --primary: #6366f1;
-  /* Indigo 500 */
-  --primary-hover: #4f46e5;
+--primary: #8b5cf6;
+/* Violet 500 - Matches logo left side */
+--secondary: #10b981;
+/* Emerald 500 - Matches logo right side */
 
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+--primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+--primary-hover: #7c3aed;
 
-  --border: #334155;
+--success: #10b981;
+--danger: #ef4444;
+--warning: #f59e0b;
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
+--border: #1e293b;
 
-  /* Radius */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-full: 9999px;
+/* Spacing */
+--spacing-xs: 0.25rem;
+--spacing-sm: 0.5rem;
+--spacing-md: 1rem;
+--spacing-lg: 1.5rem;
+--spacing-xl: 2rem;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+/* Radius */
+--radius-sm: 0.375rem;
+--radius-md: 0.5rem;
+--radius-lg: 0.75rem;
+--radius-full: 9999px;
+
+/* Shadows */
+--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+0 2px 4px -2px rgb(0 0 0 / 0.1);
+--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+0 4px 6px -4px rgb(0 0 0 / 0.1);
+--shadow-glow: 0 0 20px rgba(139, 92, 246, 0.15);
+/* Purple glow */
 }
 
 * {
@@ -125,8 +134,9 @@ button {
 }
 
 .nav-item.active {
-  background-color: var(--primary);
+  background: var(--primary-gradient);
   color: white;
+  box-shadow: var(--shadow-glow);
 }
 
 .nav-item-mobile {
@@ -187,7 +197,7 @@ button {
 
 /* Utility Classes */
 .btn-primary {
-  background-color: var(--primary);
+  background: var(--primary-gradient);
   color: white;
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
@@ -197,11 +207,11 @@ button {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  transition: background-color 0.2s;
+  transition: opacity 0.2s;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
+  opacity: 0.9;
 }
 
 .btn-secondary {

@@ -40,8 +40,8 @@ export const Layout: React.FC = () => {
         <div className="app-container">
             {/* Desktop Sidebar */}
             <nav className="sidebar">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
-                    <img src="/logo-full.png" alt="Portal Financeiro" style={{ height: '40px', maxWidth: '100%' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3rem', marginTop: '1rem' }}>
+                    <img src="/logo-full.png" alt="Portal Financeiro" style={{ height: '60px', maxWidth: '100%', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))' }} />
                 </div>
 
                 {/* User Profile */}
@@ -137,7 +137,7 @@ export const Layout: React.FC = () => {
                     style={{ color: 'var(--primary)', marginTop: '-1.5rem' }}
                 >
                     <div style={{
-                        backgroundColor: 'var(--primary)',
+                        background: 'var(--primary-gradient)',
                         borderRadius: '50%',
                         padding: '1rem',
                         boxShadow: '0 4px 10px rgba(99, 102, 241, 0.5)',
