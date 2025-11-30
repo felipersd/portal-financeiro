@@ -6,6 +6,7 @@ import { Settlement } from './Settlement';
 import { TransactionModal } from './TransactionModal';
 import { CategoryManager } from './CategoryManager';
 import { MonthYearPicker } from './MonthYearPicker';
+import { MobileDateSelector } from './MobileDateSelector';
 import { useFinance } from '../context/FinanceContext';
 
 type View = 'dashboard' | 'transactions' | 'settlement' | 'categories';
@@ -97,13 +98,16 @@ export const Layout: React.FC = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <div className="show-mobile">
-                            <MonthYearPicker />
+
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                        <div className="show-mobile" style={{ width: '100%' }}>
+                            <MobileDateSelector />
                         </div>
-                        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-                            <Plus size={20} /> <span className="hide-mobile">Nova Transação</span>
-                        </button>
+                        <div className="hide-mobile">
+                            <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+                                <Plus size={20} /> <span>Nova Transação</span>
+                            </button>
+                        </div>
                     </div>
                 </header>
 
