@@ -135,12 +135,23 @@ export const Layout: React.FC = () => {
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="nav-item-mobile"
-                    style={{ color: 'var(--primary)' }}
+                    style={{ color: 'var(--primary)', marginTop: '-1.5rem' }}
                 >
-                    <div style={{ backgroundColor: 'var(--primary)', borderRadius: '50%', padding: '0.5rem', boxShadow: 'var(--shadow-md)' }}>
-                        <Plus size={24} color="white" />
+                    <div style={{
+                        backgroundColor: 'var(--primary)',
+                        borderRadius: '50%',
+                        padding: '1rem',
+                        boxShadow: '0 4px 10px rgba(99, 102, 241, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '56px',
+                        height: '56px',
+                        marginBottom: '0.25rem'
+                    }}>
+                        <Plus size={32} color="white" />
                     </div>
-                    <span>Novo</span>
+                    <span style={{ fontWeight: 600 }}>Novo</span>
                 </button>
                 {hasSharedTransactions && (
                     <button
