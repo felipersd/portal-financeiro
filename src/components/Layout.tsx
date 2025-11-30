@@ -15,6 +15,7 @@ export const Layout: React.FC = () => {
     const { user, logout, getSummary } = useFinance();
     const [currentView, setCurrentView] = useState<View>('dashboard');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
     const { hasSharedTransactions } = getSummary();
 
@@ -92,16 +93,91 @@ export const Layout: React.FC = () => {
                 <header className="top-bar" style={{ justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                         <h1 className="hide-mobile">{getTitle()}</h1>
+
+                        {/* Mobile Header Logo/Title */}
+                        <div className="show-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <img src="/logo-icon.png" alt="Logo" style={{ height: '32px' }} />
+                            <span style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Portal</span>
+                        </div>
+
                         <div className="hide-mobile">
                             <MonthYearPicker />
                         </div>
                     </div>
 
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                        <div className="show-mobile" style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: 'auto', justifyContent: 'flex-end' }}>
+                        <div className="show-mobile" style={{ width: 'auto' }}>
                             <MobileDateSelector />
                         </div>
+
+                        {/* Mobile Profile Menu */}
+                        <div className="show-mobile" style={{ position: 'relative' }}>
+                            <div
+                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                style={{
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                    border: isProfileMenuOpen ? '2px solid var(--primary)' : '2px solid transparent',
+                                    borderRadius: '50%',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {user?.avatar ? (
+                                    <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'block' }} />
+                                ) : (
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{user?.name?.charAt(0)}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {isProfileMenuOpen && (
+                                <>
+                                    <div
+                                        style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                                        onClick={() => setIsProfileMenuOpen(false)}
+                                    />
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '120%',
+                                        right: 0,
+                                        background: 'var(--bg-card)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: '0.5rem',
+                                        minWidth: '150px',
+                                        boxShadow: 'var(--shadow-lg)',
+                                        zIndex: 50,
+                                        animation: 'fadeIn 0.2s ease-out'
+                                    }}>
+                                        <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name}</div>
+                                        </div>
+                                        <button
+                                            onClick={logout}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                width: '100%',
+                                                padding: '0.5rem',
+                                                background: 'none',
+                                                border: 'none',
+                                                color: 'var(--danger)',
+                                                cursor: 'pointer',
+                                                borderRadius: 'var(--radius-sm)',
+                                                fontSize: '0.875rem'
+                                            }}
+                                        >
+                                            <LogOut size={16} />
+                                            Sair
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
                         <div className="hide-mobile">
                             <button onClick={() => setIsModalOpen(true)} className="btn-primary">
                                 <Plus size={20} /> <span>Nova Transação</span>
