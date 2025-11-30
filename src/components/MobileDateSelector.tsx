@@ -47,7 +47,7 @@ export const MobileDateSelector: React.FC = () => {
     const currentYear = isDifferentYear ? ` ${selectedDate.getFullYear()}` : '';
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 'auto', gap: '0.5rem' }}>
             {/* Header */}
             <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <div
@@ -61,16 +61,6 @@ export const MobileDateSelector: React.FC = () => {
                     <span style={{ textTransform: 'capitalize' }}>{currentMonthName} {currentYear}</span>
                     <ChevronDown size={20} style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                 </div>
-
-                {user?.avatar && (
-                    <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
-                        <img
-                            src={user.avatar}
-                            alt={user.name}
-                            style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--bg-card)' }}
-                        />
-                    </div>
-                )}
             </div>
 
             {/* Expandable Carousel */}
