@@ -144,7 +144,7 @@ export const Layout: React.FC = () => {
                         className={`nav-item-mobile ${currentView === 'settlement' ? 'active' : ''}`}
                     >
                         <Scale size={24} />
-                        <span>Casal</span>
+                        <span>TESTE</span>
                     </button>
                 )}
                 <button
