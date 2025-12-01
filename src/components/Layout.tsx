@@ -6,7 +6,7 @@ import { Settlement } from './Settlement';
 import { TransactionModal } from './TransactionModal';
 import { CategoryManager } from './CategoryManager';
 import { MonthYearPicker } from './MonthYearPicker';
-import { MobileDateSelector } from './MobileDateSelector';
+import { MobileDateTrigger, MobileDateCarousel } from './MobileDateSelector';
 import { useFinance } from '../context/FinanceContext';
 
 type View = 'dashboard' | 'transactions' | 'settlement' | 'categories';
@@ -16,6 +16,7 @@ export const Layout: React.FC = () => {
     const [currentView, setCurrentView] = useState<View>('dashboard');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [isMobileDateExpanded, setIsMobileDateExpanded] = useState(false);
 
     const { hasSharedTransactions } = getSummary();
 
@@ -90,96 +91,113 @@ export const Layout: React.FC = () => {
 
             {/* Main Content */}
             <main className="main-content">
-                <header className="top-bar" style={{ justifyContent: 'space-between', position: 'relative' }}>
-                    <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                        <h1>{getTitle()}</h1>
-                        <MonthYearPicker />
-                    </div>
+                <header className="top-bar" style={{ flexDirection: 'column', padding: 0, gap: 0, height: 'auto' }}>
+                    <div style={{
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '1.5rem 2rem',
+                        position: 'relative'
+                    }}>
+                        <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                            <h1>{getTitle()}</h1>
+                            <MonthYearPicker />
+                        </div>
 
-                    {/* Mobile Date Selector - Centered */}
-                    <div className="show-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-                        <MobileDateSelector />
-                    </div>
+                        {/* Mobile Logo - Left */}
+                        <div className="show-mobile" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}>
+                            <img src="/logo-icon.png" alt="Logo" style={{ height: '60px', width: 'auto' }} />
+                        </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', zIndex: 50 }}>
-                        {/* Mobile Profile Menu */}
-                        <div
-                            className="show-mobile"
-                            style={{ position: 'relative', marginLeft: '0.25rem' }}
-                        >
+                        {/* Mobile Date Trigger - Centered */}
+                        <div className="show-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                            <MobileDateTrigger isExpanded={isMobileDateExpanded} onToggle={() => setIsMobileDateExpanded(!isMobileDateExpanded)} />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', zIndex: 50 }}>
+                            {/* Mobile Profile Menu */}
                             <div
-                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                style={{
-                                    cursor: 'pointer',
-                                    padding: '2px',
-                                    border: isProfileMenuOpen ? '2px solid var(--primary)' : '2px solid transparent',
-                                    borderRadius: '50%',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
+                                className="show-mobile"
+                                style={{ position: 'relative', marginLeft: '0.25rem' }}
                             >
-                                {user?.avatar ? (
-                                    <img src={user.avatar} alt="Avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'block', objectFit: 'cover' }} />
-                                ) : (
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
-                                        <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name?.charAt(0) || 'U'}</span>
-                                    </div>
+                                <div
+                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        padding: '2px',
+                                        border: isProfileMenuOpen ? '2px solid var(--primary)' : '2px solid transparent',
+                                        borderRadius: '50%',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <img
+                                        src={user?.avatar || '/avatar-vazio.png'}
+                                        alt="Avatar"
+                                        style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'block', objectFit: 'cover' }}
+                                    />
+                                </div>
+
+                                {isProfileMenuOpen && (
+                                    <>
+                                        <div
+                                            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                                            onClick={() => setIsProfileMenuOpen(false)}
+                                        />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '120%',
+                                            right: 0,
+                                            background: 'var(--bg-card)',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '0.5rem',
+                                            minWidth: '150px',
+                                            boxShadow: 'var(--shadow-lg)',
+                                            zIndex: 50,
+                                            animation: 'fadeIn 0.2s ease-out'
+                                        }}>
+                                            <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name}</div>
+                                            </div>
+                                            <button
+                                                onClick={logout}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    width: '100%',
+                                                    padding: '0.5rem',
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: 'var(--danger)',
+                                                    cursor: 'pointer',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    fontSize: '0.875rem'
+                                                }}
+                                            >
+                                                <LogOut size={16} />
+                                                Sair
+                                            </button>
+                                        </div>
+                                    </>
                                 )}
                             </div>
 
-                            {isProfileMenuOpen && (
-                                <>
-                                    <div
-                                        style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-                                        onClick={() => setIsProfileMenuOpen(false)}
-                                    />
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '120%',
-                                        right: 0,
-                                        background: 'var(--bg-card)',
-                                        border: '1px solid var(--border)',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.5rem',
-                                        minWidth: '150px',
-                                        boxShadow: 'var(--shadow-lg)',
-                                        zIndex: 50,
-                                        animation: 'fadeIn 0.2s ease-out'
-                                    }}>
-                                        <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                            <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name}</div>
-                                        </div>
-                                        <button
-                                            onClick={logout}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.5rem',
-                                                width: '100%',
-                                                padding: '0.5rem',
-                                                background: 'none',
-                                                border: 'none',
-                                                color: 'var(--danger)',
-                                                cursor: 'pointer',
-                                                borderRadius: 'var(--radius-sm)',
-                                                fontSize: '0.875rem'
-                                            }}
-                                        >
-                                            <LogOut size={16} />
-                                            Sair
-                                        </button>
-                                    </div>
-                                </>
-                            )}
+                            <div className="hide-mobile">
+                                <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+                                    <Plus size={20} /> <span>Nova Transação</span>
+                                </button>
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="hide-mobile">
-                            <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-                                <Plus size={20} /> <span>Nova Transação</span>
-                            </button>
-                        </div>
+                    {/* Mobile Date Carousel - Expandable Row */}
+                    <div className="show-mobile" style={{ width: '100%' }}>
+                        <MobileDateCarousel isExpanded={isMobileDateExpanded} />
                     </div>
                 </header>
 
