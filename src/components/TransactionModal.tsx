@@ -134,7 +134,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             amount: totalAmount,
             type,
             category: categoryId,
-            date,
+            date: `${date}T12:00:00`, // Force noon to prevent timezone shifts
             isShared: type === 'expense' ? isShared : false,
             payer,
             recurrenceFrequency: !editTransaction ? recurrenceFrequency : undefined,

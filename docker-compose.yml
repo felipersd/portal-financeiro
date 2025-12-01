@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: finance_db
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     networks:
       - app-network
     volumes:
@@ -19,13 +19,13 @@ services:
       - ${PROJECT_ROOT:-.}/server:/app
       - /app/node_modules
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/finance
-      - AUTH0_DOMAIN=dev-yxlju5n75et0q146.us.auth0.com
-      - AUTH0_CLIENT_ID=IVXqFVBSKbgIod8S9DDNRM2jSKFfM0ZN
-      - AUTH0_CLIENT_SECRET=N1v-hUJLXuzjQBmE3B0BH-zi18jfUUzWYoc95UEIIdEjRJi8xn2y4qotTi-2I1q1
-      - AUTH0_CALLBACK_URL=/api/auth/callback
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/finance}
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN:-dev-yxlju5n75et0q146.us.auth0.com}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID:-IVXqFVBSKbgIod8S9DDNRM2jSKFfM0ZN}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET:-N1v-hUJLXuzjQBmE3B0BH-zi18jfUUzWYoc95UEIIdEjRJi8xn2y4qotTi-2I1q1}
+      - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL:-/api/auth/callback}
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3000}:3000"
     networks:
       - app-network
     depends_on:
@@ -39,11 +39,11 @@ services:
       - ${PROJECT_ROOT:-.}:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
+      - "${WEB_PORT:-5173}:5173"
     networks:
       - app-network
     environment:
-      VITE_API_URL: http://localhost:3000
+      VITE_API_URL: http://api:3000
     depends_on:
       - api
     command: sh -c "npm install && npm run dev -- --host"

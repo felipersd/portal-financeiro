@@ -42,7 +42,11 @@ export const TransactionList: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ fontWeight: 700, fontSize: '1.125rem', color: t.type === 'income' ? 'var(--success)' : 'var(--text-primary)', textAlign: 'right' }}>
-                            {t.type === 'income' ? '+' : '-'} R$ {(t.isShared && t.type === 'expense' ? t.amount / 2 : t.amount).toFixed(2)}
+                            {t.type === 'income' ? '+' : '-'} R$ {(
+                                t.isShared && t.type === 'expense'
+                                    ? (t.splitDetails && t.splitDetails.mode === 'custom' ? t.splitDetails.myShare : t.amount / 2)
+                                    : t.amount
+                            ).toFixed(2)}
                             {t.isShared && t.type === 'expense' && (
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
                                     (Total: R$ {t.amount.toFixed(2)})

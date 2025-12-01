@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:local": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.local.yml up -d --build",
+    "docker:down": "docker compose down"
   },
   "dependencies": {
     "chart.js": "^4.5.1",

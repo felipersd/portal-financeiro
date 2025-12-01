@@ -1,0 +1,7 @@
+services:
+  # Disable Webhook and Cloudflare for local dev
+  webhook:
+    profiles: [ "disabled" ]
+
+  cloudflared:
+    profiles: [ "disabled" ]

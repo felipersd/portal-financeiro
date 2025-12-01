@@ -21,7 +21,9 @@ export const Dashboard: React.FC = () => {
     const expensesByCategory = filteredTransactions
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => {
-            const amount = t.isShared ? t.amount / 2 : t.amount;
+            const amount = (t.isShared && t.type === 'expense')
+                ? (t.splitDetails && t.splitDetails.mode === 'custom' ? t.splitDetails.myShare : t.amount / 2)
+                : t.amount;
             acc[t.category] = (acc[t.category] || 0) + amount;
             return acc;
         }, {} as Record<string, number>);
@@ -49,7 +51,9 @@ export const Dashboard: React.FC = () => {
 
         const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
         const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
-            const amount = t.isShared ? t.amount / 2 : t.amount;
+            const amount = (t.isShared && t.type === 'expense')
+                ? (t.splitDetails && t.splitDetails.mode === 'custom' ? t.splitDetails.myShare : t.amount / 2)
+                : t.amount;
             return acc + amount;
         }, 0);
 
