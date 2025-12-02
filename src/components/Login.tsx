@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet } from 'lucide-react';
+
 
 export const Login: React.FC = () => {
     const handleLogin = () => {

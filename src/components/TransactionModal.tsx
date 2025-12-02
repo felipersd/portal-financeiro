@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
-import type { Category, Payer, TransactionType, Transaction } from '../types';
+import type { Payer, TransactionType, Transaction } from '../types';
 
 interface Props {
     isOpen: boolean;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, LayoutDashboard, List, Scale, Plus, Tag, LogOut } from 'lucide-react';
+import { LayoutDashboard, List, Scale, Plus, Tag, LogOut } from 'lucide-react';
 import { Dashboard } from './Dashboard';
 import { TransactionList } from './TransactionList';
 import { Settlement } from './Settlement';
