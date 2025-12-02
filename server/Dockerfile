@@ -1,31 +1,38 @@
-# 1. Fase de Build (para instalar dependências)
+# ----------------------------------------
+# FASE 1: BUILD (Compilação e Preparação)
+# ----------------------------------------
 FROM node:20-alpine AS builder
 
-# Variável de ambiente (para garantir que o npm funcione em prod)
+# Configura o ambiente de build
 ENV NODE_ENV production
-
-# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos de configuração de dependência
+# Copia os arquivos necessários para instalação
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Instala as dependências de produção
+# Instala as dependências (apenas as de produção)
 RUN npm install --only=production
+
+# Gera o cliente Prisma (Isso não toca no banco, só cria o código cliente)
 RUN npx prisma generate
 
-# 2. Fase Final (Runtime)
-# Usa uma imagem menor e mais segura
+# ----------------------------------------
+# FASE 2: RUNTIME (Imagem Final)
+# ----------------------------------------
 FROM node:20-alpine AS final
 
-# Define o diretório de trabalho
+# Configura o ambiente de execução
 WORKDIR /app
+ENV NODE_ENV production
 
-# Copia o código fonte (apenas o que é necessário para a produção)
+# Copia o código fonte (o restante dos arquivos .js ou .ts compilados)
+COPY . . 
+
+# Copia os node_modules e o cliente Prisma gerados na fase de build
 COPY --from=builder /app/node_modules ./node_modules
-COPY . .
 
-# Comando para iniciar o servidor de PRODUÇÃO
-# 🚨 AJUSTE ESTE COMANDO CONFORME SEU SCRIPT DE INICIALIZAÇÃO DE PROD
+# O CMD é o que o container irá executar quando for iniciado
+# 🚨 IMPORTANTE: O comando de migração/push é movido para o docker-compose!
+# Aqui, apenas iniciamos o servidor.
 CMD ["npm", "run", "start"]

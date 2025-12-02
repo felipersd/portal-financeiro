@@ -36,5 +36,5 @@ jobs:
           push: true
           # Substitua 'seu-usuario/sua-imagem' pelo nome real do seu repo no Docker Hub
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/portal-financeiro:latest
-            ${{ secrets.DOCKER_USERNAME }}/portal-financeiro:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-api:latest
+            ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-api:${{ github.sha }}

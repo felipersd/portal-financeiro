@@ -1,8 +1,6 @@
 services:
   db:
     image: postgres:15-alpine
-    env_file:
-      - .env
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -15,49 +13,32 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    image: node:20-alpine
-    env_file:
-      - .env
-    working_dir: /app
-    volumes:
-      - ${PROJECT_ROOT}/server:/app
-      - /app/node_modules
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
-      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
-      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
-      - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL}
-    ports:
-      - "${API_PORT}:3000"
+    image: felipersd/portal-financeiro-api:latest
+    container_name: portal_api
     networks:
       - app-network
     depends_on:
       - db
-    command: sh -c "apk add --no-cache openssl && npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run dev"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sleep 5
+        npm run prisma -- db push --accept-data-loss
+        npm run start
+    restart: always
 
   web:
-    image: node:20-alpine
-    env_file:
-      - .env
-    working_dir: /app
-    volumes:
-      - ${PROJECT_ROOT}:/app
-      - /app/node_modules
-    ports:
-      - "${WEB_PORT}:5173"
+    image: felipersd/portal-financeiro-web:latest
+    container_name: portal_web
     networks:
       - app-network
-    environment:
-      VITE_API_URL: http://api:3000
     depends_on:
       - api
-    command: sh -c "npm install && npm run dev -- --host"
+    restart: always
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    env_file:
-      - .env
     command: tunnel --no-autoupdate run --token eyJhIjoiNmNlNjQyMzkxYjFlMzcxYzkxNDI4NmJhN2I2Y2E3YzciLCJ0IjoiNzdlOGViMmQtZDA4NC00ZjBkLTgwODgtMTQyYzc3NmRmZDhjIiwicyI6IlpHVmxaalZsTWpFdE1qYzNZeTAwWTJJMUxXRTJNakF0TXpabU9URmhNVFUxTURWaSJ9
     networks:
       - app-network
@@ -70,10 +51,11 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_API_VERSION=1.44
     # Monitora apenas 'api' e 'web'. O Tunnel não precisa ser monitorado.
     command: --interval 300 api web
-    restart: always    
-
+    restart: always
   # webhook:
   #   build: ./webhook
   #   container_name: webhook
