@@ -32,7 +32,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./portal-financeiro # Onde está seu Dockerfile (na raiz?)
+          context: ./web # Onde está seu Dockerfile (na raiz?)
           push: true
           # Substitua 'seu-usuario/sua-imagem' pelo nome real do seu repo no Docker Hub
           tags: |
