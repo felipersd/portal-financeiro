@@ -1,7 +1,7 @@
-Set-Location "C:\Users\felip\Documents\portal-financeiro"
+# Set-Location "C:\Users\felip\Documents\portal-financeiro"
 
-git pull
+# git pull
 
-docker compose down
-docker compose pull
-docker compose up -d
+# docker compose down
+# docker compose pull
+# docker compose up -d
