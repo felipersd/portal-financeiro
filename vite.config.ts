@@ -16,10 +16,16 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       host: true,
       strictPort: false,
+      watch: {
+        ignored: ['**/.DS_Store', '**/.git/**'],
+      },
+      hmr: {
+        clientPort: 443,
+      },
       proxy: {
         '/api': {
           target: apiUrl,
-          changeOrigin: false, // Keep original host header (localhost:5173)
+          changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },

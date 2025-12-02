@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: finance_db
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT}:5432"
     networks:
       - app-network
     volumes:
@@ -16,16 +16,16 @@ services:
     image: node:20-alpine
     working_dir: /app
     volumes:
-      - ${PROJECT_ROOT:-.}/server:/app
+      - ${PROJECT_ROOT}/server:/app
       - /app/node_modules
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/finance}
-      - AUTH0_DOMAIN=${AUTH0_DOMAIN:-dev-yxlju5n75et0q146.us.auth0.com}
-      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID:-IVXqFVBSKbgIod8S9DDNRM2jSKFfM0ZN}
-      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET:-N1v-hUJLXuzjQBmE3B0BH-zi18jfUUzWYoc95UEIIdEjRJi8xn2y4qotTi-2I1q1}
-      - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL:-/api/auth/callback}
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
+      - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL}
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "${API_PORT}:3000"
     networks:
       - app-network
     depends_on:
@@ -36,10 +36,10 @@ services:
     image: node:20-alpine
     working_dir: /app
     volumes:
-      - ${PROJECT_ROOT:-.}:/app
+      - ${PROJECT_ROOT}:/app
       - /app/node_modules
     ports:
-      - "${WEB_PORT:-5173}:5173"
+      - "${WEB_PORT}:5173"
     networks:
       - app-network
     environment:
@@ -60,7 +60,7 @@ services:
     build: ./webhook
     container_name: webhook
     ports:
-      - "7000:7000"
+      - "7001:7001"
     environment:
       - WEBHOOK_SECRET=csetytpNVal0mHJGX2xA7D5LomCe6UKH
       - HOST_PROJECT_ROOT=c:/Users/felip/Documents/portal-financeiro
