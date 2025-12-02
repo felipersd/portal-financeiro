@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:15-alpine
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -14,6 +16,8 @@ services:
 
   api:
     image: node:20-alpine
+    env_file:
+      - .env
     working_dir: /app
     volumes:
       - ${PROJECT_ROOT}/server:/app
@@ -34,6 +38,8 @@ services:
 
   web:
     image: node:20-alpine
+    env_file:
+      - .env
     working_dir: /app
     volumes:
       - ${PROJECT_ROOT}:/app
@@ -50,25 +56,37 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
+    env_file:
+      - .env
     command: tunnel --no-autoupdate run --token eyJhIjoiNmNlNjQyMzkxYjFlMzcxYzkxNDI4NmJhN2I2Y2E3YzciLCJ0IjoiNzdlOGViMmQtZDA4NC00ZjBkLTgwODgtMTQyYzc3NmRmZDhjIiwicyI6IlpHVmxaalZsTWpFdE1qYzNZeTAwWTJJMUxXRTJNakF0TXpabU9URmhNVFUxTURWaSJ9
     networks:
       - app-network
     depends_on:
-      - webhook
+      - api
+      - web
 
-  webhook:
-    build: ./webhook
-    container_name: webhook
-    ports:
-      - "7001:7001"
-    environment:
-      - WEBHOOK_SECRET=csetytpNVal0mHJGX2xA7D5LomCe6UKH
-      - HOST_PROJECT_ROOT=c:/Users/felip/Documents/portal-financeiro
-    networks:
-      - app-network
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
     volumes:
-      - .:/app
-      - /var/run/docker.sock:/var/run/docker.sock # PERMITE CONTROLAR O DOCKER DO HOST
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Monitora apenas 'api' e 'web'. O Tunnel não precisa ser monitorado.
+    command: --interval 300 api web
+    restart: always    
+
+  # webhook:
+  #   build: ./webhook
+  #   container_name: webhook
+  #   ports:
+  #     - "7001:7001"
+  #   environment:
+  #     - WEBHOOK_SECRET=csetytpNVal0mHJGX2xA7D5LomCe6UKH
+  #     - HOST_PROJECT_ROOT=c:/Users/felip/Documents/portal-financeiro
+  #   networks:
+  #     - app-network
+  #   volumes:
+  #     - .:/app
+  #     - /var/run/docker.sock:/var/run/docker.sock # PERMITE CONTROLAR O DOCKER DO HOST
 
 networks:
   app-network:
