@@ -35,6 +35,6 @@ jobs:
           context: ./web # Onde está seu Dockerfile (na raiz?)
           push: true
           # Substitua 'seu-usuario/sua-imagem' pelo nome real do seu repo no Docker Hub
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-web:latest
-            ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-web:${{ github.sha }}
+          build-args: |
+            VITE_API_URL=http://api:3000
+          tags: ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-web:latest
