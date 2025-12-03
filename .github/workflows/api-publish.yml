@@ -1,39 +1,40 @@
 name: Build e Push Docker Image
-
-on:
-  push:
-    branches: [ "main" ] # Roda quando fizer push na main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
       # 1. Baixa o código do repositório
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      # 2. Configura o QEMU (Para garantir compatibilidade de arquitetura)
+      # 2. Configura o QEMU
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 3. Configura o Docker Buildx (Motor de build moderno)
+      # 3. Configura o Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 4. Loga no Docker Hub usando os segredos
+      # 4. Loga no Docker Hub
       - name: Login no Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 5. Constrói a imagem e envia (Push)
+      # 5. Gera metadados do Docker (Tags e Labels)
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-api
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+            type=ref,event=tag
+
+      # 6. Constrói a imagem e envia (Push)
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./server # Onde está seu Dockerfile (na raiz?)
+          context: ./server
           platforms: linux/amd64,linux/arm64
           push: true
-          # Substitua 'seu-usuario/sua-imagem' pelo nome real do seu repo no Docker Hub
-          tags: ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-api:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
