@@ -12,10 +12,17 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Instala as dependências (apenas as de produção)
-RUN npm install --only=production
+# Instala todas as dependências (incluindo devDependencies para o build)
+RUN npm install --include=dev
 
-# Gera o cliente Prisma (Isso não toca no banco, só cria o código cliente)
+# Gera o cliente Prisma
 RUN npx prisma generate
+
+# Copia o restante do código fonte (src, tsconfig.json, etc)
+COPY . .
+
+# Compila o TypeScript
+RUN npm run build
 
 # ----------------------------------------
 # FASE 2: RUNTIME (Imagem Final)
@@ -26,11 +33,19 @@ FROM node:20-alpine AS final
 WORKDIR /app
 ENV NODE_ENV production
 
-# Copia o código fonte (o restante dos arquivos .js ou .ts compilados)
-COPY . . 
+# Instala dependências do sistema necessárias (OpenSSL para o Prisma)
+RUN apk add --no-cache openssl
 
-# Copia os node_modules e o cliente Prisma gerados na fase de build
-COPY --from=builder /app/node_modules ./node_modules
+# Copia o código compilado da fase de build
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
+
+# Instala apenas dependências de produção na imagem final
+RUN npm install --only=production
+
+# Copia o cliente Prisma gerado
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # O CMD é o que o container irá executar quando for iniciado
 # 🚨 IMPORTANTE: O comando de migração/push é movido para o docker-compose!

@@ -34,7 +34,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copia a sua configuração customizada do Nginx (se você tiver uma)
 # Se você não tiver, o Nginx usará as configurações padrão para o html acima
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # A porta 80 é a porta padrão do Nginx
 EXPOSE 80
