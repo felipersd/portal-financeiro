@@ -40,15 +40,20 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const checkAuth = async () => {
         try {
-            const res = await fetch(`${API_URL}/auth/me`);
+            const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
             if (res.ok) {
                 const userData = await res.json();
                 setUser(userData);
                 fetchTransactions();
                 fetchCategories();
+            } else if (res.status === 401) {
+                // Normal state for unauthenticated user
+                setUser(null);
+            } else {
+                console.error('Auth check failed:', res.status, res.statusText);
             }
         } catch (error) {
-            console.error('Not authenticated');
+            console.error('Network error checking auth:', error);
         } finally {
             setLoading(false);
         }

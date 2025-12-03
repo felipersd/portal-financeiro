@@ -4,12 +4,19 @@ import { PrismaClient } from '@prisma/client';
 import session from 'express-session';
 import passport from 'passport';
 import { configurePassport } from './auth';
+import { config, validateConfig } from './config';
+
+// Validate configuration at startup
+validateConfig();
 
 const app = express();
 const prisma = new PrismaClient();
 
 app.use(cors({
     origin: ['http://localhost:5173',
+        'http://localhost:80',
+        'http://localhost',
+        'http://localhost/api/auth/callback',
         'https://portalfinanceiro.net/api/auth/callback',
         'https://www.portalfinanceiro.net/api/auth/callback',
         'https://api.portalfinanceiro.net/api/auth/callback'
@@ -21,7 +28,7 @@ app.use(express.json());
 
 // Session Config
 app.use(session({
-    secret: 'secret-key-change-me', // In prod use env var
+    secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false } // Set to true if using https behind proxy
@@ -204,6 +211,6 @@ app.delete('/categories/:id', isAuthenticated, async (req: any, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log('Server running on port 3000');
+app.listen(config.port, () => {
+    console.log(`Server running on port ${config.port}`);
 });

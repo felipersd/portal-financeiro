@@ -1,6 +1,7 @@
 import passport from 'passport';
 import Auth0Strategy from 'passport-auth0';
 import { PrismaClient } from '@prisma/client';
+import { config } from './config';
 
 const prisma = new PrismaClient();
 
@@ -20,10 +21,10 @@ passport.deserializeUser(async (id: string, done) => {
 export const configurePassport = () => {
     const strategy = new Auth0Strategy(
         {
-            domain: process.env.AUTH0_DOMAIN || '',
-            clientID: process.env.AUTH0_CLIENT_ID || '',
-            clientSecret: process.env.AUTH0_CLIENT_SECRET || '',
-            callbackURL: process.env.AUTH0_CALLBACK_URL || '/api/auth/callback'
+            domain: config.auth0.domain,
+            clientID: config.auth0.clientId,
+            clientSecret: config.auth0.clientSecret,
+            callbackURL: config.auth0.callbackUrl
         },
         async (accessToken, refreshToken, extraParams, profile, done) => {
             console.log('Auth0 Callback initiated');

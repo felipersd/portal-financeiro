@@ -28,6 +28,8 @@ services:
       - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
       - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL}
       - PORT=3000
+    ports:
+      - "3000:3000"
     depends_on:
       - db
     entrypoint:
@@ -46,6 +48,8 @@ services:
     image: felipersd/portal-financeiro-web:latest
     platform: linux/amd64
     container_name: portal_web
+    ports:
+      - "80:80"
     networks:
       - app-network
     depends_on:
