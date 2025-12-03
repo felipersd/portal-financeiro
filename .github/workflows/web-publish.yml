@@ -1,4 +1,15 @@
 name: Build e Push Docker Image
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ 'v*.*.*' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
       # 1. Baixa o código do repositório
       - name: Checkout do código
         uses: actions/checkout@v4
