@@ -33,6 +33,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: . # Onde está seu Dockerfile (na raiz?)
+          platforms: linux/amd64,linux/arm64
           push: true
           # Substitua 'seu-usuario/sua-imagem' pelo nome real do seu repo no Docker Hub
           build-args: |

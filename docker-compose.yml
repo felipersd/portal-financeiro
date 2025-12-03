@@ -13,9 +13,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
     image: felipersd/portal-financeiro-api:latest
     platform: linux/amd64
     container_name: portal_api
@@ -40,9 +37,6 @@ services:
     restart: always
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: felipersd/portal-financeiro-web:latest
     platform: linux/amd64
     container_name: portal_web
@@ -69,7 +63,7 @@ services:
     environment:
       - DOCKER_API_VERSION=1.44
     # Monitora apenas 'api' e 'web'. O Tunnel não precisa ser monitorado.
-    command: --interval 300 api web
+    command: --interval 30 portal_api portal_web
     restart: always
   # webhook:
   #   build: ./webhook
