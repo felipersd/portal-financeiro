@@ -1,0 +1,57 @@
+services:
+  identity-service:
+    build:
+      context: ./apps/identity-service
+      dockerfile: ../../Dockerfile.node # We need a generic node dockerfile or specific one
+    command: npm run dev
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./apps/identity-service/${ENV_FILE:-.env}
+    volumes:
+      - ./apps/identity-service:/app
+      - /app/node_modules
+
+  finance-service:
+    build:
+      context: ./apps/finance-service
+      dockerfile: ../../Dockerfile.node
+    command: npm run dev
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./apps/finance-service/${ENV_FILE:-.env}
+    volumes:
+      - ./apps/finance-service:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - gateway
+
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./apps/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - identity-service
+      - finance-service
+
+  # Database (Shared for now, logically separated by tables/schema if we ran migrations)
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finance_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
