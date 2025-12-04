@@ -7,7 +7,7 @@ services:
     ports:
       - "3001:3001"
     env_file:
-      - ./apps/identity-service/.env
+      - ./apps/identity-service/${ENV_FILE:-.env}
     volumes:
       - ./apps/identity-service:/app
       - /app/node_modules
@@ -20,7 +20,7 @@ services:
     ports:
       - "3002:3002"
     env_file:
-      - ./apps/finance-service/.env
+      - ./apps/finance-service/${ENV_FILE:-.env}
     volumes:
       - ./apps/finance-service:/app
       - /app/node_modules

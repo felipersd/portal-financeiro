@@ -14,7 +14,7 @@ export class TransactionController {
 
     async handleCreate(req: Request, res: Response): Promise<void> {
         try {
-            const { description, amount, type, category, date, isShared, payer, recurrenceId, splitDetails } = req.body;
+            const { description, amount, type, category, date, isShared, payer, recurrenceId, splitDetails, recurrenceFrequency, recurrenceCount } = req.body;
             const userId = (req as any).user?.sub || req.body.userId;
 
             if (!description || !amount || !type || !category || !date || !userId) {
@@ -32,7 +32,9 @@ export class TransactionController {
                 payer: payer || 'me',
                 userId,
                 recurrenceId,
-                splitDetails
+                splitDetails,
+                frequency: recurrenceFrequency === 'none' ? undefined : recurrenceFrequency,
+                installments: recurrenceCount
             });
             res.json(transaction);
         } catch (error) {

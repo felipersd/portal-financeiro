@@ -17,7 +17,7 @@ export class CreateTransaction {
         recurrenceId?: string | null;
         splitDetails?: any | null;
         installments?: number;
-        frequency?: 'monthly' | 'weekly' | 'yearly';
+        frequency?: 'monthly' | 'weekly' | 'yearly' | 'daily';
     }): Promise<Transaction> {
         const installments = data.installments || 1;
         const frequency = data.frequency || 'monthly';
@@ -35,6 +35,8 @@ export class CreateTransaction {
                     transactionDate.setMonth(transactionDate.getMonth() + i);
                 } else if (frequency === 'weekly') {
                     transactionDate.setDate(transactionDate.getDate() + (i * 7));
+                } else if (frequency === 'daily') {
+                    transactionDate.setDate(transactionDate.getDate() + i);
                 } else if (frequency === 'yearly') {
                     transactionDate.setFullYear(transactionDate.getFullYear() + i);
                 }

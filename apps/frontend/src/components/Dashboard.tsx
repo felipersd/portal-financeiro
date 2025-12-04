@@ -6,7 +6,7 @@ import { Doughnut, Bar } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 export const Dashboard: React.FC = () => {
-    const { filteredTransactions, transactions, getSummary } = useFinance();
+    const { filteredTransactions, transactions, getSummary, selectedDate } = useFinance();
     const summary = getSummary();
 
     const balanceText = summary.netBalance === 0
@@ -42,7 +42,7 @@ export const Dashboard: React.FC = () => {
     };
 
     // Annual History Data (All Transactions)
-    const currentYear = new Date().getFullYear();
+    const currentYear = selectedDate.getFullYear();
     const monthlyData = Array(12).fill(0).map((_, i) => {
         const monthTransactions = transactions.filter(t => {
             const d = new Date(t.date);
