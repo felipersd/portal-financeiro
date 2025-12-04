@@ -1,0 +1,19 @@
+FROM node:18-slim
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# Install OpenSSL (required for Prisma)
+RUN apt-get update -y && apt-get install -y openssl ca-certificates
+
+# Install dependencies
+RUN npm install
+
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Start the application
+CMD ["npm", "start"]
