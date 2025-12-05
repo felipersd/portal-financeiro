@@ -1,73 +1,107 @@
-# React + TypeScript + Vite
+# 💰 Portal Financeiro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+O **Portal Financeiro** é uma aplicação moderna de gestão financeira pessoal construída com uma arquitetura de **Microsserviços**. O sistema permite aos usuários gerenciar transações, categorias e visualizar relatórios financeiros detalhados, com autenticação segura via Auth0.
 
-Currently, two official plugins are available:
+## 🏗️ Arquitetura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+O sistema segue uma arquitetura baseada em microsserviços orquestrados por um API Gateway.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```mermaid
+graph TD
+    User[Usuário / Browser] -->|HTTP/HTTPS| Gateway[Nginx Gateway]
+    
+    subgraph "Docker Network"
+        Gateway -->|/api/auth| Identity[Identity Service]
+        Gateway -->|/api/transactions| Finance[Finance Service]
+        Gateway -->|/| Frontend[Frontend App]
+        
+        Identity -->|Auth0| Auth0[Auth0 Provider]
+        Identity -->|SQL| DB[(PostgreSQL)]
+        Finance -->|SQL| DB
+        
+        Backup[Backup Service] -->|pg_dump| DB
+        Backup -->|Upload| R2[Cloudflare R2]
+    end
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🚀 Tecnologias
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+*   **Frontend**: React, Vite, TypeScript, TailwindCSS.
+*   **Backend**: Node.js, Express, TypeScript.
+*   **Database**: PostgreSQL (Prisma ORM).
+*   **Infraestrutura**: Docker, Docker Compose, Nginx (Gateway).
+*   **Autenticação**: Auth0.
+*   **Backup**: Script automatizado para Cloudflare R2.
+*   **CI/CD**: GitHub Actions.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 📂 Estrutura do Projeto
+
 ```
+portal-financeiro/
+├── apps/
+│   ├── backend/
+│   │   ├── identity-service/  # Gerencia usuários e autenticação
+│   │   └── finance-service/   # Gerencia transações e categorias
+│   ├── frontend/              # Aplicação React
+│   ├── gateway/               # Configuração do Nginx
+│   └── backup/                # Serviço de backup automático
+├── .github/workflows/         # Pipelines de CI/CD
+├── docker-compose.yml         # Orquestração para Desenvolvimento
+└── docker-compose.prod.yml    # Orquestração para Produção
+```
+
+## 🛠️ Como Rodar Localmente
+
+### Pré-requisitos
+*   Docker e Docker Compose instalados.
+*   Node.js (opcional, para rodar scripts locais).
+
+### Passo 1: Configuração de Ambiente
+Crie os arquivos `.env.local` dentro de cada serviço em `apps/backend/` com as credenciais necessárias (Auth0, Banco de Dados, etc).
+
+### Passo 2: Iniciar a Aplicação
+Na raiz do projeto, execute:
+
+```bash
+docker compose up --build
+```
+
+O sistema estará disponível em:
+*   **Frontend**: http://localhost:8080
+*   **API Gateway**: http://localhost:8080/api
+
+> **Nota**: O ambiente de desenvolvimento usa `docker-compose.yml`, que monta volumes locais e habilita *hot-reload* para o código.
+
+## 📦 Deploy e Produção
+
+Para rodar em produção, utilize o arquivo `docker-compose.prod.yml`. Este arquivo utiliza imagens otimizadas do Docker Hub e inclui serviços adicionais como **Cloudflared** (para túnel seguro) e **Watchtower** (para atualização automática).
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Variáveis de Ambiente de Produção
+Certifique-se de configurar as variáveis para o backup no R2:
+*   `R2_ACCESS_KEY_ID`
+*   `R2_SECRET_ACCESS_KEY`
+*   `R2_ENDPOINT_URL`
+
+## 🛡️ Backup Automático
+
+O sistema possui um serviço dedicado (`apps/backup`) que realiza backups diários do banco de dados PostgreSQL e os envia para um bucket no **Cloudflare R2**.
+
+*   **Frequência**: A cada 24 horas.
+*   **Formato**: Arquivo SQL comprimido (`.sql.gz`).
+*   **Restauração**:
+    1.  Baixe o arquivo do R2.
+    2.  Copie para o container: `docker cp backup.sql ID_DO_CONTAINER:/tmp/`
+    3.  Importe: `docker compose exec -T db psql -U user -d finance_db -f /tmp/backup.sql`
+
+## 🔄 CI/CD (GitHub Actions)
+
+Cada serviço possui seu próprio pipeline de deploy:
+*   `identity-service-publish.yml`: Dispara em mudanças em `apps/backend/identity-service`.
+*   `finance-service-publish.yml`: Dispara em mudanças em `apps/backend/finance-service`.
+*   `web-publish.yml`: Dispara em mudanças em `apps/frontend`.
+
+As imagens são construídas e enviadas automaticamente para o Docker Hub.

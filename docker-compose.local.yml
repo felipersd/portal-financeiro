@@ -1,7 +1,0 @@
-services:
-  # Disable Webhook and Cloudflare for local dev
-  watchtower:
-    profiles: [ "disabled" ]
-
-  cloudflared:
-    profiles: [ "disabled" ]
