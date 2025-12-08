@@ -16,6 +16,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy (required for correct protocol detection behind load balancers/proxies)
+app.set('trust proxy', true);
+
 // Configure CORS to allow credentials (cookies)
 app.use(cors({
     origin: true, // Allow all origins for now, or specify frontend URL

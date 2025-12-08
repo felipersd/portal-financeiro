@@ -11,13 +11,23 @@ export class AuthController {
     ) { }
 
     login(req: Request, res: Response, next: NextFunction) {
+        const callbackURL = `${req.protocol}://${req.get('host')}/api/auth/callback`;
+        console.log('Login callback URL:', callbackURL);
+
         passport.authenticate('auth0', {
             scope: 'openid email profile',
-        })(req, res, next);
+            callbackURL: callbackURL,
+        } as any)(req, res, next);
     }
 
     callback(req: Request, res: Response, next: NextFunction) {
-        passport.authenticate('auth0', { session: false }, async (err: any, user: any, info: any) => {
+        const callbackURL = `${req.protocol}://${req.get('host')}/api/auth/callback`;
+        console.log('Callback URL for verification:', callbackURL);
+
+        passport.authenticate('auth0', {
+            session: false,
+            callbackURL: callbackURL,
+        } as any, async (err: any, user: any, info: any) => {
             if (err) {
                 return next(err);
             }
@@ -46,7 +56,8 @@ export class AuthController {
                     path: '/',
                 });
 
-                res.redirect('/');
+                const frontendUrl = process.env.FRONTEND_URL || '/';
+                res.redirect(frontendUrl);
             } catch (error) {
                 next(error);
             }

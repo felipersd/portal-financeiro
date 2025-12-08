@@ -1,11 +1,11 @@
 {
     "name": "@portal/identity-service",
     "version": "1.0.0",
-    "main": "src/main/server.ts",
+    "main": "src/server/server.ts",
     "scripts": {
-        "dev": "npx prisma generate && npx prisma db push --accept-data-loss && ts-node-dev --respawn --transpile-only src/main/server.ts",
+        "dev": "npx prisma generate && npx prisma db push --accept-data-loss && ts-node-dev --respawn --transpile-only src/server/server.ts",
         "build": "npx prisma generate && tsc",
-        "start": "node dist/main/server.js"
+        "start": "npx prisma migrate deploy && node dist/server/server.js"
     },
     "dependencies": {
         "@prisma/client": "^5.0.0",
