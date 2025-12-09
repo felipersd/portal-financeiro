@@ -56,8 +56,8 @@ export class AuthController {
                     path: '/',
                 });
 
-                const frontendUrl = process.env.FRONTEND_URL || '/';
-                res.redirect(frontendUrl);
+                // Redirect to root (relative) to support any domain
+                res.redirect('/');
             } catch (error) {
                 next(error);
             }
@@ -66,7 +66,8 @@ export class AuthController {
 
     logout(req: Request, res: Response) {
         res.clearCookie('access_token');
-        const returnTo = process.env.AUTH0_LOGOUT_URL || 'http://localhost:8080';
+        // Construct returnTo dynamically based on the current host
+        const returnTo = `${req.protocol}://${req.get('host')}`;
         const clientId = process.env.AUTH0_CLIENT_ID;
         const domain = process.env.AUTH0_DOMAIN;
 

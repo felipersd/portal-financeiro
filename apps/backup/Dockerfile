@@ -6,7 +6,7 @@ RUN apk add --no-cache postgresql-client aws-cli bash
 WORKDIR /app
 
 COPY backup.sh .
-RUN chmod +x backup.sh
+RUN sed -i 's/\r$//' backup.sh && chmod +x backup.sh
 
 # Executa o script de backup e depois dorme por 24h (loop infinito)
 # Ou pode ser configurado via cron. Aqui faremos um loop simples.

@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   // Prioritize process.env (Docker) over .env file (Localhost)
-  const apiUrl = process.env.VITE_API_URL || env.VITE_API_URL || 'http://api:3000';
+  const apiUrl = process.env.VITE_API_URL || env.VITE_API_URL
 
   return {
     plugins: [react()],

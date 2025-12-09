@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "npx prisma generate && npx prisma db push --accept-data-loss && ts-node-dev --respawn --transpile-only src/server/server.ts",
         "build": "npx prisma generate && tsc",
-        "start": "npx prisma migrate deploy && node dist/server/server.js"
+        "start": "npx prisma db push --accept-data-loss && node dist/server/server.js"
     },
     "dependencies": {
         "@prisma/client": "^5.0.0",
