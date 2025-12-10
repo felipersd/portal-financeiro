@@ -69,7 +69,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             tDate.getFullYear() === selectedDate.getFullYear();
     });
 
-    const addTransaction = async (t: Omit<Transaction, 'id' | 'userId'>) => {
+    const addTransaction = async (t: Omit<Transaction, 'id' | 'userId' | 'createdAt'>) => {
         try {
             await fetch(`${API_URL}/transactions`, {
                 method: 'POST',

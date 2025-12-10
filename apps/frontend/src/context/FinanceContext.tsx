@@ -8,7 +8,7 @@ interface FinanceContextType {
     categories: Category[];
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
-    addTransaction: (t: Omit<Transaction, 'id' | 'userId'>) => Promise<void>;
+    addTransaction: (t: Omit<Transaction, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
     updateTransaction: (id: string, t: Partial<Transaction>) => Promise<void>;
     removeTransaction: (id: string) => Promise<void>;
     addCategory: (name: string, type: 'income' | 'expense') => Promise<void>;
