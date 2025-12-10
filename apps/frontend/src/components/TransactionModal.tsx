@@ -34,9 +34,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             document.body.style.overflow = 'hidden';
             if (editTransaction) {
                 // Edit Mode
-                // eslint-disable-next-line react-hooks/set-state-in-effect
                 if (type !== editTransaction.type) setType(editTransaction.type);
-                // eslint-disable-next-line react-hooks/set-state-in-effect
                 if (description !== editTransaction.description) setDescription(editTransaction.description);
 
                 setAmountStr(editTransaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));

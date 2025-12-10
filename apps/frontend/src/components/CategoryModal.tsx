@@ -18,9 +18,7 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             if (category) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
                 if (name !== category.name) setName(category.name);
-                // eslint-disable-next-line react-hooks/set-state-in-effect
                 if (type !== category.type) setType(category.type);
             }
         } else {

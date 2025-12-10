@@ -35,3 +35,10 @@ export interface FinanceSummary {
     spousePaidShared: number;
     hasSharedTransactions: boolean;
 }
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+}

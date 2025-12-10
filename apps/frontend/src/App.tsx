@@ -1,4 +1,4 @@
-import { FinanceProvider } from './context/FinanceContext';
+import { FinanceProvider } from './context/FinanceProvider';
 import { Layout } from './components/Layout';
 
 function App() {
