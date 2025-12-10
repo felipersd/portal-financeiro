@@ -1,10 +1,7 @@
 services:
   identity-service:
-    image: felipersd/portal-financeiro-identity-service:latest
+    image: felipersd/portal-financeiro-identity-service:production
     container_name: portal-financeiro-identity
-    build:
-      context: ./apps/backend/identity-service
-      dockerfile: Dockerfile
     restart: always
     env_file:
       - ./apps/backend/identity-service/.env.production
@@ -14,11 +11,8 @@ services:
       - app-network
 
   finance-service:
-    image: felipersd/portal-financeiro-finance-service:latest
+    image: felipersd/portal-financeiro-finance-service:production
     container_name: portal-financeiro-finance
-    build:
-      context: ./apps/backend/finance-service
-      dockerfile: Dockerfile
     restart: always
     env_file:
       - ./apps/backend/finance-service/.env.production
@@ -26,11 +20,8 @@ services:
       - app-network
 
   frontend:
-    image: felipersd/portal-financeiro-web:latest
+    image: felipersd/portal-financeiro-web:production
     container_name: portal-financeiro-frontend
-    build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
     restart: always
     env_file:
       - ./apps/frontend/.env.production
@@ -40,13 +31,11 @@ services:
       - gateway
 
   gateway:
-    image: nginx:alpine
+    image: felipersd/portal-financeiro-gateway:production
     container_name: portal-financeiro-gateway
     restart: always
     ports:
       - "8080:80"
-    volumes:
-      - ./apps/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - app-network
     depends_on:
