@@ -18,15 +18,20 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             if (category) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 if (name !== category.name) setName(category.name);
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 if (type !== category.type) setType(category.type);
             }
         } else {
             document.body.style.overflow = 'unset';
+            setName('');
+            setType('expense');
         }
         return () => {
             document.body.style.overflow = 'unset';
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, category]);
 
     if (!isOpen || !category) return null;
