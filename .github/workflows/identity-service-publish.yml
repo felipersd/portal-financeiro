@@ -8,9 +8,36 @@ on:
       - '.github/workflows/identity-service-publish.yml'
 
 jobs:
-  build:
+  quality-check:
+    name: 🛡️ Quality Check
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/backend/identity-service/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: apps/backend/identity-service
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: apps/backend/identity-service
+        run: npx prisma generate
+
+      - name: Run Build Check
+        working-directory: apps/backend/identity-service
+        run: npm run build
+
+  deploy:
+    name: 🚀 Build and Push Docker
+    needs: quality-check
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4

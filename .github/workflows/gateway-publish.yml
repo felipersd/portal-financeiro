@@ -8,9 +8,28 @@ on:
       - '.github/workflows/gateway-publish.yml'
 
 jobs:
-  build:
+  test-build:
+    name: 🧪 Test Build
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/gateway
+          file: ./apps/gateway/Dockerfile
+          push: false # Only builds, does not push
+          tags: test-gateway:latest
+
+  deploy:
+    name: 🚀 Build and Push Docker
+    needs: test-build
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
