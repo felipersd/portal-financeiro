@@ -2,7 +2,6 @@ name: Build e Push Gateway
 
 on:
   push:
-    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
       - 'apps/gateway/**'

@@ -2,7 +2,6 @@ name: Build e Push Identity Service
 
 on:
   push:
-    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
       - 'apps/backend/identity-service/**'

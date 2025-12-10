@@ -2,7 +2,6 @@ name: Build e Push Finance Service
 
 on:
   push:
-    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
       - 'apps/backend/finance-service/**'
