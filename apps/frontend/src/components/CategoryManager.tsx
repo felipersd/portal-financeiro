@@ -33,7 +33,7 @@ export const CategoryManager: React.FC = () => {
                 />
                 <select
                     value={newCatType}
-                    onChange={e => setNewCatType(e.target.value as any)}
+                    onChange={e => setNewCatType(e.target.value as 'income' | 'expense')}
                     style={{ flex: 1, minWidth: '120px' }}
                 >
                     <option value="expense">Despesa</option>

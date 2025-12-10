@@ -16,8 +16,8 @@ interface FinanceContextType {
     categories: Category[];
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
-    addTransaction: (t: any) => Promise<void>;
-    updateTransaction: (id: string, t: any) => Promise<void>;
+    addTransaction: (t: Omit<Transaction, 'id' | 'userId'>) => Promise<void>;
+    updateTransaction: (id: string, t: Partial<Transaction>) => Promise<void>;
     removeTransaction: (id: string) => Promise<void>;
     addCategory: (name: string, type: 'income' | 'expense') => Promise<void>;
     updateCategory: (id: string, name: string, type: 'income' | 'expense') => Promise<void>;
@@ -38,7 +38,31 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Use environment variable or relative path
     const API_URL = '/api';
 
-    const checkAuth = async () => {
+    const fetchTransactions = React.useCallback(async () => {
+        try {
+            const res = await fetch(`${API_URL}/transactions`);
+            if (res.ok) {
+                const data = await res.json();
+                setTransactions(data);
+            }
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+        }
+    }, [API_URL]);
+
+    const fetchCategories = React.useCallback(async () => {
+        try {
+            const res = await fetch(`${API_URL}/categories`);
+            if (res.ok) {
+                const data = await res.json();
+                setCategories(data);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    }, [API_URL]);
+
+    const checkAuth = React.useCallback(async () => {
         try {
             const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
             if (res.ok) {
@@ -57,35 +81,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } finally {
             setLoading(false);
         }
-    };
-
-    const fetchTransactions = async () => {
-        try {
-            const res = await fetch(`${API_URL}/transactions`);
-            if (res.ok) {
-                const data = await res.json();
-                setTransactions(data);
-            }
-        } catch (error) {
-            console.error('Error fetching transactions:', error);
-        }
-    };
-
-    const fetchCategories = async () => {
-        try {
-            const res = await fetch(`${API_URL}/categories`);
-            if (res.ok) {
-                const data = await res.json();
-                setCategories(data);
-            }
-        } catch (error) {
-            console.error('Error fetching categories:', error);
-        }
-    };
+    }, [API_URL, fetchTransactions, fetchCategories]); // Added dependencies
 
     useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]); // Added dependency
 
     // Filter transactions by selected Month/Year
     const filteredTransactions = transactions.filter(t => {
@@ -94,7 +94,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             tDate.getFullYear() === selectedDate.getFullYear();
     });
 
-    const addTransaction = async (t: any) => {
+    const addTransaction = async (t: Omit<Transaction, 'id' | 'userId'>) => {
         try {
             await fetch(`${API_URL}/transactions`, {
                 method: 'POST',
@@ -107,7 +107,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
     };
 
-    const updateTransaction = async (id: string, t: any) => {
+    const updateTransaction = async (id: string, t: Partial<Transaction>) => {
         try {
             await fetch(`${API_URL}/transactions/${id}`, {
                 method: 'PUT',

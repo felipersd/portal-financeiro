@@ -18,8 +18,8 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             if (category) {
-                setName(category.name);
-                setType(category.type);
+                if (name !== category.name) setName(category.name);
+                if (type !== category.type) setType(category.type);
             }
         } else {
             document.body.style.overflow = 'unset';

@@ -2,6 +2,7 @@ name: Build e Push Identity Service
 
 on:
   push:
+    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
       - 'apps/backend/identity-service/**'
@@ -37,6 +38,7 @@ jobs:
   deploy:
     name: 🚀 Build and Push Docker
     needs: quality-check
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
