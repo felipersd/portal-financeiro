@@ -90,6 +90,17 @@ describe('TransactionController', () => {
             expect(mockGetTransactions.execute).toHaveBeenCalledWith('user-1');
             expect(res.json).toHaveBeenCalledWith([]);
         });
+
+        it('should handle service errors', async () => {
+            req.query = { userId: 'user-1' };
+            mockGetTransactions.execute.mockRejectedValue(new Error('Fail'));
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+            await controller.handleGet(req as Request, res as Response);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            consoleSpy.mockRestore();
+        });
     });
 
     describe('handleUpdate', () => {
@@ -107,6 +118,24 @@ describe('TransactionController', () => {
             }));
             expect(res.json).toHaveBeenCalled();
         });
+
+        it('should fail if user not authenticated', async () => {
+            (req as any).user = undefined;
+            await controller.handleUpdate(req as Request, res as Response);
+            expect(res.status).toHaveBeenCalledWith(401);
+        });
+
+        it('should handle service errors', async () => {
+            req.params = { id: 'tx-1' };
+            (req as any).user.sub = 'user-1';
+            mockUpdateTransaction.execute.mockRejectedValue(new Error('Fail'));
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+            await controller.handleUpdate(req as Request, res as Response);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            consoleSpy.mockRestore();
+        });
     });
 
     describe('handleDelete', () => {
@@ -119,6 +148,24 @@ describe('TransactionController', () => {
             expect(mockDeleteTransaction.execute).toHaveBeenCalledWith('tx-1', 'user-1');
             expect(res.status).toHaveBeenCalledWith(204);
             expect(res.send).toHaveBeenCalled();
+        });
+
+        it('should fail if user not authenticated', async () => {
+            (req as any).user = undefined;
+            await controller.handleDelete(req as Request, res as Response);
+            expect(res.status).toHaveBeenCalledWith(401);
+        });
+
+        it('should handle service errors', async () => {
+            req.params = { id: 'tx-1' };
+            (req as any).user.sub = 'user-1';
+            mockDeleteTransaction.execute.mockRejectedValue(new Error('Fail'));
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+            await controller.handleDelete(req as Request, res as Response);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            consoleSpy.mockRestore();
         });
     });
 });

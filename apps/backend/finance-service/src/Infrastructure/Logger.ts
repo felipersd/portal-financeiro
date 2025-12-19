@@ -56,7 +56,15 @@ export class Logger {
             metadata: this.maskPII(metadata)
         };
 
-        console.log(JSON.stringify(logEntry));
+        if (level === LogLevel.ERROR) {
+            console.error(JSON.stringify(logEntry));
+        } else if (level === LogLevel.WARN) {
+            console.warn(JSON.stringify(logEntry));
+        } else if (level === LogLevel.DEBUG) {
+            console.debug(JSON.stringify(logEntry));
+        } else {
+            console.info(JSON.stringify(logEntry));
+        }
     }
 
     static info(message: string, metadata?: Record<string, any>) {

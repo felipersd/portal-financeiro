@@ -66,4 +66,46 @@ describe('CreateTransaction', () => {
         expect(calls[1][0].date).toEqual(new Date(2023, 1, 1)); // Feb 1
         expect(calls[2][0].date).toEqual(new Date(2023, 2, 1)); // Mar 1
     });
+
+    it('should handle weekly recurrence', async () => {
+        const data = {
+            description: 'Weekly',
+            amount: 50,
+            type: 'expense' as const,
+            category: 'Food',
+            date: new Date(2023, 0, 1),
+            isShared: false,
+            payer: 'me' as const,
+            userId: 'user-1',
+            installments: 2,
+            frequency: 'weekly' as const
+        };
+
+        await useCase.execute(data);
+
+        const calls = mockTransactionRepository.create.mock.calls;
+        expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
+        expect(calls[1][0].date).toEqual(new Date(2023, 0, 8)); // +7 days
+    });
+
+    it('should handle yearly recurrence', async () => {
+        const data = {
+            description: 'Yearly',
+            amount: 100,
+            type: 'expense' as const,
+            category: 'Tax',
+            date: new Date(2023, 0, 1),
+            isShared: false,
+            payer: 'me' as const,
+            userId: 'user-1',
+            installments: 2,
+            frequency: 'yearly' as const
+        };
+
+        await useCase.execute(data);
+
+        const calls = mockTransactionRepository.create.mock.calls;
+        expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
+        expect(calls[1][0].date).toEqual(new Date(2024, 0, 1)); // +1 year
+    });
 });
