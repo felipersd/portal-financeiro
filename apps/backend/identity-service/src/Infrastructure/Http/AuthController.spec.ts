@@ -101,6 +101,54 @@ describe('AuthController', () => {
             expect(res.redirect).toHaveBeenCalledWith('/');
             expect(Logger.info).toHaveBeenCalledWith('User authenticated, creating local session', expect.anything());
         });
+
+        it('should handle errors during user creation', async () => {
+            const mockAuth0User = { id: 'auth0|123', emails: [{ value: 'test@example.com' }] };
+            (passport.authenticate as jest.Mock).mockImplementation((strategy, options, callback) => {
+                return (req: Request, res: Response, next: NextFunction) => {
+                    callback(null, mockAuth0User, {});
+                };
+            });
+            mockGetOrCreateUser.execute.mockRejectedValue(new Error('DB Error'));
+
+            await authController.callback(req as Request, res as Response, next);
+
+            expect(Logger.error).toHaveBeenCalledWith('Error creating user session', expect.anything());
+            expect(next).toHaveBeenCalledWith(expect.any(Error));
+        });
+
+        it('should handle auth0 error', () => {
+            (passport.authenticate as jest.Mock).mockImplementation((strategy, options, callback) => {
+                return (req: Request, res: Response, next: NextFunction) => {
+                    callback(new Error('Auth0 Fail'), null, null);
+                };
+            });
+
+            authController.callback(req as Request, res as Response, next);
+
+            expect(Logger.error).toHaveBeenCalledWith('Auth0 authentication error', expect.anything());
+            expect(next).toHaveBeenCalledWith(expect.any(Error));
+        });
+    });
+
+    describe('logout', () => {
+        it('should clear cookie and redirect to auth0 logout', () => {
+            process.env.AUTH0_DOMAIN = 'test.auth0.com';
+            process.env.AUTH0_CLIENT_ID = 'client123';
+
+            authController.logout(req as Request, res as Response);
+
+            expect(res.clearCookie).toHaveBeenCalledWith('access_token');
+            expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining('https://test.auth0.com/v2/logout?client_id=client123'));
+        });
+
+        it('should redirect to root if env vars missing', () => {
+            delete process.env.AUTH0_DOMAIN;
+
+            authController.logout(req as Request, res as Response);
+
+            expect(res.redirect).toHaveBeenCalledWith('/');
+        });
     });
 
     describe('me', () => {
@@ -118,6 +166,26 @@ describe('AuthController', () => {
             await authController.me(req as Request, res as Response);
 
             expect(res.json).toHaveBeenCalledWith({ id: '1', name: 'Test' });
+        });
+
+        it('should return 404 if user not found in DB', async () => {
+            (req as any).user = { sub: '1' };
+            mockUserRepository.findById.mockResolvedValue(null);
+
+            await authController.me(req as Request, res as Response);
+
+            expect(Logger.warn).toHaveBeenCalledWith('User found in token but not in DB', { userId: '1' });
+            expect(res.status).toHaveBeenCalledWith(404);
+        });
+
+        it('should return 500 on repository error', async () => {
+            (req as any).user = { sub: '1' };
+            mockUserRepository.findById.mockRejectedValue(new Error('DB Fail'));
+
+            await authController.me(req as Request, res as Response);
+
+            expect(Logger.error).toHaveBeenCalledWith('Error fetching current user profile', expect.anything(), expect.anything());
+            expect(res.status).toHaveBeenCalledWith(500);
         });
     });
 });

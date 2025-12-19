@@ -37,7 +37,7 @@ describe('CreateTransaction', () => {
             amount: 1000,
             type: 'expense' as const,
             category: 'Housing',
-            date: new Date('2023-01-01'),
+            date: new Date(2023, 0, 1), // Jan 1, 2023 Local Time
             isShared: true,
             payer: 'me' as const,
             userId: 'user-1',
@@ -62,8 +62,8 @@ describe('CreateTransaction', () => {
         expect(calls[2][0].description).toBe('Rent (3/3)');
 
         // Check dates
-        expect(calls[0][0].date).toEqual(new Date('2023-01-01'));
-        expect(calls[1][0].date).toEqual(new Date('2023-02-01'));
-        expect(calls[2][0].date).toEqual(new Date('2023-03-01'));
+        expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
+        expect(calls[1][0].date).toEqual(new Date(2023, 1, 1)); // Feb 1
+        expect(calls[2][0].date).toEqual(new Date(2023, 2, 1)); // Mar 1
     });
 });
