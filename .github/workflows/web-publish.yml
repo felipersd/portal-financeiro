@@ -35,6 +35,10 @@ jobs:
         working-directory: apps/frontend
         run: npm run build
 
+      - name: Run Tests
+        working-directory: apps/frontend
+        run: npm test
+
   deploy:
     name: 🚀 Build and Push Docker
     needs: quality-check
