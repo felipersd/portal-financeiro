@@ -1,0 +1,69 @@
+import { CreateTransaction } from './CreateTransaction';
+import { Transaction } from '../../Domain/Entities/Transaction';
+
+describe('CreateTransaction', () => {
+    let useCase: CreateTransaction;
+    let mockTransactionRepository: any;
+
+    beforeEach(() => {
+        mockTransactionRepository = {
+            create: jest.fn().mockImplementation((t) => Promise.resolve(t))
+        };
+        useCase = new CreateTransaction(mockTransactionRepository);
+    });
+
+    it('should create a single transaction', async () => {
+        const data = {
+            description: 'Test',
+            amount: 100,
+            type: 'expense' as const,
+            category: 'Food',
+            date: new Date('2023-01-01'),
+            isShared: false,
+            payer: 'me' as const,
+            userId: 'user-1'
+        };
+
+        const result = await useCase.execute(data);
+
+        expect(result).toBeInstanceOf(Transaction);
+        expect(result.description).toBe('Test');
+        expect(mockTransactionRepository.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('should create recurring transactions', async () => {
+        const data = {
+            description: 'Rent',
+            amount: 1000,
+            type: 'expense' as const,
+            category: 'Housing',
+            date: new Date('2023-01-01'),
+            isShared: true,
+            payer: 'me' as const,
+            userId: 'user-1',
+            installments: 3,
+            frequency: 'monthly' as const
+        };
+
+        const result = await useCase.execute(data);
+
+        expect(mockTransactionRepository.create).toHaveBeenCalledTimes(3);
+
+        // Check recurrence ID is same for all
+        const calls = mockTransactionRepository.create.mock.calls;
+        const recurrenceId = calls[0][0].recurrenceId;
+        expect(recurrenceId).toBeDefined();
+        expect(calls[1][0].recurrenceId).toBe(recurrenceId);
+        expect(calls[2][0].recurrenceId).toBe(recurrenceId);
+
+        // Check descriptions
+        expect(calls[0][0].description).toBe('Rent (1/3)');
+        expect(calls[1][0].description).toBe('Rent (2/3)');
+        expect(calls[2][0].description).toBe('Rent (3/3)');
+
+        // Check dates
+        expect(calls[0][0].date).toEqual(new Date('2023-01-01'));
+        expect(calls[1][0].date).toEqual(new Date('2023-02-01'));
+        expect(calls[2][0].date).toEqual(new Date('2023-03-01'));
+    });
+});

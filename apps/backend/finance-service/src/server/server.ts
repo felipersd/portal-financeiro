@@ -10,6 +10,7 @@ import { UpdateTransaction } from '../Application/UseCases/UpdateTransaction';
 import { DeleteTransaction } from '../Application/UseCases/DeleteTransaction';
 import { TransactionController } from '../Infrastructure/Http/TransactionController';
 import { authMiddleware } from '../Infrastructure/Http/Middleware/AuthMiddleware';
+import { Logger } from '../Infrastructure/Logger';
 
 dotenv.config();
 
@@ -20,6 +21,23 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Request Logging Middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        Logger.info('Request processed', {
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+            ip: req.ip,
+            userAgent: req.get('user-agent')
+        });
+    });
+    next();
+});
 
 import { PrismaCategoryRepository } from '../Infrastructure/Database/PrismaCategoryRepository';
 import { GetCategories } from '../Application/UseCases/GetCategories';
@@ -62,5 +80,5 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 3002;
 
 app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Finance Service running on port ${PORT}`);
+    Logger.info(`Finance Service running on port ${PORT}`);
 });

@@ -1,0 +1,68 @@
+name: Unit Tests CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-identity-service:
+    name: Identity Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/backend/identity-service/package-lock.json
+      
+      - name: Install Dependencies
+        working-directory: ./apps/backend/identity-service
+        run: npm ci
+
+      - name: Run Tests
+        working-directory: ./apps/backend/identity-service
+        run: npm test
+
+  test-finance-service:
+    name: Finance Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/backend/finance-service/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./apps/backend/finance-service
+        run: npm ci
+
+      - name: Run Tests
+        working-directory: ./apps/backend/finance-service
+        run: npm test
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./apps/frontend
+        run: npm ci
+
+      - name: Run Tests
+        working-directory: ./apps/frontend
+        run: npm test

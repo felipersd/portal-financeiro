@@ -3,6 +3,7 @@ import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import { GetOrCreateUser } from '../../Application/UseCases/GetOrCreateUser';
 import { UserRepository } from '../../Domain/Interfaces/UserRepository';
+import { Logger } from '../Logger';
 
 export class AuthController {
     constructor(
@@ -11,8 +12,8 @@ export class AuthController {
     ) { }
 
     login(req: Request, res: Response, next: NextFunction) {
-        const callbackURL = `${req.protocol}://${req.get('host')}/api/auth/callback`;
-        console.log('Login callback URL:', callbackURL);
+        const callbackURL = process.env.AUTH0_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/callback`;
+        Logger.info('Initiating login flow', { callbackURL, headers: req.headers });
 
         passport.authenticate('auth0', {
             scope: 'openid email profile',
@@ -21,21 +22,25 @@ export class AuthController {
     }
 
     callback(req: Request, res: Response, next: NextFunction) {
-        const callbackURL = `${req.protocol}://${req.get('host')}/api/auth/callback`;
-        console.log('Callback URL for verification:', callbackURL);
+        const callbackURL = process.env.AUTH0_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/callback`;
+        Logger.info('Processing auth callback', { callbackURL });
 
         passport.authenticate('auth0', {
             session: false,
             callbackURL: callbackURL,
         } as any, async (err: any, user: any, info: any) => {
             if (err) {
+                Logger.error('Auth0 authentication error', err);
                 return next(err);
             }
             if (!user) {
+                Logger.warn('No user returned from Auth0', { info });
                 return res.redirect('/');
             }
 
             try {
+                Logger.info('User authenticated, creating local session', { auth0Id: user.id, email: user.emails?.[0]?.value });
+
                 const dbUser = await this.getOrCreateUser.execute({
                     auth0Id: user.id,
                     email: user.emails[0].value,
@@ -59,12 +64,14 @@ export class AuthController {
                 // Redirect to root (relative) to support any domain
                 res.redirect('/');
             } catch (error) {
+                Logger.error('Error creating user session', error);
                 next(error);
             }
         })(req, res, next);
     }
 
     logout(req: Request, res: Response) {
+        Logger.info('User logging out');
         res.clearCookie('access_token');
         // Construct returnTo dynamically based on the current host
         const returnTo = `${req.protocol}://${req.get('host')}`;
@@ -86,9 +93,11 @@ export class AuthController {
                 if (user) {
                     res.json(user);
                 } else {
+                    Logger.warn('User found in token but not in DB', { userId });
                     res.status(404).json({ message: 'User not found' });
                 }
             } catch (error) {
+                Logger.error('Error fetching current user profile', error, { userId });
                 res.status(500).json({ message: 'Internal server error' });
             }
         } else {
