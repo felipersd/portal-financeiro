@@ -1,8 +1,8 @@
-import { Logger, LogLevel } from './Logger';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { Logger } from './Logger';
+import { vi, describe, it, expect, beforeEach, afterEach, type MockInstance } from 'vitest';
 
 describe('Logger', () => {
-    let consoleSpy: any;
+    let consoleSpy: { log: MockInstance; info: MockInstance; warn: MockInstance; error: MockInstance };
 
     beforeEach(() => {
         // Mock console methods

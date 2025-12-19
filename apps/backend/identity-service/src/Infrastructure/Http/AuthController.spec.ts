@@ -66,7 +66,7 @@ describe('AuthController', () => {
     describe('callback', () => {
         it('should redirect to / if no user returned', () => {
             (passport.authenticate as jest.Mock).mockImplementation((strategy, options, callback) => {
-                return (req, res, next) => {
+                return (req: Request, res: Response, next: NextFunction) => {
                     callback(null, false, { message: 'No user' });
                 };
             });
@@ -82,7 +82,7 @@ describe('AuthController', () => {
             const mockDbUser = { id: '1', email: 'test@example.com' };
 
             (passport.authenticate as jest.Mock).mockImplementation((strategy, options, callback) => {
-                return (req, res, next) => {
+                return (req: Request, res: Response, next: NextFunction) => {
                     callback(null, mockAuth0User, {});
                 };
             });
