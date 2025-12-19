@@ -70,6 +70,7 @@ describe('Logger', () => {
     });
 
     it('should mask PII in raw string metadata', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Logger.info('PII String', 'Contact me at secret@gmail.com please' as any);
         const call = consoleSpy.log.mock.calls[0][0];
         const parsed = JSON.parse(call);
@@ -77,6 +78,7 @@ describe('Logger', () => {
     });
 
     it('should return original string if no PII found', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Logger.info('Clean', 'safe string' as any);
         const call = consoleSpy.log.mock.calls[0][0];
         const parsed = JSON.parse(call);
@@ -84,6 +86,7 @@ describe('Logger', () => {
     });
 
     it('should handle non-object/non-string metadata', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Logger.info('Number', 12345 as any);
         const call = consoleSpy.log.mock.calls[0][0];
         const parsed = JSON.parse(call);
@@ -98,7 +101,6 @@ describe('Logger', () => {
         // If needed, we can use vi.stubEnv if supported.
 
         // Ensure LogLevel.DEBUG is used
-        const originalDev = import.meta.env.DEV;
         // Force DEV to true for this test if possible, or assume true. 
         // Note: import.meta is read-only.
 

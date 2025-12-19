@@ -77,7 +77,7 @@ describe('Logger', () => {
 
     it('should mask PII', () => {
         Logger.info('PII', { email: 'secret@gmail.com', password: '123' });
-        const call = consoleSpy.log.mock.calls[0][0];
+        const call = consoleSpy.info.mock.calls[0][0];
         const parsed = JSON.parse(call);
         expect(parsed.metadata.email).toBe('sec***@gmail.com');
         expect(parsed.metadata.password).toBe('[REDACTED]');
