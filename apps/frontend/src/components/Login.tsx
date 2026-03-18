@@ -4,7 +4,8 @@ import React from 'react';
 export const Login: React.FC = () => {
     const handleLogin = () => {
         // Redirect to backend auth route
-        const API_URL = '/api';
+        const API_URL = import.meta.env.VITE_API_URL || '/api';
+        console.log('Login using API URL:', API_URL); // Debug for mobile
         window.location.href = `${API_URL}/auth/login`;
     };
 

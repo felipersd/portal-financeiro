@@ -9,7 +9,7 @@ services:
     env_file:
       - ./apps/backend/identity-service/.env.local
     volumes:
-      - ./apps/backend/identity-service:/app
+      - ./apps/backend/identity-service:/app:delegated
       - /app/node_modules
 
   finance-service:
@@ -22,7 +22,7 @@ services:
     env_file:
       - ./apps/backend/finance-service/.env.local
     volumes:
-      - ./apps/backend/finance-service:/app
+      - ./apps/backend/finance-service:/app:delegated
       - /app/node_modules
 
   frontend:

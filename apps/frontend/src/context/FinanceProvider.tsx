@@ -11,7 +11,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     // Use environment variable or relative path
-    const API_URL = '/api';
+    const API_URL = import.meta.env.VITE_API_URL || '/api';
 
     const fetchTransactions = React.useCallback(async () => {
         try {

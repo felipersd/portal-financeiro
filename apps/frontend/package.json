@@ -11,9 +11,16 @@
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "docker:local": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.local.yml up -d --build",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "mobile:build": "npm run build && npx cap sync",
+    "mobile:open:android": "npx cap open android",
+    "mobile:open:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "chart.js": "^4.5.1",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
