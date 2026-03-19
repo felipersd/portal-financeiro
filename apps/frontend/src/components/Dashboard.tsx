@@ -10,10 +10,10 @@ export const Dashboard: React.FC = () => {
     const summary = getSummary();
 
     const balanceText = summary.netBalance === 0
-        ? "Tudo zerado!"
+        ? "Tudo Quites!"
         : summary.netBalance > 0
-            ? `Cônjuge te deve R$ ${summary.netBalance.toFixed(2)}`
-            : `Você deve R$ ${Math.abs(summary.netBalance).toFixed(2)}`;
+            ? `A receber: R$ ${summary.netBalance.toFixed(2)}`
+            : `A pagar: R$ ${Math.abs(summary.netBalance).toFixed(2)}`;
 
     const balanceClass = summary.netBalance >= 0 ? 'text-success' : 'text-danger';
 
@@ -21,9 +21,11 @@ export const Dashboard: React.FC = () => {
     const expensesByCategory = filteredTransactions
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => {
-            const amount = (t.isShared && t.type === 'expense')
-                ? (t.splitDetails && t.splitDetails.mode === 'custom' ? t.splitDetails.myShare : t.amount / 2)
-                : t.amount;
+            let amount = t.amount;
+            if (t.isShared && t.type === 'expense' && t.splitDetails?.splits) {
+                const meSplit = t.splitDetails.splits.find(s => s.memberId === 'me');
+                amount = meSplit ? meSplit.amount : 0;
+            }
             acc[t.category] = (acc[t.category] || 0) + amount;
             return acc;
         }, {} as Record<string, number>);
@@ -51,9 +53,11 @@ export const Dashboard: React.FC = () => {
 
         const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
         const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
-            const amount = (t.isShared && t.type === 'expense')
-                ? (t.splitDetails && t.splitDetails.mode === 'custom' ? t.splitDetails.myShare : t.amount / 2)
-                : t.amount;
+            let amount = t.amount;
+            if (t.isShared && t.type === 'expense' && t.splitDetails?.splits) {
+                const meSplit = t.splitDetails.splits.find(s => s.memberId === 'me');
+                amount = meSplit ? meSplit.amount : 0;
+            }
             return acc + amount;
         }, 0);
 
@@ -109,7 +113,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 {summary.hasSharedTransactions && (
                     <div className="card">
-                        <h3 className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Balanço Casal</h3>
+                        <h3 className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Acertos Gerais</h3>
                         <span className={balanceClass} style={{ fontSize: '1.25rem', fontWeight: 700 }}>{balanceText}</span>
                     </div>
                 )}

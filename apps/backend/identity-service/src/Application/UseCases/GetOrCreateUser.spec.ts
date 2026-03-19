@@ -7,18 +7,18 @@ describe('GetOrCreateUser', () => {
 
     beforeEach(() => {
         mockUserRepository = {
-            findByAuth0Id: jest.fn(),
+            findByClerkId: jest.fn(),
             create: jest.fn()
         };
         useCase = new GetOrCreateUser(mockUserRepository);
     });
 
     it('should return existing user if found', async () => {
-        const existingUser = new User('1', 'auth0|1', 'test@example.com', 'Test', null, new Date());
-        mockUserRepository.findByAuth0Id.mockResolvedValue(existingUser);
+        const existingUser = new User('1', 'clerk_1', 'test@example.com', 'Test', null, new Date());
+        mockUserRepository.findByClerkId.mockResolvedValue(existingUser);
 
         const result = await useCase.execute({
-            auth0Id: 'auth0|1',
+            clerkId: 'clerk_1',
             email: 'test@example.com',
             name: 'Test',
             avatar: null
@@ -29,17 +29,17 @@ describe('GetOrCreateUser', () => {
     });
 
     it('should create new user if not found', async () => {
-        mockUserRepository.findByAuth0Id.mockResolvedValue(null);
+        mockUserRepository.findByClerkId.mockResolvedValue(null);
 
         const result = await useCase.execute({
-            auth0Id: 'auth0|new',
+            clerkId: 'clerk_new',
             email: 'new@example.com',
             name: 'New',
             avatar: null
         });
 
         expect(result).toBeInstanceOf(User);
-        expect(result.auth0Id).toBe('auth0|new');
+        expect(result.clerkId).toBe('clerk_new');
         expect(mockUserRepository.create).toHaveBeenCalledWith(result);
     });
 });

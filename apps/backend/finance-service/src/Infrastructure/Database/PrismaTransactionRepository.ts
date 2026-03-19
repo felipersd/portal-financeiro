@@ -15,6 +15,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
                 category: transaction.category,
                 date: transaction.date,
                 isShared: transaction.isShared,
+                isFixed: transaction.isFixed,
                 payer: transaction.payer,
                 userId: transaction.userId,
                 createdAt: transaction.createdAt,
@@ -34,7 +35,8 @@ export class PrismaTransactionRepository implements TransactionRepository {
             data.userId,
             data.createdAt,
             data.recurrenceId,
-            data.splitDetails
+            data.splitDetails,
+            data.isFixed
         );
     }
 
@@ -57,7 +59,8 @@ export class PrismaTransactionRepository implements TransactionRepository {
                     data.userId,
                     data.createdAt,
                     data.recurrenceId,
-                    data.splitDetails
+                    data.splitDetails,
+                    data.isFixed
                 )
         );
     }
@@ -78,7 +81,8 @@ export class PrismaTransactionRepository implements TransactionRepository {
             data.userId,
             data.createdAt,
             data.recurrenceId,
-            data.splitDetails
+            data.splitDetails,
+            data.isFixed
         );
     }
 
@@ -92,6 +96,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
                 category: transaction.category,
                 date: transaction.date,
                 isShared: transaction.isShared,
+                isFixed: transaction.isFixed,
                 payer: transaction.payer,
                 recurrenceId: transaction.recurrenceId,
                 splitDetails: transaction.splitDetails,
@@ -109,7 +114,49 @@ export class PrismaTransactionRepository implements TransactionRepository {
             data.userId,
             data.createdAt,
             data.recurrenceId,
-            data.splitDetails
+            data.splitDetails,
+            data.isFixed
+        );
+    }
+
+    async findFutureByRecurrenceId(recurrenceId: string, fromDate: Date): Promise<Transaction[]> {
+        const transactions = await this.prisma.transaction.findMany({
+            where: { recurrenceId, date: { gte: fromDate } },
+            orderBy: { date: 'asc' },
+        });
+        return transactions.map((data: any) => new Transaction(
+            data.id,
+            data.description,
+            data.amount,
+            data.type as 'income' | 'expense',
+            data.category,
+            data.date,
+            data.isShared,
+            data.payer as 'me' | 'spouse',
+            data.userId,
+            data.createdAt,
+            data.recurrenceId,
+            data.splitDetails,
+            data.isFixed
+        ));
+    }
+
+    async updateMany(transactions: Transaction[]): Promise<void> {
+        await this.prisma.$transaction(
+            transactions.map(t => this.prisma.transaction.update({
+                where: { id: t.id },
+                data: {
+                    description: t.description,
+                    amount: t.amount,
+                    type: t.type,
+                    category: t.category,
+                    date: t.date,
+                    isShared: t.isShared,
+                    isFixed: t.isFixed,
+                    payer: t.payer,
+                    splitDetails: t.splitDetails,
+                }
+            }))
         );
     }
 

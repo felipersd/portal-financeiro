@@ -3,14 +3,14 @@
     "version": "1.0.0",
     "main": "src/server/server.ts",
     "scripts": {
-        "dev": "npx prisma generate && npx prisma db push --accept-data-loss && ts-node-dev --respawn --transpile-only src/server/server.ts",
-        "build": "npx prisma generate && tsc",
-        "start": "npx prisma db push --accept-data-loss && node dist/server/server.js",
+        "dev": "npx prisma@5 generate && npx prisma@5 db push --accept-data-loss && ts-node-dev --respawn --transpile-only src/server/server.ts",
+        "build": "npx prisma@5 generate && tsc",
+        "start": "npx prisma@5 db push --accept-data-loss && node dist/server/server.js",
         "test": "jest",
         "test:coverage": "jest --coverage"
     },
     "dependencies": {
-        "@prisma/client": "^5.0.0",
+        "@prisma/client": "^5.22.0",
         "@types/cookie-parser": "^1.4.10",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/uuid": "^8.3.4",
@@ -28,7 +28,7 @@
         "@types/node": "^20.0.0",
         "@types/supertest": "^6.0.3",
         "jest": "^30.2.0",
-        "prisma": "^5.0.0",
+        "prisma": "^5.22.0",
         "supertest": "^7.1.4",
         "ts-jest": "^29.4.6",
         "ts-node-dev": "^2.0.0",

@@ -21,6 +21,8 @@
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
+    "@clerk/clerk-react": "^5.61.3",
+    "@clerk/localizations": "^4.2.2",
     "chart.js": "^4.5.1",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",

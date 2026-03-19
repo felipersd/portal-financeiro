@@ -42,7 +42,15 @@ app.use((req, res, next) => {
 import { PrismaCategoryRepository } from '../Infrastructure/Database/PrismaCategoryRepository';
 import { GetCategories } from '../Application/UseCases/GetCategories';
 import { CreateCategory } from '../Application/UseCases/CreateCategory';
+import { DeleteCategory } from '../Application/UseCases/DeleteCategory';
 import { CategoryController } from '../Infrastructure/Http/CategoryController';
+
+import { PrismaGroupMemberRepository } from '../Infrastructure/Database/PrismaGroupMemberRepository';
+import { AddGroupMember } from '../Application/UseCases/AddGroupMember';
+import { GetGroupMembers } from '../Application/UseCases/GetGroupMembers';
+import { UpdateGroupMember } from '../Application/UseCases/UpdateGroupMember';
+import { DeleteGroupMember } from '../Application/UseCases/DeleteGroupMember';
+import { GroupMemberController } from '../Infrastructure/Http/GroupMemberController';
 
 const prisma = new PrismaClient();
 
@@ -63,7 +71,21 @@ const transactionController = new TransactionController(
 const categoryRepository = new PrismaCategoryRepository(prisma);
 const getCategories = new GetCategories(categoryRepository);
 const createCategory = new CreateCategory(categoryRepository);
-const categoryController = new CategoryController(getCategories, createCategory);
+const deleteCategory = new DeleteCategory(categoryRepository);
+const categoryController = new CategoryController(getCategories, createCategory, deleteCategory);
+
+// GroupMember Dependencies
+const groupMemberRepository = new PrismaGroupMemberRepository(prisma);
+const addGroupMember = new AddGroupMember(groupMemberRepository);
+const getGroupMembersUseCase = new GetGroupMembers(groupMemberRepository);
+const updateGroupMemberUseCase = new UpdateGroupMember(groupMemberRepository);
+const deleteGroupMemberUseCase = new DeleteGroupMember(groupMemberRepository);
+const groupMemberController = new GroupMemberController(
+    addGroupMember,
+    getGroupMembersUseCase,
+    updateGroupMemberUseCase,
+    deleteGroupMemberUseCase
+);
 
 app.post('/transactions', authMiddleware, (req, res) => transactionController.handleCreate(req, res));
 app.get('/transactions', authMiddleware, (req, res) => transactionController.handleGet(req, res));
@@ -72,6 +94,12 @@ app.delete('/transactions/:id', authMiddleware, (req, res) => transactionControl
 
 app.post('/categories', authMiddleware, (req, res) => categoryController.handleCreate(req, res));
 app.get('/categories', authMiddleware, (req, res) => categoryController.handleGet(req, res));
+app.delete('/categories/:id', authMiddleware, (req, res) => categoryController.handleDelete(req, res));
+
+app.post('/members', authMiddleware, (req, res) => groupMemberController.handleCreate(req, res));
+app.get('/members', authMiddleware, (req, res) => groupMemberController.handleGet(req, res));
+app.put('/members/:id', authMiddleware, (req, res) => groupMemberController.handleUpdate(req, res));
+app.delete('/members/:id', authMiddleware, (req, res) => groupMemberController.handleDelete(req, res));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'finance-service' });

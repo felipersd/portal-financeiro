@@ -6,13 +6,13 @@ export class UserController {
 
     async handleGetOrCreate(req: Request, res: Response): Promise<void> {
         try {
-            const { auth0Id, email, name, avatar } = req.body;
-            if (!auth0Id || !email || !name) {
+            const { clerkId, email, name, avatar } = req.body;
+            if (!clerkId || !email || !name) {
                 res.status(400).json({ error: 'Missing required fields' });
                 return;
             }
 
-            const user = await this.getOrCreateUser.execute({ auth0Id, email, name, avatar });
+            const user = await this.getOrCreateUser.execute({ clerkId, email, name, avatar });
             res.json(user);
         } catch (error) {
             console.error(error);

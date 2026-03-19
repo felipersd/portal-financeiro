@@ -1,235 +1,220 @@
 import React, { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { FinanceContext } from './FinanceContext';
 import { Login } from '../components/Login';
-import type { User, Transaction, Category } from '../types';
+import type { User, Transaction, Category, GroupMember } from '../types';
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+    const { getToken, signOut } = useAuth();
+
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [members, setMembers] = useState<GroupMember[]>([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-    // Use environment variable or relative path
     const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+    const authFetch = React.useCallback(async (url: string, options: RequestInit = {}) => {
+        const token = await getToken();
+        if (token) {
+            options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+        }
+        return fetch(url, options);
+    }, [getToken]);
 
     const fetchTransactions = React.useCallback(async () => {
         try {
-            const res = await fetch(`${API_URL}/transactions`);
-            if (res.ok) {
-                const data = await res.json();
-                setTransactions(data);
-            }
-        } catch (error) {
-            console.error('Error fetching transactions:', error);
-        }
-    }, [API_URL]);
+            const res = await authFetch(`${API_URL}/transactions`);
+            if (res.ok) setTransactions(await res.json());
+        } catch (error) { console.error(error); }
+    }, [API_URL, authFetch]);
 
     const fetchCategories = React.useCallback(async () => {
         try {
-            const res = await fetch(`${API_URL}/categories`);
-            if (res.ok) {
-                const data = await res.json();
-                setCategories(data);
-            }
-        } catch (error) {
-            console.error('Error fetching categories:', error);
-        }
-    }, [API_URL]);
+            const res = await authFetch(`${API_URL}/categories`);
+            if (res.ok) setCategories(await res.json());
+        } catch (error) { console.error(error); }
+    }, [API_URL, authFetch]);
+
+    const fetchMembers = React.useCallback(async () => {
+        try {
+            const res = await authFetch(`${API_URL}/members`);
+            if (res.ok) setMembers(await res.json());
+        } catch (error) { console.error(error); }
+    }, [API_URL, authFetch]);
 
     const checkAuth = React.useCallback(async () => {
         try {
-            const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
+            const res = await authFetch(`${API_URL}/auth/me`);
             if (res.ok) {
-                const userData = await res.json();
-                setUser(userData);
+                setUser(await res.json());
                 fetchTransactions();
                 fetchCategories();
+                fetchMembers();
             } else if (res.status === 401) {
-                // Normal state for unauthenticated user
                 setUser(null);
-            } else {
-                console.error('Auth check failed:', res.status, res.statusText);
             }
         } catch (error) {
             console.error('Network error checking auth:', error);
         } finally {
             setLoading(false);
         }
-    }, [API_URL, fetchTransactions, fetchCategories]);
+    }, [API_URL, fetchTransactions, fetchCategories, fetchMembers, authFetch]);
 
     useEffect(() => {
-        checkAuth();
-    }, [checkAuth]);
+        if (isClerkLoaded) {
+            if (clerkUser) checkAuth();
+            else { setUser(null); setLoading(false); }
+        }
+    }, [isClerkLoaded, clerkUser, checkAuth]);
 
-    // Filter transactions by selected Month/Year
     const filteredTransactions = transactions.filter(t => {
         const tDate = new Date(t.date);
-        return tDate.getMonth() === selectedDate.getMonth() &&
-            tDate.getFullYear() === selectedDate.getFullYear();
+        return tDate.getMonth() === selectedDate.getMonth() && tDate.getFullYear() === selectedDate.getFullYear();
     });
 
     const addTransaction = async (t: Omit<Transaction, 'id' | 'userId' | 'createdAt'>) => {
         try {
-            await fetch(`${API_URL}/transactions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(t)
-            });
+            await authFetch(`${API_URL}/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
             await fetchTransactions();
-        } catch (error) {
-            console.error('Error adding transaction:', error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const updateTransaction = async (id: string, t: Partial<Transaction>) => {
         try {
-            await fetch(`${API_URL}/transactions/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(t)
-            });
+            await authFetch(`${API_URL}/transactions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
             await fetchTransactions();
-        } catch (error) {
-            console.error('Error updating transaction:', error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const removeTransaction = async (id: string) => {
         try {
-            await fetch(`${API_URL}/transactions/${id}`, { method: 'DELETE' });
+            await authFetch(`${API_URL}/transactions/${id}`, { method: 'DELETE' });
             setTransactions(prev => prev.filter(t => t.id !== id));
-        } catch (error) {
-            console.error('Error deleting transaction:', error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const addCategory = async (name: string, type: 'income' | 'expense') => {
         try {
-            const res = await fetch(`${API_URL}/categories`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, type })
-            });
-            const newCat = await res.json();
-            setCategories(prev => [...prev, newCat]);
-        } catch (error) {
-            console.error('Error adding category:', error);
-        }
+            const res = await authFetch(`${API_URL}/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
+            if (res.ok) {
+                const data = await res.json();
+                setCategories(prev => [...prev, data]);
+            }
+        } catch (error) { console.error(error); }
     };
 
     const updateCategory = async (id: string, name: string, type: 'income' | 'expense') => {
         try {
-            const res = await fetch(`${API_URL}/categories/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, type })
-            });
+            const res = await authFetch(`${API_URL}/categories/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
             if (res.ok) {
                 const updatedCat = await res.json();
                 setCategories(prev => prev.map(c => c.id === id ? updatedCat : c));
             }
-        } catch (error) {
-            console.error('Error updating category:', error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const removeCategory = async (id: string) => {
         try {
-            await fetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
+            await authFetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
             setCategories(prev => prev.filter(c => c.id !== id));
-        } catch (error) {
-            console.error('Error deleting category:', error);
-        }
+        } catch (error) { console.error(error); }
     };
 
-    const logout = () => {
-        window.location.href = `${API_URL}/auth/logout`;
+    const addMember = async (name: string, surname: string | undefined, email: string | undefined, category: string) => {
+        try {
+            const res = await authFetch(`${API_URL}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, surname, email, category }) });
+            if (res.ok) {
+                const data = await res.json();
+                setMembers(prev => [...prev, data]);
+            } else {
+                const errorData = await res.json();
+                alert(errorData.error || 'Erro ao adicionar membro');
+            }
+        } catch (error) { console.error(error); }
     };
+
+    const updateMember = async (id: string, name: string, surname: string | undefined, email: string | undefined, category: string) => {
+        try {
+            const res = await authFetch(`${API_URL}/members/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, surname, email, category }) });
+            if (res.ok) {
+                const updated = await res.json();
+                setMembers(prev => prev.map(m => m.id === id ? updated : m));
+            }
+        } catch (error) { console.error(error); }
+    };
+
+    const removeMember = async (id: string) => {
+        try {
+            await authFetch(`${API_URL}/members/${id}`, { method: 'DELETE' });
+            setMembers(prev => prev.filter(m => m.id !== id));
+        } catch (error) { console.error(error); }
+    };
+
+    const logout = () => signOut();
 
     const getSummary = () => {
-        // Summary uses FILTERED transactions
-        const totalIncome = filteredTransactions
-            .filter(t => t.type === 'income')
-            .reduce((acc, t) => acc + t.amount, 0);
+        const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
 
-        const totalSpent = filteredTransactions
-            .filter(t => t.type === 'expense')
-            .reduce((acc, t) => {
-                let amount = t.amount;
-                if (t.isShared) {
-                    if (t.splitDetails && t.splitDetails.mode === 'custom') {
-                        amount = t.splitDetails.myShare;
-                    } else {
-                        amount = t.amount / 2;
-                    }
-                }
-                return acc + amount;
-            }, 0);
+        const totalSpent = filteredTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
+            let myShare = t.amount;
+            if (t.isShared && t.splitDetails?.splits) {
+                const meSplit = t.splitDetails.splits.find((s: any) => s.memberId === 'me');
+                if (meSplit) myShare = meSplit.amount;
+                else myShare = 0;
+            }
+            return acc + myShare;
+        }, 0);
 
         const currentBalance = totalIncome - totalSpent;
 
-        let mePaidShared = 0;
-        let spousePaidShared = 0;
+        const memberBalances: Record<string, number> = {};
+        members.forEach(m => memberBalances[m.id] = 0);
 
         filteredTransactions.filter(t => t.isShared && t.type === 'expense').forEach(t => {
-            // If I paid
-            if (t.payer === 'me') {
-                mePaidShared += t.amount;
-            } else {
-                spousePaidShared += t.amount;
-            }
+            if (!t.splitDetails?.splits) return;
+
+            t.splitDetails.splits.forEach((split: any) => {
+                if (split.memberId === t.payer) return;
+
+                if (t.payer === 'me') {
+                    if (memberBalances[split.memberId] !== undefined) {
+                        memberBalances[split.memberId] += split.amount;
+                    }
+                } else {
+                    if (split.memberId === 'me') {
+                        if (memberBalances[t.payer] !== undefined) {
+                            memberBalances[t.payer] -= split.amount;
+                        }
+                    }
+                }
+            });
         });
 
-        // Calculate who owes whom based on SHARES, not just 50/50
-        let spouseOwesMe = 0;
-        let meOwesSpouse = 0;
-
-        filteredTransactions.filter(t => t.isShared && t.type === 'expense').forEach(t => {
-            const myShare = (t.splitDetails && t.splitDetails.mode === 'custom')
-                ? t.splitDetails.myShare
-                : t.amount / 2;
-
-            const spouseShare = (t.splitDetails && t.splitDetails.mode === 'custom')
-                ? t.splitDetails.spouseShare
-                : t.amount / 2;
-
-            if (t.payer === 'me') {
-                // I paid everything, so spouse owes me their share
-                spouseOwesMe += spouseShare;
-            } else {
-                // Spouse paid everything, so I owe spouse my share
-                meOwesSpouse += myShare;
-            }
-        });
-
-        const netBalance = spouseOwesMe - meOwesSpouse;
+        const netBalance = Object.values(memberBalances).reduce((acc, val) => acc + val, 0);
 
         return {
             totalIncome,
             totalSpent,
             currentBalance,
             netBalance,
-            mePaidShared,
-            spousePaidShared,
+            memberBalances,
             hasSharedTransactions: filteredTransactions.some(t => t.isShared)
         };
     };
 
-    if (loading) {
-        return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Carregando...</div>;
-    }
-
-    if (!user) {
-        return <Login />;
-    }
+    if (!isClerkLoaded || loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Carregando...</div>;
+    if (!clerkUser || !user) return <Login />;
 
     return (
         <FinanceContext.Provider value={{
-            user, transactions, filteredTransactions, categories,
-            selectedDate, setSelectedDate,
+            user, transactions, filteredTransactions, categories, selectedDate, setSelectedDate,
             addTransaction, updateTransaction, removeTransaction,
             addCategory, updateCategory, removeCategory,
+            members, addMember, updateMember, removeMember,
             getSummary, logout
         }}>
             {children}

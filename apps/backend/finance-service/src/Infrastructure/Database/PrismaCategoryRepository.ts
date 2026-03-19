@@ -25,4 +25,14 @@ export class PrismaCategoryRepository implements CategoryRepository {
             (data: any) => new Category(data.id, data.name, data.type as 'income' | 'expense', data.userId)
         );
     }
+
+    async findById(id: string): Promise<Category | null> {
+        const data = await this.prisma.category.findUnique({ where: { id } });
+        if (!data) return null;
+        return new Category(data.id, data.name, data.type as 'income' | 'expense', data.userId);
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.prisma.category.delete({ where: { id } });
+    }
 }

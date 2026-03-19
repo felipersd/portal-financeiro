@@ -11,7 +11,7 @@ export class UpdateTransaction {
         category: string;
         date: Date;
         isShared: boolean;
-        payer: 'me' | 'spouse';
+        payer: string;
         userId: string;
         splitDetails?: any | null;
     }): Promise<Transaction> {
@@ -39,9 +39,36 @@ export class UpdateTransaction {
             data.userId,
             transaction.createdAt,
             transaction.recurrenceId,
-            data.splitDetails
+            data.splitDetails,
+            transaction.isFixed
         );
 
-        return this.transactionRepository.update(updatedTransaction);
+        const saved = await this.transactionRepository.update(updatedTransaction);
+        
+        if (transaction.isFixed && transaction.recurrenceId) {
+            const futures = await this.transactionRepository.findFutureByRecurrenceId(transaction.recurrenceId, transaction.date);
+            const toUpdate = futures.filter(f => f.id !== transaction.id).map(f => {
+                return new Transaction(
+                    f.id,
+                    data.description,
+                    data.amount,
+                    data.type,
+                    data.category,
+                    f.date,
+                    data.isShared,
+                    data.payer,
+                    f.userId,
+                    f.createdAt,
+                    f.recurrenceId,
+                    data.splitDetails,
+                    f.isFixed
+                );
+            });
+            if (toUpdate.length > 0) {
+                await this.transactionRepository.updateMany(toUpdate);
+            }
+        }
+
+        return saved;
     }
 }

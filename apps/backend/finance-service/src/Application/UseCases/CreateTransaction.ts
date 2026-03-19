@@ -12,15 +12,17 @@ export class CreateTransaction {
         category: string;
         date: Date;
         isShared: boolean;
-        payer: 'me' | 'spouse';
+        payer: string;
         userId: string;
         recurrenceId?: string | null;
         splitDetails?: any | null;
         installments?: number;
-        frequency?: 'monthly' | 'weekly' | 'yearly' | 'daily';
+        isFixed?: boolean;
+        frequency?: 'monthly' | 'weekly' | 'yearly' | 'daily' | 'fixed';
     }): Promise<Transaction> {
-        const installments = data.installments || 1;
         const frequency = data.frequency || 'monthly';
+        const isFixed = data.isFixed || frequency === 'fixed';
+        const installments = isFixed ? 120 : (data.installments || 1);
 
         // If installments > 1, generate a recurrenceId if not provided
         const recurrenceId = (installments > 1 && !data.recurrenceId) ? uuidv4() : data.recurrenceId;
@@ -31,7 +33,7 @@ export class CreateTransaction {
             const transactionDate = new Date(data.date);
 
             if (i > 0) {
-                if (frequency === 'monthly') {
+                if (frequency === 'monthly' || frequency === 'fixed') {
                     transactionDate.setMonth(transactionDate.getMonth() + i);
                 } else if (frequency === 'weekly') {
                     transactionDate.setDate(transactionDate.getDate() + (i * 7));
@@ -42,7 +44,7 @@ export class CreateTransaction {
                 }
             }
 
-            const description = installments > 1
+            const description = (!isFixed && installments > 1)
                 ? `${data.description} (${i + 1}/${installments})`
                 : data.description;
 
@@ -58,7 +60,8 @@ export class CreateTransaction {
                 data.userId,
                 new Date(),
                 recurrenceId,
-                data.splitDetails
+                data.splitDetails,
+                isFixed
             );
 
             const created = await this.transactionRepository.create(transaction);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, List, Scale, Plus, Tag, LogOut } from 'lucide-react';
+import { LayoutDashboard, List, Scale, Plus, Tag, LogOut, Users, PieChart } from 'lucide-react';
 import { Dashboard } from './Dashboard';
 import { TransactionList } from './TransactionList';
 import { Settlement } from './Settlement';
@@ -7,9 +7,11 @@ import { TransactionModal } from './TransactionModal';
 import { CategoryManager } from './CategoryManager';
 import { MonthYearPicker } from './MonthYearPicker';
 import { MobileDateTrigger, MobileDateCarousel } from './MobileDateSelector';
+import { MemberReport } from './MemberReport';
+import { MembersManager } from './MembersManager';
 import { useFinance } from '../context/FinanceContext';
 
-type View = 'dashboard' | 'transactions' | 'settlement' | 'categories';
+type View = 'dashboard' | 'transactions' | 'settlement' | 'categories' | 'members' | 'reports';
 
 export const Layout: React.FC = () => {
     const { user, logout, getSummary } = useFinance();
@@ -26,6 +28,8 @@ export const Layout: React.FC = () => {
             case 'transactions': return <TransactionList />;
             case 'settlement': return <Settlement />;
             case 'categories': return <CategoryManager />;
+            case 'members': return <MembersManager />;
+            case 'reports': return <MemberReport />;
         }
     };
 
@@ -35,6 +39,8 @@ export const Layout: React.FC = () => {
             case 'transactions': return 'Transações';
             case 'settlement': return 'Acerto de Contas';
             case 'categories': return 'Categorias';
+            case 'members': return 'Membros';
+            case 'reports': return 'Relatórios';
         }
     };
 
@@ -81,6 +87,18 @@ export const Layout: React.FC = () => {
                         className={`nav-item ${currentView === 'categories' ? 'active' : ''}`}
                     >
                         <Tag size={20} /> Categorias
+                    </li>
+                    <li
+                        onClick={() => setCurrentView('members')}
+                        className={`nav-item ${currentView === 'members' ? 'active' : ''}`}
+                    >
+                        <Users size={20} /> Membros
+                    </li>
+                    <li
+                        onClick={() => setCurrentView('reports')}
+                        className={`nav-item ${currentView === 'reports' ? 'active' : ''}`}
+                    >
+                        <PieChart size={20} /> Relatórios
                     </li>
                 </ul>
 
@@ -206,6 +224,31 @@ export const Layout: React.FC = () => {
                 </div>
             </main>
 
+            {/* Mobile Floating Action Button */}
+            <button
+                className="show-mobile"
+                onClick={() => setIsModalOpen(true)}
+                style={{
+                    position: 'fixed',
+                    bottom: '90px',
+                    right: '20px',
+                    background: 'var(--primary-gradient)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '60px',
+                    height: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+                    cursor: 'pointer',
+                    zIndex: 90
+                }}
+            >
+                <Plus size={32} />
+            </button>
+
             {/* Mobile Bottom Nav */}
             <nav className="bottom-nav">
                 <button
@@ -222,34 +265,13 @@ export const Layout: React.FC = () => {
                     <List size={24} />
                     <span>Lista</span>
                 </button>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="nav-item-mobile"
-                    style={{ color: 'var(--primary)', marginTop: '-1.5rem' }}
-                >
-                    <div style={{
-                        background: 'var(--primary-gradient)',
-                        borderRadius: '50%',
-                        padding: '1rem',
-                        boxShadow: '0 4px 10px rgba(99, 102, 241, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '56px',
-                        height: '56px',
-                        marginBottom: '0.25rem'
-                    }}>
-                        <Plus size={32} color="white" />
-                    </div>
-                    <span style={{ fontWeight: 600 }}>Novo</span>
-                </button>
                 {hasSharedTransactions && (
                     <button
                         onClick={() => setCurrentView('settlement')}
                         className={`nav-item-mobile ${currentView === 'settlement' ? 'active' : ''}`}
                     >
                         <Scale size={24} />
-                        <span>Casal</span>
+                        <span>Acertos</span>
                     </button>
                 )}
                 <button
@@ -258,6 +280,13 @@ export const Layout: React.FC = () => {
                 >
                     <Tag size={24} />
                     <span>Categorias</span>
+                </button>
+                <button
+                    onClick={() => setCurrentView('members')}
+                    className={`nav-item-mobile ${currentView === 'members' ? 'active' : ''}`}
+                >
+                    <Users size={24} />
+                    <span>Membros</span>
                 </button>
             </nav>
 

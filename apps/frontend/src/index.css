@@ -55,11 +55,31 @@
   box-sizing: border-box;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-body);
   color: var(--text-primary);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
@@ -95,9 +115,10 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border);
-  background-color: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Subtler border */
+  background-color: rgba(15, 23, 42, 0.65); /* More glassmorphism */
+  backdrop-filter: blur(12px); /* Higher blur */
+  -webkit-backdrop-filter: blur(12px);
   z-index: 40;
 }
 
@@ -128,11 +149,16 @@ button {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  border-radius: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 2rem; /* Pill shape for Material 3 */
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.2s;
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
 }
 
 .nav-item.active {
@@ -153,10 +179,20 @@ button {
   cursor: pointer;
   flex: 1;
   width: 100%;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.nav-item-mobile:active {
+  transform: scale(0.95);
 }
 
 .nav-item-mobile.active {
   color: var(--primary);
+  font-weight: 500;
+}
+
+.nav-item-mobile.active svg {
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
 }
 
 /* Responsive Media Queries */
@@ -235,8 +271,23 @@ button {
   background-color: var(--bg-card);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.03); /* Softer card border */
   box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtle hover for interactive list items */
+.hoverable-row {
+  transition: background-color 0.2s ease;
+}
+
+.hoverable-row:hover {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .text-success {
@@ -249,6 +300,31 @@ button {
 
 .text-secondary {
   color: var(--text-secondary);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.icon-btn.edit:hover {
+  color: var(--primary);
+}
+
+.icon-btn.delete:hover {
+  color: var(--danger);
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 /* Form Styles */
@@ -267,20 +343,38 @@ button {
 
 input,
 select {
-  background-color: var(--bg-body);
-  border: 1px solid var(--border);
+  background-color: rgba(255, 255, 255, 0.03); /* Filled style */
+  border: 1px solid rgba(255, 255, 255, 0.05); /* Very subtle top border */
   color: var(--text-primary);
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
   font-family: inherit;
   font-size: 1rem;
   width: 100%;
+  transition: all 0.2s ease;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f8fafc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+  padding-right: 2.5rem;
 }
 
 input:focus,
 select:focus {
   outline: none;
+  background-color: rgba(255, 255, 255, 0.06);
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); /* Focus Ring */
+}
+
+/* Fix for native select dropdown options visibility in Dark Mode */
+option {
+  background-color: var(--bg-body);
+  color: var(--text-primary);
 }
 
 /* Toggle Switch */

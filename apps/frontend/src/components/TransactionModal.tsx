@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
-import type { Payer, TransactionType, Transaction } from '../types';
+import type { TransactionType, Transaction } from '../types';
 
 interface Props {
     isOpen: boolean;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransaction }) => {
-    const { addTransaction, updateTransaction, categories } = useFinance();
+    const { addTransaction, updateTransaction, categories, members } = useFinance();
 
     const [type, setType] = useState<TransactionType>('expense');
     const [description, setDescription] = useState('');
@@ -18,12 +18,12 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
     const [categoryId, setCategoryId] = useState('');
     const [date, setDate] = useState('');
     const [isShared, setIsShared] = useState(false);
-    const [payer, setPayer] = useState<Payer>('me');
-
-    // Split State
+    
+    // Dynamic Members states
+    const [payer, setPayer] = useState<string>('me');
+    const [participants, setParticipants] = useState<string[]>(['me']);
     const [splitMode, setSplitMode] = useState<'equal' | 'custom'>('equal');
-    const [customAmount, setCustomAmount] = useState('');
-    const [customOwner, setCustomOwner] = useState<'me' | 'spouse'>('me');
+    const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
 
     // Recurrence State
     const [recurrenceFrequency, setRecurrenceFrequency] = useState('none');
@@ -44,14 +44,28 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setPayer(editTransaction.payer);
                 setRecurrenceFrequency('none');
 
-                if (editTransaction.splitDetails && editTransaction.splitDetails.mode === 'custom') {
-                    setSplitMode('custom');
-                    setCustomAmount(editTransaction.splitDetails.myShare.toString());
-                    setCustomOwner('me');
-                } else {
+                if (editTransaction.splitDetails && (editTransaction.splitDetails as any).splits) {
+                    const splits = (editTransaction.splitDetails as any).splits as Array<{memberId: string, amount: number}>;
+                    setParticipants(splits.map(s => s.memberId));
+                    
+                    const firstAmt = splits[0]?.amount || 0;
+                    const isEqual = splits.every(s => Math.abs(s.amount - firstAmt) < 0.01);
+                    
+                    setSplitMode(isEqual ? 'equal' : 'custom');
+                    if (!isEqual) {
+                        const cs: Record<string, string> = {};
+                        splits.forEach(s => cs[s.memberId] = s.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                        setCustomSplits(cs);
+                    }
+                } else if (editTransaction.splitDetails && (editTransaction.splitDetails as any).mode) {
+                    // Legacy transaction with 'spouse'
+                    setParticipants(['me']);
                     setSplitMode('equal');
-                    setCustomAmount('');
-                    setCustomOwner('me');
+                    setCustomSplits({});
+                } else {
+                    setParticipants([editTransaction.payer]);
+                    setSplitMode('equal');
+                    setCustomSplits({});
                 }
 
             } else {
@@ -60,17 +74,16 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setDescription('');
                 setAmountStr('');
                 setCategoryId('');
-                // Use local date to avoid timezone issues
                 const today = new Date();
                 const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
                 setDate(localDate);
                 setIsShared(false);
                 setPayer('me');
+                setParticipants(['me']);
+                setSplitMode('equal');
+                setCustomSplits({});
                 setRecurrenceFrequency('none');
                 setRecurrenceCount(1);
-                setSplitMode('equal');
-                setCustomAmount('');
-                setCustomOwner('me');
             }
         } else {
             document.body.style.overflow = 'unset';
@@ -98,6 +111,49 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
         return parseFloat(amountStr.replace(/\./g, '').replace(',', '.'));
     };
 
+    const toggleParticipant = (memberId: string) => {
+        if (participants.includes(memberId)) {
+            if (participants.length > 1) { // Prevents removing everyone
+                setParticipants(prev => prev.filter(p => p !== memberId));
+            }
+        } else {
+            setParticipants(prev => [...prev, memberId]);
+        }
+    };
+
+    const handleCustomSplitChange = (memberId: string, value: string) => {
+        const digits = value.replace(/\D/g, '');
+        if (digits === '') {
+            setCustomSplits(prev => {
+                const updated = { ...prev, [memberId]: '' };
+                if (participants.length === 2) {
+                    const otherMember = participants.find(p => p !== memberId)!;
+                    const total = getNumericAmount();
+                    updated[otherMember] = total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+                return updated;
+            });
+            return;
+        }
+        
+        const numberValue = parseInt(digits, 10) / 100;
+        const formatted = numberValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        setCustomSplits(prev => {
+            const updated = { ...prev, [memberId]: formatted };
+            
+            if (participants.length === 2) {
+                const otherMember = participants.find(p => p !== memberId)!;
+                const total = getNumericAmount();
+                let remaining = total - numberValue;
+                if (remaining < 0) remaining = 0;
+                updated[otherMember] = remaining.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            
+            return updated;
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -105,28 +161,22 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
         let splitDetails = undefined;
 
         if (isShared && type === 'expense') {
-            if (splitMode === 'custom' && customAmount) {
-                const cAmount = parseFloat(customAmount);
-                if (customOwner === 'me') {
-                    splitDetails = {
-                        mode: 'custom' as const,
-                        myShare: cAmount,
-                        spouseShare: totalAmount - cAmount
-                    };
-                } else {
-                    splitDetails = {
-                        mode: 'custom' as const,
-                        myShare: totalAmount - cAmount,
-                        spouseShare: cAmount
-                    };
-                }
+            const splits: Array<{ memberId: string; amount: number }> = [];
+            
+            if (splitMode === 'equal') {
+                const chunk = totalAmount / participants.length;
+                participants.forEach(p => {
+                    splits.push({ memberId: p, amount: chunk });
+                });
             } else {
-                splitDetails = {
-                    mode: 'equal' as const,
-                    myShare: totalAmount / 2,
-                    spouseShare: totalAmount / 2
-                };
+                participants.forEach(p => {
+                    const amtStr = customSplits[p] || '';
+                    const amt = amtStr ? parseFloat(amtStr.replace(/\./g, '').replace(',', '.')) : 0;
+                    splits.push({ memberId: p, amount: amt });
+                });
             }
+
+            splitDetails = { splits };
         }
 
         const data = {
@@ -134,7 +184,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             amount: totalAmount,
             type,
             category: categoryId,
-            date: `${date}T12:00:00`, // Force noon to prevent timezone shifts
+            date: `${date}T12:00:00`,
             isShared: type === 'expense' ? isShared : false,
             payer,
             recurrenceFrequency: !editTransaction ? recurrenceFrequency : undefined,
@@ -151,11 +201,18 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
     };
 
     const filteredCategories = categories.filter(c => c.type === type);
+    const numericAmount = getNumericAmount();
 
     const formatDateDisplay = (dateString: string) => {
         if (!dateString) return 'Selecione uma data';
         const [y, m, d] = dateString.split('-');
         return `${d}/${m}/${y}`;
+    };
+    
+    const getMemberName = (id: string) => {
+        if (id === 'me') return 'Eu';
+        const m = members.find(m => m.id === id);
+        return m ? `${m.name}` : 'Membro Excluído';
     };
 
     return (
@@ -232,7 +289,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 backgroundColor: 'var(--bg-body)', border: '1px solid var(--border)',
                                 borderRadius: 'var(--radius-md)', padding: '1rem', color: 'var(--text-primary)',
-                                height: '58px' // Match typical input height
+                                height: '58px'
                             }}>
                                 <span>{formatDateDisplay(date)}</span>
                                 <Calendar size={20} color="var(--text-secondary)" />
@@ -250,7 +307,6 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         </div>
                     </div>
 
-                    {/* Recurrence (Only for new expenses) */}
                     {!editTransaction && type === 'expense' && (
                         <div className="card" style={{ backgroundColor: 'var(--bg-body)', padding: '1rem', marginBottom: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--primary)' }}>
@@ -264,9 +320,10 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                         <option value="daily">Diária</option>
                                         <option value="monthly">Mensal</option>
                                         <option value="yearly">Anual</option>
+                                        <option value="fixed">Fixo</option>
                                     </select>
                                 </div>
-                                {recurrenceFrequency !== 'none' && (
+                                {recurrenceFrequency !== 'none' && recurrenceFrequency !== 'fixed' && (
                                     <div className="form-group" style={{ flex: 1 }}>
                                         <label>Vezes</label>
                                         <input
@@ -284,48 +341,51 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
                     {type === 'expense' && (
                         <>
-                            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '1rem' }}>
+                            <div className="form-group">
+                                <label>Quem pagou?</label>
+                                <select value={payer} onChange={e => setPayer(e.target.value)}>
+                                    <option value="me">Eu</option>
+                                    {members.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
                                 <label className="switch">
                                     <input type="checkbox" checked={isShared} onChange={e => setIsShared(e.target.checked)} />
                                     <span className="slider round"></span>
                                 </label>
-                                <label>Dividir com Cônjuge?</label>
+                                <label>Dividir despesa com o grupo?</label>
                             </div>
 
                             {isShared && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
                                     <div className="form-group">
-                                        <label>Quem pagou?</label>
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <div
-                                                onClick={() => setPayer('me')}
-                                                style={{
-                                                    flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                                    cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
-                                                    backgroundColor: payer === 'me' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                                                    borderColor: payer === 'me' ? 'var(--primary)' : 'var(--border)',
-                                                    color: payer === 'me' ? 'var(--primary)' : 'inherit'
-                                                }}
-                                            >
-                                                Eu
-                                            </div>
-                                            <div
-                                                onClick={() => setPayer('spouse')}
-                                                style={{
-                                                    flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                                    cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
-                                                    backgroundColor: payer === 'spouse' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                                                    borderColor: payer === 'spouse' ? 'var(--primary)' : 'var(--border)',
-                                                    color: payer === 'spouse' ? 'var(--primary)' : 'inherit'
-                                                }}
-                                            >
-                                                Cônjuge
-                                            </div>
+                                        <label style={{ marginBottom: '0.5rem' }}>Integrantes da divisão</label>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            {['me', ...members.map(m => m.id)].map(mid => (
+                                                <div 
+                                                    key={mid}
+                                                    onClick={() => toggleParticipant(mid)}
+                                                    style={{
+                                                        padding: '0.5rem 1rem',
+                                                        borderRadius: '2rem',
+                                                        border: `1px solid ${participants.includes(mid) ? 'var(--primary)' : 'var(--border)'}`,
+                                                        background: participants.includes(mid) ? 'var(--primary)' : 'transparent',
+                                                        color: participants.includes(mid) ? '#fff' : 'var(--text-secondary)',
+                                                        cursor: 'pointer',
+                                                        fontSize: '0.875rem'
+                                                    }}
+                                                >
+                                                    {getMemberName(mid)}
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Divisão</label>
+                                        <label>Forma de Divisão</label>
                                         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                                             <div
                                                 onClick={() => setSplitMode('equal')}
@@ -337,7 +397,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                                     color: splitMode === 'equal' ? 'var(--primary)' : 'var(--text-secondary)'
                                                 }}
                                             >
-                                                Meio a Meio (50%)
+                                                Partes Iguais
                                             </div>
                                             <div
                                                 onClick={() => setSplitMode('custom')}
@@ -353,56 +413,38 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                             </div>
                                         </div>
 
-                                        {splitMode === 'custom' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Quanto foi a parte de quem?</label>
-                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <div style={{ flex: 1 }}>
-                                                        <input
-                                                            type="number"
-                                                            placeholder="Valor"
-                                                            value={customAmount}
-                                                            onChange={e => setCustomAmount(e.target.value)}
-                                                            style={{ width: '100%' }}
+                                        {/* Dynamic inputs for each participant */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {participants.map(p => (
+                                                <div key={p} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-card)', borderRadius: '0.5rem' }}>
+                                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{getMemberName(p)}</span>
+                                                    {splitMode === 'equal' ? (
+                                                        <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                                            R$ {(numericAmount / participants.length).toFixed(2)}
+                                                        </span>
+                                                    ) : (
+                                                        <input 
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            placeholder="0,00"
+                                                            value={customSplits[p] || ''}
+                                                            onChange={(e) => handleCustomSplitChange(p, e.target.value)}
+                                                            style={{ width: '100px', padding: '0.25rem 0.5rem', textAlign: 'right' }}
                                                         />
-                                                    </div>
-                                                    <div style={{ flex: 1, display: 'flex', gap: '0.5rem' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setCustomOwner('me')}
-                                                            style={{
-                                                                flex: 1, border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                                                backgroundColor: customOwner === 'me' ? 'var(--primary)' : 'transparent',
-                                                                color: customOwner === 'me' ? 'white' : 'var(--text-secondary)',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            Minha
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setCustomOwner('spouse')}
-                                                            style={{
-                                                                flex: 1, border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                                                backgroundColor: customOwner === 'spouse' ? 'var(--primary)' : 'transparent',
-                                                                color: customOwner === 'spouse' ? 'white' : 'var(--text-secondary)',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            Dele(a)
-                                                        </button>
-                                                    </div>
+                                                    )}
                                                 </div>
-                                                {customAmount && (
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                                                        {customOwner === 'me'
-                                                            ? `Você paga R$ ${parseFloat(customAmount).toFixed(2)} e Cônjuge paga R$ ${(getNumericAmount() - parseFloat(customAmount)).toFixed(2)}`
-                                                            : `Cônjuge paga R$ ${parseFloat(customAmount).toFixed(2)} e Você paga R$ ${(getNumericAmount() - parseFloat(customAmount)).toFixed(2)}`
-                                                        }
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                            ))}
+                                            
+                                            {splitMode === 'custom' && (
+                                                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                                    Soma: R$ {participants.reduce((acc, p) => {
+                                                        const amtStr = customSplits[p] || '';
+                                                        const amt = amtStr ? parseFloat(amtStr.replace(/\./g, '').replace(',', '.')) : 0;
+                                                        return acc + amt;
+                                                    }, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {numericAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}

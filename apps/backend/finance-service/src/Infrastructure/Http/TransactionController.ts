@@ -34,6 +34,7 @@ export class TransactionController {
                 recurrenceId,
                 splitDetails,
                 frequency: recurrenceFrequency === 'none' ? undefined : recurrenceFrequency,
+                isFixed: recurrenceFrequency === 'fixed',
                 installments: recurrenceCount
             });
             res.json(transaction);

@@ -4,7 +4,15 @@ export interface Category {
     type: 'income' | 'expense';
 }
 
-export type Payer = 'me' | 'spouse';
+export type Payer = string;
+
+export interface GroupMember {
+    id: string;
+    name: string;
+    surname: string | null;
+    email: string | null;
+    category: string;
+}
 
 export type TransactionType = 'income' | 'expense';
 
@@ -16,13 +24,13 @@ export interface Transaction {
     category: string; // We store the category name or ID
     date: string;
     isShared: boolean;
-    payer: Payer;
+    isFixed?: boolean;
+    payer: string;
+    userId: string;
     recurrenceId?: string;
     createdAt: string;
     splitDetails?: {
-        mode: 'equal' | 'custom';
-        myShare: number;
-        spouseShare: number;
+        splits: Array<{ memberId: string; amount: number }>;
     };
 }
 
@@ -31,8 +39,7 @@ export interface FinanceSummary {
     totalSpent: number;
     currentBalance: number; // Income - Expenses
     netBalance: number; // Couple settlement
-    mePaidShared: number;
-    spousePaidShared: number;
+    memberBalances: Record<string, number>;
     hasSharedTransactions: boolean;
 }
 

@@ -6,4 +6,6 @@ export interface TransactionRepository {
     findById(id: string): Promise<Transaction | null>;
     update(transaction: Transaction): Promise<Transaction>;
     delete(id: string): Promise<void>;
+    findFutureByRecurrenceId(recurrenceId: string, fromDate: Date): Promise<Transaction[]>;
+    updateMany(transactions: Transaction[]): Promise<void>;
 }

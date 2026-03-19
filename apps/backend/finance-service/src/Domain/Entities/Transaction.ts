@@ -7,10 +7,11 @@ export class Transaction {
         public readonly category: string,
         public readonly date: Date,
         public readonly isShared: boolean,
-        public readonly payer: 'me' | 'spouse',
+        public readonly payer: string,
         public readonly userId: string,
         public readonly createdAt: Date,
         public readonly recurrenceId?: string | null,
-        public readonly splitDetails?: any | null
+        public readonly splitDetails?: any | null,
+        public readonly isFixed: boolean = false
     ) { }
 }

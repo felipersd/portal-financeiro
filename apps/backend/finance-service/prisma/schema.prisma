@@ -16,6 +16,7 @@ model Transaction {
   category    String
   date        DateTime
   isShared    Boolean
+  isFixed     Boolean  @default(false)
   payer       String   // 'me' | 'spouse'
   createdAt   DateTime @default(now())
   recurrenceId String?
@@ -30,4 +31,14 @@ model Category {
   type String // 'income' | 'expense'
   
   userId String // Logical reference to IdentityService User
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  name      String
+  surname   String?
+  email     String?
+  category  String   // 'Filho(a)', 'Cônjuge', 'Pai(a)', etc.
+  userId    String
+  createdAt DateTime @default(now())
 }
