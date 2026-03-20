@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { FinanceContext } from './FinanceContext';
 import { Login } from '../components/Login';
-import type { User, Transaction, Category, GroupMember } from '../types';
+import type { User, Transaction, Category, GroupMember, BudgetRule } from '../types';
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
@@ -13,6 +13,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [members, setMembers] = useState<GroupMember[]>([]);
+    const [budgetRule, setBudgetRule] = useState<BudgetRule | null>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -46,6 +47,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } catch (error) { console.error(error); }
     }, [API_URL, authFetch]);
 
+    const fetchBudgetRule = React.useCallback(async (month: string) => {
+        try {
+            const res = await authFetch(`${API_URL}/budget-rules/${month}`);
+            if (res.ok) setBudgetRule(await res.json());
+        } catch (error) { console.error(error); }
+    }, [API_URL, authFetch]);
+
     const checkAuth = React.useCallback(async () => {
         try {
             const res = await authFetch(`${API_URL}/auth/me`);
@@ -70,6 +78,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             else { setUser(null); setLoading(false); }
         }
     }, [isClerkLoaded, clerkUser, checkAuth]);
+
+    useEffect(() => {
+        if (user) {
+            const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+            fetchBudgetRule(monthStr);
+        }
+    }, [selectedDate, user, fetchBudgetRule]);
 
     const filteredTransactions = transactions.filter(t => {
         const tDate = new Date(t.date);
@@ -154,6 +169,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } catch (error) { console.error(error); }
     };
 
+    const updateBudgetRule = async (month: string, data: Partial<BudgetRule>) => {
+        try {
+            const res = await authFetch(`${API_URL}/budget-rules/${month}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) setBudgetRule(await res.json());
+        } catch (error) { console.error(error); }
+    };
+
     const logout = () => signOut();
 
     const getSummary = () => {
@@ -215,6 +241,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             addTransaction, updateTransaction, removeTransaction,
             addCategory, updateCategory, removeCategory,
             members, addMember, updateMember, removeMember,
+            budgetRule, fetchBudgetRule, updateBudgetRule,
             getSummary, logout
         }}>
             {children}

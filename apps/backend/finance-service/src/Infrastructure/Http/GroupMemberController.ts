@@ -15,7 +15,7 @@ export class GroupMemberController {
 
     async handleGet(req: Request, res: Response) {
         try {
-            const userId = (req as any).auth?.userId || (req as any).user?.sub;
+            const userId = (req as any).internalUserId;
             const members = await this.getGroupMembers.execute(userId);
             res.json(members);
         } catch (error) {
@@ -26,7 +26,7 @@ export class GroupMemberController {
 
     async handleCreate(req: Request, res: Response) {
         try {
-            const userId = (req as any).auth?.userId || (req as any).user?.sub;
+            const userId = (req as any).internalUserId;
             const data = { ...req.body, userId };
             const member = await this.addGroupMember.execute(data);
             res.status(201).json(member);
@@ -41,7 +41,7 @@ export class GroupMemberController {
 
     async handleUpdate(req: Request, res: Response) {
         try {
-            const userId = (req as any).auth?.userId || (req as any).user?.sub;
+            const userId = (req as any).internalUserId;
             const id = req.params.id;
             const data = { ...req.body, userId };
             const member = await this.updateGroupMember.execute(id, data);
@@ -57,7 +57,7 @@ export class GroupMemberController {
 
     async handleDelete(req: Request, res: Response) {
         try {
-            const userId = (req as any).auth?.userId || (req as any).user?.sub;
+            const userId = (req as any).internalUserId;
             const id = req.params.id;
             await this.deleteGroupMember.execute(id, userId);
             res.status(204).send();

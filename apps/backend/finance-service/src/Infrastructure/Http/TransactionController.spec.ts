@@ -26,7 +26,7 @@ describe('TransactionController', () => {
             body: {},
             params: {},
             query: {},
-            user: { sub: 'user-1' }
+            internalUserId: 'user-1'
         } as any;
 
         res = {
@@ -107,7 +107,7 @@ describe('TransactionController', () => {
         it('should update transaction', async () => {
             req.params = { id: 'tx-1' };
             req.body = { description: 'Updated' };
-            (req as any).user.sub = 'user-1';
+            (req as any).internalUserId = 'user-1';
 
             mockUpdateTransaction.execute.mockResolvedValue({});
 
@@ -120,14 +120,14 @@ describe('TransactionController', () => {
         });
 
         it('should fail if user not authenticated', async () => {
-            (req as any).user = undefined;
+            (req as any).internalUserId = undefined;
             await controller.handleUpdate(req as Request, res as Response);
             expect(res.status).toHaveBeenCalledWith(401);
         });
 
         it('should handle service errors', async () => {
             req.params = { id: 'tx-1' };
-            (req as any).user.sub = 'user-1';
+            (req as any).internalUserId = 'user-1';
             mockUpdateTransaction.execute.mockRejectedValue(new Error('Fail'));
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -141,7 +141,7 @@ describe('TransactionController', () => {
     describe('handleDelete', () => {
         it('should delete transaction', async () => {
             req.params = { id: 'tx-1' };
-            (req as any).user.sub = 'user-1';
+            (req as any).internalUserId = 'user-1';
 
             await controller.handleDelete(req as Request, res as Response);
 
@@ -151,14 +151,14 @@ describe('TransactionController', () => {
         });
 
         it('should fail if user not authenticated', async () => {
-            (req as any).user = undefined;
+            (req as any).internalUserId = undefined;
             await controller.handleDelete(req as Request, res as Response);
             expect(res.status).toHaveBeenCalledWith(401);
         });
 
         it('should handle service errors', async () => {
             req.params = { id: 'tx-1' };
-            (req as any).user.sub = 'user-1';
+            (req as any).internalUserId = 'user-1';
             mockDeleteTransaction.execute.mockRejectedValue(new Error('Fail'));
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 

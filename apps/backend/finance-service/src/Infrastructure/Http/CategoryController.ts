@@ -12,7 +12,7 @@ export class CategoryController {
 
     async handleGet(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.sub;
+            const userId = (req as any).internalUserId;
             const categories = await this.getCategories.execute(userId);
             res.json(categories);
         } catch (error) {
@@ -22,7 +22,7 @@ export class CategoryController {
 
     async handleCreate(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.sub;
+            const userId = (req as any).internalUserId;
             const { name, type } = req.body;
 
             if (!name || !type) {
@@ -38,7 +38,7 @@ export class CategoryController {
 
     async handleDelete(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.sub;
+            const userId = (req as any).internalUserId;
             const { id } = req.params;
 
             await this.deleteCategory.execute(id, userId);

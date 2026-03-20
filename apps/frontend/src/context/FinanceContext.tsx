@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Transaction, FinanceSummary, Category, User, GroupMember } from '../types';
+import type { Transaction, FinanceSummary, Category, User, GroupMember, BudgetRule } from '../types';
 
 interface FinanceContextType {
     user: User | null;
@@ -18,6 +18,9 @@ interface FinanceContextType {
     addMember: (name: string, surname: string | undefined, email: string | undefined, category: string) => Promise<void>;
     updateMember: (id: string, name: string, surname: string | undefined, email: string | undefined, category: string) => Promise<void>;
     removeMember: (id: string) => Promise<void>;
+    budgetRule: BudgetRule | null;
+    fetchBudgetRule: (month: string) => Promise<void>;
+    updateBudgetRule: (month: string, data: Partial<BudgetRule>) => Promise<void>;
     getSummary: () => FinanceSummary;
     logout: () => void;
 }

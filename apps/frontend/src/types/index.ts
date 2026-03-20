@@ -49,3 +49,13 @@ export interface User {
     email: string;
     avatar: string;
 }
+
+export interface BudgetRule {
+    id: string;
+    userId: string;
+    month: string;
+    needsPct: number;
+    wantsPct: number;
+    savingsPct: number;
+    mapping: Record<string, 'needs' | 'wants' | 'savings'>;
+}

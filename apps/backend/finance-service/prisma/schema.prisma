@@ -42,3 +42,17 @@ model GroupMember {
   userId    String
   createdAt DateTime @default(now())
 }
+
+model BudgetRule {
+  id         String   @id @default(uuid())
+  userId     String   // Logical reference to User
+  month      String   // Format: YYYY-MM
+  needsPct   Int      @default(50)
+  wantsPct   Int      @default(30)
+  savingsPct Int      @default(20)
+  mapping    Json     // e.g. { "Mercado": "needs", "Lazer": "wants" }
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, month])
+}

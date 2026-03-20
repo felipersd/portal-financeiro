@@ -15,7 +15,7 @@ export class TransactionController {
     async handleCreate(req: Request, res: Response): Promise<void> {
         try {
             const { description, amount, type, category, date, isShared, payer, recurrenceId, splitDetails, recurrenceFrequency, recurrenceCount } = req.body;
-            const userId = (req as any).user?.sub || req.body.userId;
+            const userId = (req as any).internalUserId || req.body.userId;
 
             if (!description || !amount || !type || !category || !date || !userId) {
                 res.status(400).json({ error: 'Missing required fields' });
@@ -46,7 +46,7 @@ export class TransactionController {
 
     async handleGet(req: Request, res: Response): Promise<void> {
         try {
-            const userId = (req as any).user?.sub || req.query.userId;
+            const userId = (req as any).internalUserId || req.query.userId;
 
             if (!userId || typeof userId !== 'string') {
                 res.status(400).json({ error: 'Missing userId' });
@@ -65,7 +65,7 @@ export class TransactionController {
         try {
             const { id } = req.params;
             const { description, amount, type, category, date, isShared, payer, splitDetails } = req.body;
-            const userId = (req as any).user?.sub;
+            const userId = (req as any).internalUserId;
 
             if (!userId) {
                 res.status(401).json({ error: 'Unauthorized' });
@@ -93,7 +93,7 @@ export class TransactionController {
     async handleDelete(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            const userId = (req as any).user?.sub;
+            const userId = (req as any).internalUserId;
 
             if (!userId) {
                 res.status(401).json({ error: 'Unauthorized' });

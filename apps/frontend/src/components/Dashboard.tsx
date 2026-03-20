@@ -2,6 +2,7 @@ import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
+import { BudgetRuleChart } from './BudgetRuleChart';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -140,6 +141,8 @@ export const Dashboard: React.FC = () => {
                     />
                 </div>
             </div>
+
+            <BudgetRuleChart />
         </div>
     );
 };

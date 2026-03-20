@@ -9,7 +9,8 @@ import { GetTransactions } from '../Application/UseCases/GetTransactions';
 import { UpdateTransaction } from '../Application/UseCases/UpdateTransaction';
 import { DeleteTransaction } from '../Application/UseCases/DeleteTransaction';
 import { TransactionController } from '../Infrastructure/Http/TransactionController';
-import { authMiddleware } from '../Infrastructure/Http/Middleware/AuthMiddleware';
+import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { userResolutionMiddleware } from '../Infrastructure/Http/Middleware/UserResolutionMiddleware';
 import { Logger } from '../Infrastructure/Logger';
 
 dotenv.config();
@@ -52,6 +53,11 @@ import { UpdateGroupMember } from '../Application/UseCases/UpdateGroupMember';
 import { DeleteGroupMember } from '../Application/UseCases/DeleteGroupMember';
 import { GroupMemberController } from '../Infrastructure/Http/GroupMemberController';
 
+import { PrismaBudgetRuleRepository } from '../Infrastructure/Database/PrismaBudgetRuleRepository';
+import { GetBudgetRule } from '../Application/UseCases/GetBudgetRule';
+import { UpdateBudgetRule } from '../Application/UseCases/UpdateBudgetRule';
+import { BudgetRuleController } from '../Infrastructure/Http/BudgetRuleController';
+
 const prisma = new PrismaClient();
 
 // Transaction Dependencies
@@ -87,19 +93,31 @@ const groupMemberController = new GroupMemberController(
     deleteGroupMemberUseCase
 );
 
-app.post('/transactions', authMiddleware, (req, res) => transactionController.handleCreate(req, res));
-app.get('/transactions', authMiddleware, (req, res) => transactionController.handleGet(req, res));
-app.put('/transactions/:id', authMiddleware, (req, res) => transactionController.handleUpdate(req, res));
-app.delete('/transactions/:id', authMiddleware, (req, res) => transactionController.handleDelete(req, res));
+// BudgetRule Dependencies
+const budgetRuleRepository = new PrismaBudgetRuleRepository();
+const getBudgetRuleUseCase = new GetBudgetRule(budgetRuleRepository);
+const updateBudgetRuleUseCase = new UpdateBudgetRule(budgetRuleRepository);
+const budgetRuleController = new BudgetRuleController(
+    getBudgetRuleUseCase,
+    updateBudgetRuleUseCase
+);
 
-app.post('/categories', authMiddleware, (req, res) => categoryController.handleCreate(req, res));
-app.get('/categories', authMiddleware, (req, res) => categoryController.handleGet(req, res));
-app.delete('/categories/:id', authMiddleware, (req, res) => categoryController.handleDelete(req, res));
+app.post('/transactions', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleCreate(req, res));
+app.get('/transactions', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleGet(req, res));
+app.put('/transactions/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleUpdate(req, res));
+app.delete('/transactions/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleDelete(req, res));
 
-app.post('/members', authMiddleware, (req, res) => groupMemberController.handleCreate(req, res));
-app.get('/members', authMiddleware, (req, res) => groupMemberController.handleGet(req, res));
-app.put('/members/:id', authMiddleware, (req, res) => groupMemberController.handleUpdate(req, res));
-app.delete('/members/:id', authMiddleware, (req, res) => groupMemberController.handleDelete(req, res));
+app.post('/categories', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => categoryController.handleCreate(req, res));
+app.get('/categories', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => categoryController.handleGet(req, res));
+app.delete('/categories/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => categoryController.handleDelete(req, res));
+
+app.post('/members', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleCreate(req, res));
+app.get('/members', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleGet(req, res));
+app.put('/members/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleUpdate(req, res));
+app.delete('/members/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleDelete(req, res));
+
+app.get('/budget-rules/:month', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => budgetRuleController.handleGet(req, res));
+app.put('/budget-rules/:month', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => budgetRuleController.handleUpdate(req, res));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'finance-service' });
