@@ -188,7 +188,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const totalSpent = filteredTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
             let myShare = t.amount;
             if (t.isShared && t.splitDetails?.splits) {
-                const meSplit = t.splitDetails.splits.find((s: any) => s.memberId === 'me');
+                const meSplit = t.splitDetails.splits.find((s: { memberId: string; amount: number }) => s.memberId === 'me');
                 if (meSplit) myShare = meSplit.amount;
                 else myShare = 0;
             }
@@ -203,7 +203,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         filteredTransactions.filter(t => t.isShared && t.type === 'expense').forEach(t => {
             if (!t.splitDetails?.splits) return;
 
-            t.splitDetails.splits.forEach((split: any) => {
+            t.splitDetails.splits.forEach((split: { memberId: string; amount: number }) => {
                 if (split.memberId === t.payer) return;
 
                 if (t.payer === 'me') {
