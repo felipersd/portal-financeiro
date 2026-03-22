@@ -53,11 +53,19 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
     if (!budgetRule) return null;
 
     return createPortal(
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'var(--bg-secondary)', padding: '2rem' }}>
+        <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 9999, backdropFilter: 'blur(4px)', overflow: 'hidden',
+            touchAction: 'none', overscrollBehavior: 'none'
+        }}>
+            <div className="card" style={{
+                width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto',
+                boxShadow: 'var(--shadow-lg)', touchAction: 'pan-y', padding: '1.5rem'
+            }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Configurar Regra de Orçamento</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.5rem', display: 'flex' }}>&times;</button>
                 </div>
 
                 <div style={{ marginBottom: '2rem' }}>
