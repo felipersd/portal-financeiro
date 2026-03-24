@@ -44,8 +44,9 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 setPayer(editTransaction.payer);
                 setRecurrenceFrequency('none');
 
-                if (editTransaction.splitDetails && (editTransaction.splitDetails as any).splits) {
-                    const splits = (editTransaction.splitDetails as any).splits as Array<{memberId: string, amount: number}>;
+                const splitDetails = editTransaction.splitDetails as { splits?: Array<{memberId: string; amount: number}>; mode?: string } | undefined;
+                if (splitDetails && splitDetails.splits) {
+                    const splits = splitDetails.splits;
                     setParticipants(splits.map(s => s.memberId));
                     
                     const firstAmt = splits[0]?.amount || 0;
@@ -57,7 +58,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         splits.forEach(s => cs[s.memberId] = s.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                         setCustomSplits(cs);
                     }
-                } else if (editTransaction.splitDetails && (editTransaction.splitDetails as any).mode) {
+                } else if (splitDetails && splitDetails.mode) {
                     // Legacy transaction with 'spouse'
                     setParticipants(['me']);
                     setSplitMode('equal');

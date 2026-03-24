@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinance } from '../context/FinanceContext';
 
@@ -10,21 +10,12 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
     const { budgetRule, updateBudgetRule, categories, selectedDate } = useFinance();
     
     // Sliders state
-    const [needs, setNeeds] = useState(50);
-    const [wants, setWants] = useState(30);
-    const [savings, setSavings] = useState(20);
+    const [needs, setNeeds] = useState(budgetRule?.needsPct ?? 50);
+    const [wants, setWants] = useState(budgetRule?.wantsPct ?? 30);
+    const [savings, setSavings] = useState(budgetRule?.savingsPct ?? 20);
 
     // Mapping state
-    const [mapping, setMapping] = useState<Record<string, 'needs' | 'wants' | 'savings'>>({});
-
-    useEffect(() => {
-        if (budgetRule) {
-            setNeeds(budgetRule.needsPct);
-            setWants(budgetRule.wantsPct);
-            setSavings(budgetRule.savingsPct);
-            setMapping(budgetRule.mapping);
-        }
-    }, [budgetRule]);
+    const [mapping, setMapping] = useState<Record<string, 'needs' | 'wants' | 'savings'>>(budgetRule?.mapping ?? {});
 
     const handlePercentageChange = (type: 'needs' | 'wants' | 'savings', val: number) => {
         if (type === 'needs') setNeeds(val);

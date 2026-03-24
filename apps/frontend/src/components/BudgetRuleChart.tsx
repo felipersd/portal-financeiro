@@ -16,7 +16,7 @@ export const BudgetRuleChart: React.FC = () => {
     filteredTransactions.filter(t => t.type === 'expense').forEach(t => {
         let amount = t.amount;
         if (t.isShared && t.splitDetails?.splits) {
-            const meSplit = t.splitDetails.splits.find((s: any) => s.memberId === 'me');
+            const meSplit = t.splitDetails.splits.find((s: { memberId: string; amount: number }) => s.memberId === 'me');
             if (meSplit) amount = meSplit.amount;
             else amount = 0;
         }

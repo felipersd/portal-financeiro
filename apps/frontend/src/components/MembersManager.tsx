@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { UserPlus, Trash2, Edit2 } from 'lucide-react';
+import type { GroupMember } from '../types';
 
 export const MembersManager: React.FC = () => {
     const { members, addMember, updateMember, removeMember } = useFinance();
@@ -23,7 +24,7 @@ export const MembersManager: React.FC = () => {
         setIsAdding(false);
     };
 
-    const handleEdit = (m: any) => {
+    const handleEdit = (m: GroupMember) => {
         setEditingId(m.id);
         setName(m.name);
         setSurname(m.surname || '');
