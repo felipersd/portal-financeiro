@@ -10,6 +10,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [serverError, setServerError] = useState(false);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [members, setMembers] = useState<GroupMember[]>([]);
@@ -58,15 +59,20 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         try {
             const res = await authFetch(`${API_URL}/auth/me`);
             if (res.ok) {
+                setServerError(false);
                 setUser(await res.json());
                 fetchTransactions();
                 fetchCategories();
                 fetchMembers();
             } else if (res.status === 401) {
+                setServerError(false);
                 setUser(null);
+            } else {
+                setServerError(true);
             }
         } catch (error) {
             console.error('Network error checking auth:', error);
+            setServerError(true);
         } finally {
             setLoading(false);
         }
@@ -233,6 +239,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     if (!isClerkLoaded || loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Carregando...</div>;
+    if (serverError) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', textAlign: 'center', padding: '2rem' }}>
+        <h2 style={{ marginBottom: '1rem', color: 'var(--danger)' }}>Erro de Conexão</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Não foi possível conectar ao servidor. Por favor, verifique sua conexão ou tente novamente mais tarde.</p>
+        <button onClick={() => window.location.reload()} className="btn-primary" style={{ padding: '0.75rem 2rem', borderRadius: '0.5rem', background: 'var(--primary-gradient)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Tentar Novamente</button>
+    </div>;
     if (!clerkUser || !user) return <Login />;
 
     return (
