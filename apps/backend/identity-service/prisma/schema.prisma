@@ -10,9 +10,22 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  clerkId   String   @unique
   email     String   @unique
   name      String
   avatar    String?
   createdAt DateTime @default(now())
+
+  identities UserIdentity[]
+}
+
+model UserIdentity {
+  id              String   @id @default(uuid())
+  userId          String
+  provider        String
+  providerId      String
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
 }

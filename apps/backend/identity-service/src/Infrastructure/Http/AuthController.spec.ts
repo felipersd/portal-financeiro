@@ -20,7 +20,7 @@ describe('AuthController', () => {
 
     beforeEach(() => {
         mockGetOrCreateUser = { execute: jest.fn() };
-        mockUserRepository = { findByClerkId: jest.fn() };
+        mockUserRepository = { findByProviderId: jest.fn() };
         authController = new AuthController(mockGetOrCreateUser, mockUserRepository);
 
         req = {
@@ -43,17 +43,17 @@ describe('AuthController', () => {
 
         it('should return user from DB if found', async () => {
             (req as any).auth = { userId: 'clerk_123' };
-            mockUserRepository.findByClerkId.mockResolvedValue({ id: '1', clerkId: 'clerk_123', name: 'Test' });
+            mockUserRepository.findByProviderId.mockResolvedValue({ id: '1', name: 'Test' });
 
             await authController.me(req as Request, res as Response);
 
-            expect(mockUserRepository.findByClerkId).toHaveBeenCalledWith('clerk_123');
-            expect(res.json).toHaveBeenCalledWith({ id: '1', clerkId: 'clerk_123', name: 'Test' });
+            expect(mockUserRepository.findByProviderId).toHaveBeenCalledWith('clerk', 'clerk_123');
+            expect(res.json).toHaveBeenCalledWith({ id: '1', name: 'Test' });
         });
 
         it('should return 500 on repository error', async () => {
             (req as any).auth = { userId: 'clerk_123' };
-            mockUserRepository.findByClerkId.mockRejectedValue(new Error('DB Fail'));
+            mockUserRepository.findByProviderId.mockRejectedValue(new Error('DB Fail'));
 
             await authController.me(req as Request, res as Response);
 

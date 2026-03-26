@@ -55,5 +55,21 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  dockge:
+    image: louislam/dockge:1
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      # Conecta o painel ao motor do Docker do seu celular
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Salva as configurações do próprio Dockge
+      - ./data:/app/data
+      # É dentro desta pasta que seus outros docker-compose.yml vão ficar
+      - ./stacks:/opt/stacks
+    environment:
+      # Diz ao Dockge onde procurar suas aplicações
+      - DOCKGE_STACKS_DIR=/opt/stacks
+
 volumes:
   postgres_data:

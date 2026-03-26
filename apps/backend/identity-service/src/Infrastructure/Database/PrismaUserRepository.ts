@@ -5,26 +5,55 @@ import { UserRepository } from '../../Domain/Interfaces/UserRepository';
 export class PrismaUserRepository implements UserRepository {
     constructor(private prisma: PrismaClient) { }
 
-    async findByClerkId(clerkId: string): Promise<User | null> {
-        const data = await this.prisma.user.findUnique({
-            where: { clerkId },
+    async findByProviderId(provider: string, providerId: string): Promise<User | null> {
+        const data = await this.prisma.user.findFirst({
+            where: {
+                identities: {
+                    some: { provider, providerId }
+                }
+            }
         });
         if (!data) return null;
-        return new User(data.id, data.clerkId, data.email, data.name, data.avatar, data.createdAt);
+        return new User(data.id, data.email, data.name, data.avatar, data.createdAt);
     }
 
-    async create(user: User): Promise<User> {
-        const data = await this.prisma.user.create({
-            data: {
-                id: user.id,
-                clerkId: user.clerkId,
-                email: user.email,
-                name: user.name,
-                avatar: user.avatar,
-                createdAt: user.createdAt,
-            },
+    async findByEmail(email: string): Promise<User | null> {
+        const data = await this.prisma.user.findUnique({
+            where: { email }
         });
-        return new User(data.id, data.clerkId, data.email, data.name, data.avatar, data.createdAt);
+        if (!data) return null;
+        return new User(data.id, data.email, data.name, data.avatar, data.createdAt);
+    }
+
+    async create(user: User, provider?: string, providerId?: string): Promise<User> {
+        const createData: any = {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            avatar: user.avatar,
+            createdAt: user.createdAt,
+        };
+
+        if (provider && providerId) {
+            createData.identities = {
+                create: [{ provider, providerId }]
+            };
+        }
+
+        const data = await this.prisma.user.create({
+            data: createData,
+        });
+        return new User(data.id, data.email, data.name, data.avatar, data.createdAt);
+    }
+
+    async linkIdentity(userId: string, provider: string, providerId: string): Promise<void> {
+        await this.prisma.userIdentity.create({
+            data: {
+                userId,
+                provider,
+                providerId
+            }
+        });
     }
 
     async findById(id: string): Promise<User | null> {
@@ -32,6 +61,6 @@ export class PrismaUserRepository implements UserRepository {
             where: { id },
         });
         if (!data) return null;
-        return new User(data.id, data.clerkId, data.email, data.name, data.avatar, data.createdAt);
+        return new User(data.id, data.email, data.name, data.avatar, data.createdAt);
     }
 }

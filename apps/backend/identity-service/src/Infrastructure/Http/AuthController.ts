@@ -17,7 +17,7 @@ export class AuthController {
         if (clerkAuth && clerkAuth.userId) {
             const clerkId = clerkAuth.userId;
             try {
-                let user = await this.userRepository.findByClerkId(clerkId);
+                let user = await this.userRepository.findByProviderId('clerk', clerkId);
                 
                 if (!user) {
                     const clerkUser = await clerkClient.users.getUser(clerkId);
@@ -27,7 +27,8 @@ export class AuthController {
                     const avatar = clerkUser.imageUrl || null;
 
                     user = await this.getOrCreateUser.execute({
-                        clerkId: clerkId,
+                        provider: 'clerk',
+                        providerId: clerkId,
                         email: email,
                         name: name,
                         avatar: avatar

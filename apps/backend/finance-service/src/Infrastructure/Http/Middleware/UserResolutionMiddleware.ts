@@ -13,7 +13,7 @@ export const userResolutionMiddleware = async (req: Request, res: Response, next
 
     try {
         // Find internal user id from DB directly since they share the same DB
-        const result: any[] = await prisma.$queryRaw`SELECT id FROM identity."User" WHERE "clerkId" = ${clerkId} LIMIT 1`;
+        const result: any[] = await prisma.$queryRaw`SELECT "userId" as id FROM identity."UserIdentity" WHERE "provider" = 'clerk' AND "providerId" = ${clerkId} LIMIT 1`;
         
         if (result && result.length > 0) {
             (req as any).internalUserId = result[0].id;
