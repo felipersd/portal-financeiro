@@ -67,6 +67,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } else if (res.status === 401) {
                 setServerError(false);
                 setUser(null);
+                try {
+                    await signOut();
+                } catch (e) {
+                    console.error('Error signing out:', e);
+                }
             } else {
                 setServerError(true);
             }
