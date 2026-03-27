@@ -102,22 +102,22 @@ const budgetRuleController = new BudgetRuleController(
     updateBudgetRuleUseCase
 );
 
-app.post('/transactions', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleCreate(req, res));
-app.get('/transactions', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleGet(req, res));
-app.put('/transactions/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleUpdate(req, res));
-app.delete('/transactions/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => transactionController.handleDelete(req, res));
+app.post('/transactions', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleCreate(req, res));
+app.get('/transactions', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleGet(req, res));
+app.put('/transactions/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleUpdate(req, res));
+app.delete('/transactions/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleDelete(req, res));
 
-app.post('/categories', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => categoryController.handleCreate(req, res));
-app.get('/categories', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => categoryController.handleGet(req, res));
-app.delete('/categories/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => categoryController.handleDelete(req, res));
+app.post('/categories', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleCreate(req, res));
+app.get('/categories', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleGet(req, res));
+app.delete('/categories/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleDelete(req, res));
 
-app.post('/members', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleCreate(req, res));
-app.get('/members', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleGet(req, res));
-app.put('/members/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleUpdate(req, res));
-app.delete('/members/:id', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => groupMemberController.handleDelete(req, res));
+app.post('/members', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleCreate(req, res));
+app.get('/members', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleGet(req, res));
+app.put('/members/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleUpdate(req, res));
+app.delete('/members/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleDelete(req, res));
 
-app.get('/budget-rules/:month', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => budgetRuleController.handleGet(req, res));
-app.put('/budget-rules/:month', ClerkExpressRequireAuth(), userResolutionMiddleware, (req, res) => budgetRuleController.handleUpdate(req, res));
+app.get('/budget-rules/:month', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => budgetRuleController.handleGet(req, res));
+app.put('/budget-rules/:month', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => budgetRuleController.handleUpdate(req, res));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'finance-service' });

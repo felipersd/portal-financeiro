@@ -32,7 +32,7 @@ const authController = new AuthController(getOrCreateUser, userRepository);
 
 app.post('/users', (req, res) => userController.handleGetOrCreate(req, res));
 
-app.get('/auth/me', ClerkExpressRequireAuth(), (req, res) => authController.me(req, res));
+app.get('/auth/me', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), (req, res) => authController.me(req, res));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'identity-service' });
