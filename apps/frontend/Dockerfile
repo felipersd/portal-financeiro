@@ -5,6 +5,7 @@ FROM node:20-alpine AS builder
 # Argumento para receber a URL da API durante o build do GitHub Actions
 # Isso é essencial para o Vite!
 ARG VITE_API_URL
+ARG VITE_CLERK_PUBLISHABLE_KEY
 
 WORKDIR /app
 
@@ -14,6 +15,7 @@ COPY . .
 
 # Variável de ambiente usada pelo Vite no processo de build
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
 # Instala as dependências e executa o build (cria a pasta 'dist')
 RUN npm install
