@@ -2,22 +2,14 @@
 # ----------------------------------------
 FROM node:20-alpine AS builder
 
-# Argumento para receber a URL da API durante o build do GitHub Actions
-# Isso é essencial para o Vite!
-ARG VITE_API_URL
-ARG VITE_CLERK_PUBLISHABLE_KEY
-
 WORKDIR /app
 
 # Copia os arquivos de configuração de dependências
 COPY package*.json ./
 COPY . .
 
-# Variável de ambiente usada pelo Vite no processo de build
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
-
 # Instala as dependências e executa o build (cria a pasta 'dist')
+# Como estamos rodando em produção, o Vite vai pegar automaticamente o .env.production
 RUN npm install
 RUN npm run build 
 
