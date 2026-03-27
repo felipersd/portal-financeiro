@@ -1,6 +1,6 @@
 {
     "name": "@portal/finance-service",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "main": "src/server/server.ts",
     "scripts": {
         "dev": "npm install && npx prisma@5 generate && npx prisma@5 db push --accept-data-loss && ts-node-dev --respawn --transpile-only src/server/server.ts",
