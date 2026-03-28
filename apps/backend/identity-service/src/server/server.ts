@@ -32,10 +32,19 @@ const authController = new AuthController(getOrCreateUser, userRepository);
 
 app.post('/users', (req, res) => userController.handleGetOrCreate(req, res));
 
-app.get('/auth/me', ClerkExpressWithAuth({ clockSkewInMs: 60 * 1000 } as any), (req: any, res) => {
+const authLogger = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.log(`\n========== [DEBUG AUTH] INCOMING REQUEST ==========`);
+    console.log(`URL: ${req.url} | Method: ${req.method} | IP: ${req.ip}`);
+    console.log(`Protocol: ${req.protocol} | Hostname: ${req.hostname}`);
+    console.log(`Headers recebidos do Nginx:`, JSON.stringify(req.headers, null, 2));
+    console.log(`===================================================\n`);
+    next();
+};
+
+app.get('/auth/me', authLogger, ClerkExpressWithAuth({ clockSkewInMs: 60 * 1000 } as any), (req: any, res) => {
+    console.log(`[DEBUG AUTH] Clerk validou com sucesso. Payload req.auth:`, JSON.stringify(req.auth, null, 2));
     if (!req.auth || !req.auth.userId) {
-        console.error('CLERK AUTH FAILED. Debug info:', JSON.stringify(req.auth, null, 2));
-        console.error('HEADERS RECEIVED:', req.headers);
+        console.error('[DEBUG AUTH] Fallback Erro: Sem UserId. req.auth =', req.auth);
         return res.status(401).send('Unauthenticated!');
     }
     return authController.me(req, res);
@@ -46,7 +55,13 @@ app.get('/health', (req, res) => {
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err.stack);
+    console.error(`\n========== [FATAL ERROR] MIDDLEWARE EXCEPTION ==========`);
+    console.error(`Erro disparado pelo ClerkExpressWithAuth!`);
+    console.error(`Headers da requisição:`, JSON.stringify(req.headers, null, 2));
+    console.error(`Protocolo detectado (Importante):`, req.protocol);
+    console.error(`Detalhes Reais do Erro:`, err.message || err);
+    console.error(`Stack:`, err.stack);
+    console.error(`========================================================\n`);
     res.status(401).send('Unauthenticated!');
 });
 
