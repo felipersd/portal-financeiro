@@ -66,7 +66,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKER_USERNAME }}/portal-financeiro-finance-service
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=true
             type=sha,format=short
             type=ref,event=tag
             type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/') }}
