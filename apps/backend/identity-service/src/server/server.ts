@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { PrismaUserRepository } from '../Infrastructure/Database/PrismaUserRepository';
 import { GetOrCreateUser } from '../Application/UseCases/GetOrCreateUser';
 import { UserController } from '../Infrastructure/Http/UserController';
@@ -32,7 +32,14 @@ const authController = new AuthController(getOrCreateUser, userRepository);
 
 app.post('/users', (req, res) => userController.handleGetOrCreate(req, res));
 
-app.get('/auth/me', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), (req, res) => authController.me(req, res));
+app.get('/auth/me', ClerkExpressWithAuth({ clockSkewInMs: 60 * 1000 } as any), (req: any, res) => {
+    if (!req.auth || !req.auth.userId) {
+        console.error('CLERK AUTH FAILED. Debug info:', JSON.stringify(req.auth, null, 2));
+        console.error('HEADERS RECEIVED:', req.headers);
+        return res.status(401).send('Unauthenticated!');
+    }
+    return authController.me(req, res);
+});
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'identity-service' });
