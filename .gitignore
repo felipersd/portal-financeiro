@@ -25,4 +25,6 @@ coverage
 *.sln
 *.sw?
 !.env.example
+runs.json
+docker-compose.prod.yml
 
