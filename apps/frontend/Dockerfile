@@ -8,10 +8,13 @@ WORKDIR /app
 COPY package*.json ./
 COPY . .
 
+# Modo de build padrão (production na nuvem, sobrescrevido no docker-compose local)
+ARG VITE_MODE=production
+
 # Instala as dependências e executa o build (cria a pasta 'dist')
-# Como estamos rodando em produção, o Vite vai pegar automaticamente o .env.production
+# O Vite usará o .env.production ou outro dependendo da flag --mode
 RUN npm install
-RUN npm run build 
+RUN npm run build -- --mode $VITE_MODE 
 
 # ----------------------------------------
 # FASE 2: RUNTIME (Servir com Nginx)
