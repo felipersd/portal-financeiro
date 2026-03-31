@@ -11,7 +11,8 @@ export const BudgetRuleChart: React.FC = () => {
     const summary = getSummary();
     const totalIncome = summary.totalIncome;
 
-    const actuals = { needs: 0, wants: 0, savings: 0 };
+    const actuals: Record<string, number> = {};
+    budgetRule.divisions.forEach(d => actuals[d.id] = 0);
 
     filteredTransactions.filter(t => t.type === 'expense').forEach(t => {
         let amount = t.amount;
@@ -21,10 +22,10 @@ export const BudgetRuleChart: React.FC = () => {
             else amount = 0;
         }
 
-        const bucket = budgetRule.mapping[t.category];
-        if (bucket === 'needs') actuals.needs += amount;
-        else if (bucket === 'wants') actuals.wants += amount;
-        else if (bucket === 'savings') actuals.savings += amount;
+        const divisionId = budgetRule.mapping[t.category];
+        if (divisionId && actuals[divisionId] !== undefined) {
+            actuals[divisionId] += amount;
+        }
     });
 
     const renderBar = (title: string, actual: number, targetPct: number, color: string) => {
@@ -61,7 +62,7 @@ export const BudgetRuleChart: React.FC = () => {
                         Metas de Orçamento
                     </h2>
                     <p className="text-secondary" style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                        Proporção ativa: {budgetRule.needsPct}% / {budgetRule.wantsPct}% / {budgetRule.savingsPct}%
+                        Proporção ativa: {budgetRule.divisions.map(d => `${d.percentage}%`).join(' / ')}
                     </p>
                 </div>
                 <button className="btn btn-secondary" onClick={() => setIsConfigOpen(true)}>
@@ -74,10 +75,12 @@ export const BudgetRuleChart: React.FC = () => {
                     Adicione receitas neste mês para visualizar as metas da regra.
                 </div>
             ) : (
-                <div>
-                    {renderBar('Necessidades', actuals.needs, budgetRule.needsPct, '#10b981')}
-                    {renderBar('Desejos', actuals.wants, budgetRule.wantsPct, '#3b82f6')}
-                    {renderBar('Poupança / Invest', actuals.savings, budgetRule.savingsPct, '#8b5cf6')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {budgetRule.divisions.map(div => (
+                        <React.Fragment key={div.id}>
+                            {renderBar(div.name, actuals[div.id], div.percentage, div.color)}
+                        </React.Fragment>
+                    ))}
                 </div>
             )}
 

@@ -41,7 +41,7 @@ const authLogger = (req: express.Request, res: express.Response, next: express.N
     next();
 };
 
-app.get('/auth/me', authLogger, ClerkExpressWithAuth({ clockSkewInMs: 60 * 1000 } as any), (req: any, res) => {
+app.get('/auth/me', authLogger, ClerkExpressWithAuth({ clockSkewInMs: 5 * 60 * 1000 } as any), (req: any, res) => {
     console.log(`[DEBUG AUTH] Clerk validou com sucesso. Payload req.auth:`, JSON.stringify(req.auth, null, 2));
     if (!req.auth || !req.auth.userId) {
         console.error('[DEBUG AUTH] Fallback Erro: Sem UserId. req.auth =', req.auth);

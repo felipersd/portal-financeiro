@@ -12,11 +12,14 @@ export class UpdateBudgetRule {
             throw new Error('Rule not found for this month');
         }
 
-        if (updateData.needsPct !== undefined) rule.needsPct = updateData.needsPct;
-        if (updateData.wantsPct !== undefined) rule.wantsPct = updateData.wantsPct;
-        if (updateData.savingsPct !== undefined) rule.savingsPct = updateData.savingsPct;
+        if (updateData.divisions !== undefined) rule.divisions = updateData.divisions;
         if (updateData.mapping !== undefined) rule.mapping = updateData.mapping;
 
-        return await this.repository.update(rule.id, rule);
+        const updatedRule = await this.repository.update(rule.id, rule);
+        
+        // Update all future months to sync with this new config
+        await this.repository.updateFollowingMonths(userId, month, updatedRule);
+
+        return updatedRule;
     }
 }

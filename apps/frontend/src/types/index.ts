@@ -50,12 +50,17 @@ export interface User {
     avatar: string;
 }
 
+export interface BudgetDivision {
+    id: string;
+    name: string;
+    percentage: number;
+    color: string;
+}
+
 export interface BudgetRule {
     id: string;
     userId: string;
     month: string;
-    needsPct: number;
-    wantsPct: number;
-    savingsPct: number;
-    mapping: Record<string, 'needs' | 'wants' | 'savings'>;
+    divisions: BudgetDivision[];
+    mapping: Record<string, string>;
 }

@@ -73,12 +73,15 @@ const transactionController = new TransactionController(
     deleteTransaction
 );
 
+import { UpdateCategory } from '../Application/UseCases/UpdateCategory';
+
 // Category Dependencies
 const categoryRepository = new PrismaCategoryRepository(prisma);
 const getCategories = new GetCategories(categoryRepository);
 const createCategory = new CreateCategory(categoryRepository);
 const deleteCategory = new DeleteCategory(categoryRepository);
-const categoryController = new CategoryController(getCategories, createCategory, deleteCategory);
+const updateCategory = new UpdateCategory(categoryRepository);
+const categoryController = new CategoryController(getCategories, createCategory, deleteCategory, updateCategory);
 
 // GroupMember Dependencies
 const groupMemberRepository = new PrismaGroupMemberRepository(prisma);
@@ -109,6 +112,7 @@ app.delete('/transactions/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 10
 
 app.post('/categories', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleCreate(req, res));
 app.get('/categories', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleGet(req, res));
+app.put('/categories/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleUpdate(req, res));
 app.delete('/categories/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleDelete(req, res));
 
 app.post('/members', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleCreate(req, res));

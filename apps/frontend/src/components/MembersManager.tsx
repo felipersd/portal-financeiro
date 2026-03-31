@@ -68,7 +68,7 @@ export const MembersManager: React.FC = () => {
                 <div className="card" style={{ marginBottom: '2rem' }}>
                     <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{editingId ? 'Editar Membro' : 'Novo Membro'}</h3>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="form-row">
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Nome *</label>
                                 <input
@@ -92,7 +92,7 @@ export const MembersManager: React.FC = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="form-row">
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>E-mail</label>
                                 <input
@@ -104,7 +104,7 @@ export const MembersManager: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Categoria / Parentesco *</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Categoria/Parentesco *</label>
                                 <select
                                     value={category}
                                     onChange={(e) => setCategory(e.target.value)}

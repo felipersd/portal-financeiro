@@ -7,37 +7,46 @@ export class GetBudgetRule {
 
     async execute(userId: string, month: string): Promise<BudgetRule> {
         let rule = await this.repository.findByMonth(userId, month);
-        if (rule) return rule;
+
+        const defaultDivisions = [
+            { id: 'div-needs', name: 'Necessidades', percentage: 50, color: '#10b981' },
+            { id: 'div-wants', name: 'Desejos', percentage: 30, color: '#3b82f6' },
+            { id: 'div-savings', name: 'Poupança / Investimentos', percentage: 20, color: '#8b5cf6' }
+        ];
+
+        const defaultMapping = {
+            'Moradia & Contas': 'div-needs',
+            'Mercado & Farmácia': 'div-needs',
+            'Transporte': 'div-needs',
+            'Educação & Família': 'div-needs',
+            'Imprevistos & Avulsos': 'div-needs',
+            'Lazer & Assinaturas': 'div-wants',
+            'Delivery & Restaurantes': 'div-wants',
+            'Compras & Cuidados': 'div-wants',
+            'Poupança & Investimento': 'div-savings'
+        };
+
+        if (rule) {
+            if (!rule.divisions || rule.divisions.length === 0) {
+                rule.divisions = defaultDivisions;
+                rule.mapping = defaultMapping as Record<string, string>;
+            }
+            return rule;
+        }
 
         const previousRule = await this.repository.findMostRecentBefore(userId, month);
         
         let newRule: BudgetRule;
-        if (previousRule) {
+        if (previousRule && previousRule.divisions && previousRule.divisions.length > 0) {
             newRule = new BudgetRule(
                 uuidv4(),
                 userId,
                 month,
-                previousRule.needsPct,
-                previousRule.wantsPct,
-                previousRule.savingsPct,
+                previousRule.divisions,
                 previousRule.mapping
             );
         } else {
-            const defaultMapping = {
-                'Casa & Contas': 'needs',
-                'Mercado': 'needs',
-                'Transporte': 'needs',
-                'Saúde & Bem-estar': 'needs',
-                'Impostos & Taxas': 'needs',
-                'Bares & Restaurantes': 'wants',
-                'Lazer & Assinaturas': 'wants',
-                'Compras Pessoais': 'wants',
-                'Educação': 'wants',
-                'Pets': 'wants',
-                'Presentes & Doações': 'wants',
-                'Imprevistos': 'savings'
-            };
-            newRule = new BudgetRule(uuidv4(), userId, month, 50, 30, 20, defaultMapping as any);
+            newRule = new BudgetRule(uuidv4(), userId, month, defaultDivisions, defaultMapping as any);
         }
 
         return await this.repository.create(newRule);

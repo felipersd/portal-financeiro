@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { FinanceContext } from './FinanceContext';
 import { Login } from '../components/Login';
+import { LoadingScreen } from '../components/LoadingScreen';
 import type { User, Transaction, Category, GroupMember, BudgetRule } from '../types';
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -10,6 +11,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [serverError, setServerError] = useState(false);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -103,54 +105,61 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     const addTransaction = async (t: Omit<Transaction, 'id' | 'userId' | 'createdAt'>) => {
+        setIsProcessing(true);
         try {
             await authFetch(`${API_URL}/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
             await fetchTransactions();
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const updateTransaction = async (id: string, t: Partial<Transaction>) => {
+        setIsProcessing(true);
         try {
             await authFetch(`${API_URL}/transactions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
             await fetchTransactions();
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const removeTransaction = async (id: string) => {
+        setIsProcessing(true);
         try {
             await authFetch(`${API_URL}/transactions/${id}`, { method: 'DELETE' });
             setTransactions(prev => prev.filter(t => t.id !== id));
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const addCategory = async (name: string, type: 'income' | 'expense') => {
+        setIsProcessing(true);
         try {
             const res = await authFetch(`${API_URL}/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
             if (res.ok) {
                 const data = await res.json();
                 setCategories(prev => [...prev, data]);
             }
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const updateCategory = async (id: string, name: string, type: 'income' | 'expense') => {
+        setIsProcessing(true);
         try {
             const res = await authFetch(`${API_URL}/categories/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
             if (res.ok) {
                 const updatedCat = await res.json();
                 setCategories(prev => prev.map(c => c.id === id ? updatedCat : c));
             }
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const removeCategory = async (id: string) => {
+        setIsProcessing(true);
         try {
             await authFetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
             setCategories(prev => prev.filter(c => c.id !== id));
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const addMember = async (name: string, surname: string | undefined, email: string | undefined, category: string) => {
+        setIsProcessing(true);
         try {
             const res = await authFetch(`${API_URL}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, surname, email, category }) });
             if (res.ok) {
@@ -160,27 +169,30 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 const errorData = await res.json();
                 alert(errorData.error || 'Erro ao adicionar membro');
             }
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const updateMember = async (id: string, name: string, surname: string | undefined, email: string | undefined, category: string) => {
+        setIsProcessing(true);
         try {
             const res = await authFetch(`${API_URL}/members/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, surname, email, category }) });
             if (res.ok) {
                 const updated = await res.json();
                 setMembers(prev => prev.map(m => m.id === id ? updated : m));
             }
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const removeMember = async (id: string) => {
+        setIsProcessing(true);
         try {
             await authFetch(`${API_URL}/members/${id}`, { method: 'DELETE' });
             setMembers(prev => prev.filter(m => m.id !== id));
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const updateBudgetRule = async (month: string, data: Partial<BudgetRule>) => {
+        setIsProcessing(true);
         try {
             const res = await authFetch(`${API_URL}/budget-rules/${month}`, {
                 method: 'PUT',
@@ -188,7 +200,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 body: JSON.stringify(data)
             });
             if (res.ok) setBudgetRule(await res.json());
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
     };
 
     const logout = () => signOut();
@@ -243,7 +255,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         };
     };
 
-    if (!isClerkLoaded || loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Carregando...</div>;
+    if (!isClerkLoaded || loading) return <LoadingScreen />;
     if (serverError) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', textAlign: 'center', padding: '2rem' }}>
         <h2 style={{ marginBottom: '1rem', color: 'var(--danger)' }}>Erro de Conexão</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Não foi possível conectar ao servidor. Por favor, verifique sua conexão ou tente novamente mais tarde.</p>
@@ -260,6 +272,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             budgetRule, fetchBudgetRule, updateBudgetRule,
             getSummary, logout
         }}>
+            {isProcessing && <LoadingScreen />}
             {children}
         </FinanceContext.Provider>
     );

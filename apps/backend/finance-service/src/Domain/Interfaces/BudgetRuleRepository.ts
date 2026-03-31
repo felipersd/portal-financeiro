@@ -5,4 +5,5 @@ export interface BudgetRuleRepository {
     findMostRecentBefore(userId: string, month: string): Promise<BudgetRule | null>;
     create(rule: BudgetRule): Promise<BudgetRule>;
     update(id: string, rule: BudgetRule): Promise<BudgetRule>;
+    updateFollowingMonths(userId: string, fromMonth: string, rule: BudgetRule): Promise<void>;
 }

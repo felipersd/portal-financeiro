@@ -42,6 +42,9 @@ export class BudgetRuleController {
             if (error.message === 'Rule not found for this month') {
                 return res.status(404).json({ error: error.message });
             }
+            if (error.message.includes('A soma das divisẽes') || error.message.includes('Limite máximo')) {
+                return res.status(400).json({ error: error.message });
+            }
             res.status(500).json({ error: 'Internal server error' });
         }
     }
