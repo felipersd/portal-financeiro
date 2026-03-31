@@ -22,7 +22,16 @@ export const BudgetRuleChart: React.FC = () => {
             else amount = 0;
         }
 
-        const divisionId = budgetRule.mapping[t.category];
+        let divisionId = budgetRule.mapping[t.category];
+        
+        // Fallback: se a categoria não estiver explicitamente mapeada (ex: criada antes da regra), 
+        // ela cai automaticamente na primeira divisão (Necessidades), igual o UI modal já faz visualmente.
+        if (!divisionId || actuals[divisionId] === undefined) {
+            if (budgetRule.divisions.length > 0) {
+                divisionId = budgetRule.divisions[0].id;
+            }
+        }
+
         if (divisionId && actuals[divisionId] !== undefined) {
             actuals[divisionId] += amount;
         }

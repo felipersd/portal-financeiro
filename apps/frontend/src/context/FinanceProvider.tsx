@@ -62,10 +62,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             const res = await authFetch(`${API_URL}/auth/me`);
             if (res.ok) {
                 setServerError(false);
-                setUser(await res.json());
-                fetchTransactions();
-                fetchCategories();
-                fetchMembers();
+                const fetchedUser = await res.json();
+                setUser(fetchedUser);
+
+                const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+                
+                // Wait for all initial dashboard data so Loading spinner stays visible.
+                await Promise.allSettled([
+                    fetchTransactions(),
+                    fetchCategories(),
+                    fetchMembers(),
+                    fetchBudgetRule(monthStr)
+                ]);
+
             } else if (res.status === 401) {
                 setServerError(false);
                 setUser(null);
@@ -83,7 +92,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } finally {
             setLoading(false);
         }
-    }, [API_URL, fetchTransactions, fetchCategories, fetchMembers, authFetch]);
+    }, [API_URL, fetchTransactions, fetchCategories, fetchMembers, fetchBudgetRule, authFetch, signOut, selectedDate]);
 
     useEffect(() => {
         if (isClerkLoaded) {
@@ -93,11 +102,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, [isClerkLoaded, clerkUser, checkAuth]);
 
     useEffect(() => {
-        if (user) {
+        // Only fetch budget rule when selectedDate changes *after* initial load finishes
+        if (user && !loading) {
             const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
             fetchBudgetRule(monthStr);
         }
-    }, [selectedDate, user, fetchBudgetRule]);
+    }, [selectedDate, user, fetchBudgetRule, loading]);
 
     const filteredTransactions = transactions.filter(t => {
         const tDate = new Date(t.date);
