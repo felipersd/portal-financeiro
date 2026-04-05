@@ -87,7 +87,7 @@ describe('TransactionController', () => {
             req.query = { userId: 'user-1' };
             mockGetTransactions.execute.mockResolvedValue([]);
             await controller.handleGet(req as Request, res as Response);
-            expect(mockGetTransactions.execute).toHaveBeenCalledWith('user-1');
+            expect(mockGetTransactions.execute).toHaveBeenCalledWith('user-1', undefined);
             expect(res.json).toHaveBeenCalledWith([]);
         });
 

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 // Adicionando a tipagem silenciosa pro objeto global do AdSense na window
 declare global {
   interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     adsbygoogle: any[];
   }
 }
@@ -27,8 +28,10 @@ export const AdBanner = ({ slotId, format = 'auto', responsive = true }: AdBanne
       try {
         // Empurra (Push) a ativação do banner após a renderização do bloco
         (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (e: any) {
-        console.error('AdSense Initialization Error:', e.message);
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          console.error('AdSense Initialization Error:', e.message);
+        }
       }
     }
   }, []); // [] Garante que ative apenas uma vez quando a SPA carregar esse componente
