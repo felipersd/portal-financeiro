@@ -4,7 +4,7 @@ import { TransactionRepository } from '../../Domain/Interfaces/TransactionReposi
 export class GetTransactions {
     constructor(private transactionRepository: TransactionRepository) { }
 
-    async execute(userId: string): Promise<Transaction[]> {
-        return this.transactionRepository.findByUserId(userId);
+    async execute(userId: string, year?: number): Promise<Transaction[]> {
+        return this.transactionRepository.findByUserId(userId, year);
     }
 }

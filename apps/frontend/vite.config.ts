@@ -8,7 +8,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   // Prioritize process.env (Docker) over .env file (Localhost)
-  const apiUrl = process.env.VITE_API_URL || env.VITE_API_URL
+  let apiUrl = process.env.VITE_API_URL || env.VITE_API_URL;
+  
+  if (!apiUrl || apiUrl.startsWith('/')) {
+    apiUrl = 'http://localhost:8080';
+  }
 
   return {
     plugins: [react()],
@@ -19,9 +23,7 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ['**/.DS_Store', '**/.git/**'],
       },
-      hmr: {
-        clientPort: 443,
-      },
+
       proxy: {
         '/api': {
           target: apiUrl,

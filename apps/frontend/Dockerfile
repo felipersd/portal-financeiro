@@ -13,7 +13,7 @@ ARG VITE_MODE=production
 
 # Instala as dependências e executa o build (cria a pasta 'dist')
 # O Vite usará o .env.production ou outro dependendo da flag --mode
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm npm install
 RUN npm run build -- --mode $VITE_MODE 
 
 # ----------------------------------------

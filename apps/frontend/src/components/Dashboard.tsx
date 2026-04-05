@@ -3,6 +3,7 @@ import { useFinance } from '../context/FinanceContext';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { BudgetRuleChart } from './BudgetRuleChart';
+import { AdBanner } from './AdBanner';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -143,6 +144,9 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <BudgetRuleChart />
+
+            {/* Injetando Banner Inteligente do AdSense */}
+            <AdBanner format="auto" responsive={true} />
         </div>
     );
 };

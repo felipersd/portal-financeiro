@@ -6,8 +6,10 @@ import { PrismaClient } from '@prisma/client';
 import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { PrismaUserRepository } from '../Infrastructure/Database/PrismaUserRepository';
 import { GetOrCreateUser } from '../Application/UseCases/GetOrCreateUser';
+import { DeleteUserAccount } from '../Application/UseCases/DeleteUserAccount';
 import { UserController } from '../Infrastructure/Http/UserController';
 import { AuthController } from '../Infrastructure/Http/AuthController';
+import { WebhookController } from '../Infrastructure/Http/WebhookController';
 
 dotenv.config();
 
@@ -18,17 +20,23 @@ app.set('trust proxy', true);
 app.use(cors({
     origin: true,
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'svix-id', 'svix-timestamp', 'svix-signature']
 }));
-
-app.use(express.json());
-app.use(cookieParser());
 
 const prisma = new PrismaClient();
 const userRepository = new PrismaUserRepository(prisma);
 const getOrCreateUser = new GetOrCreateUser(userRepository);
+const deleteUserAccount = new DeleteUserAccount(userRepository);
+
 const userController = new UserController(getOrCreateUser);
 const authController = new AuthController(getOrCreateUser, userRepository);
+const webhookController = new WebhookController(deleteUserAccount);
+
+// Rota de Webhook DEVE vir antes do express.json() para retermos o "Raw Body" nativo do Buffer exigido pelo Svix
+app.post('/auth/webhooks', express.raw({ type: 'application/json' }), (req, res) => webhookController.handle(req, res));
+
+app.use(express.json());
+app.use(cookieParser());
 
 app.post('/users', (req, res) => userController.handleGetOrCreate(req, res));
 

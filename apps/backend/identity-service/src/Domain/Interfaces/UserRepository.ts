@@ -6,4 +6,5 @@ export interface UserRepository {
     create(user: User, provider?: string, providerId?: string): Promise<User>;
     linkIdentity(userId: string, provider: string, providerId: string): Promise<void>;
     findById(id: string): Promise<User | null>;
+    deleteUserAndIdentities(id: string): Promise<void>;
 }

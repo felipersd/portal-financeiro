@@ -40,9 +40,18 @@ export class PrismaTransactionRepository implements TransactionRepository {
         );
     }
 
-    async findByUserId(userId: string): Promise<Transaction[]> {
+    async findByUserId(userId: string, year?: number): Promise<Transaction[]> {
+        const whereClause: any = { userId };
+        
+        if (year) {
+            whereClause.date = {
+                gte: new Date(year, 0, 1),
+                lte: new Date(year, 11, 31, 23, 59, 59, 999)
+            };
+        }
+
         const transactions = await this.prisma.transaction.findMany({
-            where: { userId },
+            where: whereClause,
             orderBy: { date: 'desc' },
         });
         return transactions.map(

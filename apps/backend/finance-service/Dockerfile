@@ -1,27 +1,27 @@
 # Stage 1: Build
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Install OpenSSL (required for Prisma)
-RUN apt-get update -y && apt-get install -y openssl
+RUN apk add --no-cache openssl
 
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm npm install
 
 COPY . .
 
 RUN npm run build
 
 # Stage 2: Production
-FROM node:20-slim AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
 # Install OpenSSL
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
@@ -30,4 +30,4 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3002
 
-CMD ["npm", "start"]
+CMD ["/bin/sh", "-c", "npx prisma db push --accept-data-loss && exec node dist/server/server.js"]

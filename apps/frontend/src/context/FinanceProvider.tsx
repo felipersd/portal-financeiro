@@ -31,10 +31,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const fetchTransactions = React.useCallback(async () => {
         try {
-            const res = await authFetch(`${API_URL}/transactions`);
+            const currentYear = selectedDate.getFullYear();
+            const res = await authFetch(`${API_URL}/transactions?year=${currentYear}`);
             if (res.ok) setTransactions(await res.json());
         } catch (error) { console.error(error); }
-    }, [API_URL, authFetch]);
+    }, [API_URL, authFetch, selectedDate]);
 
     const fetchCategories = React.useCallback(async () => {
         try {
@@ -102,12 +103,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, [isClerkLoaded, clerkUser, checkAuth]);
 
     useEffect(() => {
-        // Only fetch budget rule when selectedDate changes *after* initial load finishes
+        // Only fetch budget rule and transactions when selectedDate changes *after* initial load finishes
         if (user && !loading) {
             const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
             fetchBudgetRule(monthStr);
+            // Re-fetch transactions optimally if the user changed the year in the calendar
+            fetchTransactions();
         }
-    }, [selectedDate, user, fetchBudgetRule, loading]);
+    }, [selectedDate, user, fetchBudgetRule, fetchTransactions, loading]);
 
     const filteredTransactions = transactions.filter(t => {
         const tDate = new Date(t.date);

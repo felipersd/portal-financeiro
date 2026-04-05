@@ -8,6 +8,26 @@ export class GetBudgetRule {
     async execute(userId: string, month: string): Promise<BudgetRule> {
         let rule = await this.repository.findByMonth(userId, month);
 
+        if (rule) {
+            return rule;
+        }
+
+        const previousRule = await this.repository.findMostRecentBefore(userId, month);
+        
+        if (previousRule && previousRule.divisions && previousRule.divisions.length > 0) {
+            const newRule = new BudgetRule(
+                uuidv4(),
+                userId,
+                month,
+                previousRule.divisions,
+                previousRule.mapping
+            );
+            return await this.repository.create(newRule);
+        }
+
+        // Fallback: Se o usuário navegar para um mês passado onde não existe regra alguma,
+        // criamos uma regra padrão "em branco" ou 50-30-20 na hora (Factory), para que o card renderize
+        // e permita atualizações usando o UpdateBudgetRule.
         const defaultDivisions = [
             { id: 'div-needs', name: 'Necessidades', percentage: 50, color: '#10b981' },
             { id: 'div-wants', name: 'Desejos', percentage: 30, color: '#3b82f6' },
@@ -19,36 +39,21 @@ export class GetBudgetRule {
             'Mercado & Farmácia': 'div-needs',
             'Transporte': 'div-needs',
             'Educação & Família': 'div-needs',
+            'Compras & Cuidados': 'div-needs',
             'Imprevistos & Avulsos': 'div-needs',
             'Lazer & Assinaturas': 'div-wants',
             'Delivery & Restaurantes': 'div-wants',
-            'Compras & Cuidados': 'div-wants',
             'Poupança & Investimento': 'div-savings'
         };
 
-        if (rule) {
-            if (!rule.divisions || rule.divisions.length === 0) {
-                rule.divisions = defaultDivisions;
-                rule.mapping = defaultMapping as Record<string, string>;
-            }
-            return rule;
-        }
+        const fallbackRule = new BudgetRule(
+            uuidv4(),
+            userId,
+            month,
+            defaultDivisions,
+            defaultMapping as any
+        );
 
-        const previousRule = await this.repository.findMostRecentBefore(userId, month);
-        
-        let newRule: BudgetRule;
-        if (previousRule && previousRule.divisions && previousRule.divisions.length > 0) {
-            newRule = new BudgetRule(
-                uuidv4(),
-                userId,
-                month,
-                previousRule.divisions,
-                previousRule.mapping
-            );
-        } else {
-            newRule = new BudgetRule(uuidv4(), userId, month, defaultDivisions, defaultMapping as any);
-        }
-
-        return await this.repository.create(newRule);
+        return await this.repository.create(fallbackRule);
     }
 }

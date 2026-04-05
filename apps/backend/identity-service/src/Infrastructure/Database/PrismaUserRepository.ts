@@ -63,4 +63,12 @@ export class PrismaUserRepository implements UserRepository {
         if (!data) return null;
         return new User(data.id, data.email, data.name, data.avatar, data.createdAt);
     }
+
+    async deleteUserAndIdentities(id: string): Promise<void> {
+        // As identidades tem Foreign Key cascata? Se não, apagamos primeiro
+        await this.prisma.$transaction([
+            this.prisma.userIdentity.deleteMany({ where: { userId: id } }),
+            this.prisma.user.delete({ where: { id } })
+        ]);
+    }
 }
