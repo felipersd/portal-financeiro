@@ -9,9 +9,13 @@ import { MonthYearPicker } from './MonthYearPicker';
 import { MobileDateTrigger, MobileDateCarousel } from './MobileDateSelector';
 import { MemberReport } from './MemberReport';
 import { MembersManager } from './MembersManager';
+import { TermsOfService } from './TermsOfService';
+import { PrivacyPolicy } from './PrivacyPolicy';
+import { Footer } from './Footer';
+import { CookieConsent } from './CookieConsent';
 import { useFinance } from '../context/FinanceContext';
 
-type View = 'dashboard' | 'transactions' | 'settlement' | 'categories' | 'members' | 'reports';
+type View = 'dashboard' | 'transactions' | 'settlement' | 'categories' | 'members' | 'reports' | 'terms' | 'privacy';
 
 export const Layout: React.FC = () => {
     const { user, logout, getSummary } = useFinance();
@@ -30,6 +34,8 @@ export const Layout: React.FC = () => {
             case 'categories': return <CategoryManager />;
             case 'members': return <MembersManager />;
             case 'reports': return <MemberReport />;
+            case 'terms': return <TermsOfService />;
+            case 'privacy': return <PrivacyPolicy />;
         }
     };
 
@@ -41,27 +47,30 @@ export const Layout: React.FC = () => {
             case 'categories': return 'Categorias';
             case 'members': return 'Membros';
             case 'reports': return 'Relatórios';
+            case 'terms': return 'Termos de Uso';
+            case 'privacy': return 'Política de Privacidade';
         }
     };
 
     return (
         <div className="app-container">
+            <CookieConsent />
             {/* Desktop Sidebar */}
             <nav className="sidebar">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3rem', marginTop: '1rem' }}>
-                    <img src="/logo-full.png?v=3" alt="Portal Financeiro" style={{ height: '80px', maxWidth: '100%', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+                    <img src="/logo-full.png?v=3" alt="Portal Financeiro" style={{ height: '70px', maxWidth: '100%', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))' }} />
                 </div>
 
                 {/* User Profile */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem' }}>
-                    {user?.avatar && <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem' }}>
+                    {user?.avatar && <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} />}
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={logout}>Sair</div>
                     </div>
                 </div>
 
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '0.5rem', marginRight: '-0.5rem' }}>
                     <li
                         onClick={() => setCurrentView('dashboard')}
                         className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
@@ -102,7 +111,7 @@ export const Layout: React.FC = () => {
                     </li>
                 </ul>
 
-                <button onClick={logout} className="nav-item" style={{ marginTop: 'auto', border: 'none', background: 'none', width: '100%' }}>
+                <button onClick={logout} className="nav-item" style={{ marginTop: '0.5rem', border: 'none', background: 'none', width: '100%', flexShrink: 0 }}>
                     <LogOut size={20} /> Sair
                 </button>
             </nav>
@@ -221,6 +230,7 @@ export const Layout: React.FC = () => {
 
                 <div className="content-area">
                     {renderContent()}
+                    <Footer onNavigate={(view) => setCurrentView(view)} />
                 </div>
             </main>
 
