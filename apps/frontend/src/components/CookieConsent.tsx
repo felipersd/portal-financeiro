@@ -16,8 +16,6 @@ export const CookieConsent: React.FC = () => {
             localStorage.removeItem('cookie-agreed');
             localStorage.setItem('cookie-preferences', JSON.stringify({ essential: true, marketing: true }));
             window.dispatchEvent(new Event('cookie-preferences-updated'));
-            // Since we had the old key, we migrated them to the new schema silently, no need to show banner
-            setIsVisible(false);
         }
     }, []);
 
