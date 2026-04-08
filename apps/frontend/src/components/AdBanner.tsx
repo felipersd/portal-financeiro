@@ -35,7 +35,7 @@ export const AdBanner = ({ slotId, format = 'auto', responsive = true }: AdBanne
           const prefs = JSON.parse(prefsString);
           setAllowMarketing(prefs.marketing === true);
           setHasConsentChoice(true);
-        } catch (e) {
+        } catch {
           // ignore parsing error
         }
       }

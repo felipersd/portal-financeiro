@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
 export const CookieConsent: React.FC = () => {
-    const [isVisible, setIsVisible] = useState(false);
+    const [isVisible, setIsVisible] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !localStorage.getItem('cookie-preferences') && localStorage.getItem('cookie-agreed') !== 'true';
+        }
+        return false;
+    });
     const [showOptions, setShowOptions] = useState(false);
     const [marketingEnabled, setMarketingEnabled] = useState(true);
 
@@ -11,11 +16,8 @@ export const CookieConsent: React.FC = () => {
             localStorage.removeItem('cookie-agreed');
             localStorage.setItem('cookie-preferences', JSON.stringify({ essential: true, marketing: true }));
             window.dispatchEvent(new Event('cookie-preferences-updated'));
-        }
-
-        const preferences = localStorage.getItem('cookie-preferences');
-        if (!preferences) {
-            setIsVisible(true);
+            // Since we had the old key, we migrated them to the new schema silently, no need to show banner
+            setIsVisible(false);
         }
     }, []);
 
