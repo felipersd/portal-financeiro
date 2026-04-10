@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../Infrastructure/Database/prismaClient';
 import { PrismaTransactionRepository } from '../Infrastructure/Database/PrismaTransactionRepository';
 import { CreateTransaction } from '../Application/UseCases/CreateTransaction';
 import { GetTransactions } from '../Application/UseCases/GetTransactions';
@@ -62,8 +62,6 @@ import { PrismaBudgetRuleRepository } from '../Infrastructure/Database/PrismaBud
 import { GetBudgetRule } from '../Application/UseCases/GetBudgetRule';
 import { UpdateBudgetRule } from '../Application/UseCases/UpdateBudgetRule';
 import { BudgetRuleController } from '../Infrastructure/Http/BudgetRuleController';
-
-const prisma = new PrismaClient();
 
 // Transaction Dependencies
 const transactionRepository = new PrismaTransactionRepository(prisma);

@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { Logger } from '../../Logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../Database/prismaClient';
 
 export const userResolutionMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const clerkId = (req as any).auth?.userId;

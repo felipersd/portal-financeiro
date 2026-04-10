@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { BudgetRule, BudgetDivision } from '../../Domain/Entities/BudgetRule';
 import { BudgetRuleRepository } from '../../Domain/Interfaces/BudgetRuleRepository';
-
-const prisma = new PrismaClient();
+import { prisma } from './prismaClient';
 
 export class PrismaBudgetRuleRepository implements BudgetRuleRepository {
     async findByMonth(userId: string, month: string): Promise<BudgetRule | null> {
