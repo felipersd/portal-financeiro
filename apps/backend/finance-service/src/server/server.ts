@@ -1,4 +1,6 @@
+import '../Infrastructure/Environment';
 import express from 'express';
+import { internalAuth } from '../Infrastructure/Http/Middleware/InternalAuthMiddleware';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -9,7 +11,7 @@ import { GetTransactions } from '../Application/UseCases/GetTransactions';
 import { UpdateTransaction } from '../Application/UseCases/UpdateTransaction';
 import { DeleteTransaction } from '../Application/UseCases/DeleteTransaction';
 import { TransactionController } from '../Infrastructure/Http/TransactionController';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { sessionAuth } from '../Infrastructure/Http/Middleware/SessionAuth';
 import { userResolutionMiddleware } from '../Infrastructure/Http/Middleware/UserResolutionMiddleware';
 import { Logger } from '../Infrastructure/Logger';
 
@@ -18,8 +20,10 @@ import compression from 'compression';
 dotenv.config();
 
 const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use(cors({
-    origin: true,
+    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:8080',
     credentials: true
 }));
 app.use(compression());
@@ -110,39 +114,44 @@ const budgetRuleController = new BudgetRuleController(
     updateBudgetRuleUseCase
 );
 
-app.post('/transactions', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleCreate(req, res));
-app.get('/transactions', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleGet(req, res));
-app.put('/transactions/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleUpdate(req, res));
-app.delete('/transactions/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => transactionController.handleDelete(req, res));
+app.post('/transactions', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleCreate(req, res));
+app.get('/transactions', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleGet(req, res));
+app.put('/transactions/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleUpdate(req, res));
+app.delete('/transactions/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleDelete(req, res));
 
-app.post('/categories', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleCreate(req, res));
-app.get('/categories', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => {
+app.post('/categories', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleCreate(req, res));
+app.get('/categories', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => {
     res.set('Cache-Control', 'private, max-age=300');
     return categoryController.handleGet(req, res);
 });
-app.put('/categories/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleUpdate(req, res));
-app.delete('/categories/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => categoryController.handleDelete(req, res));
+app.put('/categories/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleUpdate(req, res));
+app.delete('/categories/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleDelete(req, res));
 
-app.post('/members', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleCreate(req, res));
-app.get('/members', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => {
+app.post('/members', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleCreate(req, res));
+app.get('/members', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => {
     res.set('Cache-Control', 'private, max-age=300');
     return groupMemberController.handleGet(req, res);
 });
-app.put('/members/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleUpdate(req, res));
-app.delete('/members/:id', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => groupMemberController.handleDelete(req, res));
+app.put('/members/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleUpdate(req, res));
+app.delete('/members/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleDelete(req, res));
 
-app.get('/budget-rules/:month', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => budgetRuleController.handleGet(req, res));
-app.put('/budget-rules/:month', ClerkExpressRequireAuth({ clockSkewInMs: 60 * 1000 } as any), userResolutionMiddleware, (req, res) => budgetRuleController.handleUpdate(req, res));
+app.get('/budget-rules/:month', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => budgetRuleController.handleGet(req, res));
+app.put('/budget-rules/:month', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => budgetRuleController.handleUpdate(req, res));
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'finance-service' });
+app.get('/health', async (req: express.Request, res: express.Response) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({ status: 'ok', service: 'finance-service', revision: process.env.APP_REVISION || 'development' });
+    } catch {
+        res.status(503).json({ status: 'unavailable' });
+    }
 });
 
 // Internal communication endpoints (Not exposed in Nginx Gateway)
 import { DeleteUserFinancialData } from '../Application/UseCases/DeleteUserFinancialData';
 const deleteUserFinancialData = new DeleteUserFinancialData(prisma);
 
-app.post('/internal/users/:userId/seed', async (req, res) => {
+app.post('/internal/users/:userId/seed', internalAuth, async (req: express.Request, res: express.Response) => {
     try {
         const userId = req.params.userId;
         if (!userId) return res.status(400).json({ error: 'userId is required' });
@@ -155,7 +164,7 @@ app.post('/internal/users/:userId/seed', async (req, res) => {
     }
 });
 
-app.delete('/internal/users/:userId/delete', async (req, res) => {
+app.delete('/internal/users/:userId/delete', internalAuth, async (req: express.Request, res: express.Response) => {
     try {
         const userId = req.params.userId;
         if (!userId) return res.status(400).json({ error: 'userId is required' });

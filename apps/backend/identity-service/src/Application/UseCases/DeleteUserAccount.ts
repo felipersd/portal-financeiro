@@ -13,26 +13,26 @@ export class DeleteUserAccount {
 
         const localId = user.id;
 
-        // 1. Delete user locally
-        await this.userRepository.deleteUserAndIdentities(localId);
-
-        // 2. Trigger Finance Service to CASCADE delete all financial data
+        // Preserve the local identity until finance confirms cleanup, so webhook retries work.
         try {
             const financeHost = process.env.FINANCE_SERVICE_HOST || 'finance-service';
             const financePort = process.env.FINANCE_SERVICE_PORT || '3002';
             
             const response = await fetch(`http://${financeHost}:${financePort}/internal/users/${localId}/delete`, {
                 method: 'DELETE',
+                headers: { 'X-Internal-Token': process.env.INTERNAL_API_TOKEN || '' },
+                signal: AbortSignal.timeout(10000),
             });
             
             if (!response.ok) {
-                console.error(`[DeleteUserAccount] Finance Service delete failed with status: ${response.status}`);
+                throw new Error(`Finance cleanup failed: ${response.status}`);
             } else {
                 console.log(`[DeleteUserAccount] Finance Service confirmed deletion for user: ${localId}`);
             }
         } catch (error) {
             console.error('[DeleteUserAccount] Failed to communicate with Finance Service for deletion:', error);
-            // Non-blocking but logged for manual retry
+            throw error;
         }
+        await this.userRepository.deleteUserAndIdentities(localId);
     }
 }

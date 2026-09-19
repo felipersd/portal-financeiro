@@ -1,0 +1,126 @@
+name: portal-financeiro
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+x-api: &api
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: ["/tmp:size=64m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 128
+  mem_limit: 512m
+  logging: *logging
+  networks: [backend]
+  depends_on:
+    db: { condition: service_healthy }
+services:
+  db:
+    image: ${POSTGRES_IMAGE:-postgres:15-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: portal
+      POSTGRES_DB: finance_db
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U portal -d finance_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    mem_limit: 1g
+    logging: *logging
+  identity-service:
+    <<: *api
+    image: ${IDENTITY_IMAGE:?Set IDENTITY_IMAGE digest}
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL_FILE: /run/secrets/identity_database_url
+      CLERK_SECRET_KEY_FILE: /run/secrets/clerk_secret_key
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:?Set Clerk public key}
+      INTERNAL_API_TOKEN_FILE: /run/secrets/internal_api_token
+      CLERK_WEBHOOK_SECRET_FILE: /run/secrets/clerk_webhook_secret
+      ALLOWED_ORIGIN: ${PUBLIC_URL:-https://portalfinanceiro.net}
+    secrets: [identity_database_url, clerk_secret_key, internal_api_token, clerk_webhook_secret]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  finance-service:
+    <<: *api
+    image: ${FINANCE_IMAGE:?Set FINANCE_IMAGE digest}
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL_FILE: /run/secrets/finance_database_url
+      CLERK_SECRET_KEY_FILE: /run/secrets/clerk_secret_key
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:?Set Clerk public key}
+      INTERNAL_API_TOKEN_FILE: /run/secrets/internal_api_token
+      ALLOWED_ORIGIN: ${PUBLIC_URL:-https://portalfinanceiro.net}
+    secrets: [finance_database_url, clerk_secret_key, internal_api_token]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE digest}
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1/version.json"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    logging: *logging
+  gateway:
+    image: ${GATEWAY_IMAGE:?Set GATEWAY_IMAGE digest}
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+    ports: ["127.0.0.1:8081:80"]
+    networks:
+      backend:
+      edge:
+        aliases: [portal-financeiro-gateway]
+    depends_on:
+      identity-service: { condition: service_healthy }
+      finance-service: { condition: service_healthy }
+      frontend: { condition: service_healthy }
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1/health/identity && wget -q -O /dev/null http://127.0.0.1/health/finance"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    logging: *logging
+volumes:
+  postgres_data:
+networks:
+  backend:
+  edge:
+    external: true
+    name: ${EDGE_NETWORK:-onepiece-library_default}
+secrets:
+  db_password:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/db_password
+  identity_database_url:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/identity_database_url
+  finance_database_url:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/finance_database_url
+  clerk_secret_key:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/clerk_secret_key
+  internal_api_token:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/internal_api_token
+  clerk_webhook_secret:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/clerk_webhook_secret

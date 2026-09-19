@@ -1,6 +1,6 @@
 import { User } from '../../Domain/Entities/User';
 import { UserRepository } from '../../Domain/Interfaces/UserRepository';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'crypto';
 
 export class GetOrCreateUser {
     constructor(private userRepository: UserRepository) { }
@@ -24,6 +24,8 @@ export class GetOrCreateUser {
                     const financePort = process.env.FINANCE_SERVICE_PORT || '3002';
                     const response = await fetch(`http://${financeHost}:${financePort}/internal/users/${user.id}/seed`, {
                         method: 'POST',
+                        headers: { 'X-Internal-Token': process.env.INTERNAL_API_TOKEN || '' },
+                        signal: AbortSignal.timeout(10000),
                     });
                     if (!response.ok) {
                         console.error('[GetOrCreateUser] Finance Service seed returned non-200 status:', response.status);

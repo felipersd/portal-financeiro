@@ -2,7 +2,7 @@ import { Category } from '../../Domain/Entities/Category';
 import { CategoryRepository } from '../../Domain/Interfaces/CategoryRepository';
 import { BudgetRule, BudgetDivision } from '../../Domain/Entities/BudgetRule';
 import { BudgetRuleRepository } from '../../Domain/Interfaces/BudgetRuleRepository';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'crypto';
 
 export class SeedDefaultCategories {
     constructor(

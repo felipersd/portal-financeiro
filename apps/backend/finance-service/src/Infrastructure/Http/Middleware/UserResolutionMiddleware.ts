@@ -3,7 +3,7 @@ import { Logger } from '../../Logger';
 import { prisma } from '../../Database/prismaClient';
 
 export const userResolutionMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    const clerkId = (req as any).auth?.userId;
+    const clerkId = (req as any).clerkUserId;
     
     if (!clerkId) {
         return res.status(401).json({ error: 'No Clerk token provided' });

@@ -128,9 +128,9 @@ export class PrismaTransactionRepository implements TransactionRepository {
         );
     }
 
-    async findFutureByRecurrenceId(recurrenceId: string, fromDate: Date): Promise<Transaction[]> {
+    async findFutureByRecurrenceId(recurrenceId: string, fromDate: Date, userId: string): Promise<Transaction[]> {
         const transactions = await this.prisma.transaction.findMany({
-            where: { recurrenceId, date: { gte: fromDate } },
+            where: { recurrenceId, userId, date: { gte: fromDate } },
             orderBy: { date: 'asc' },
         });
         return transactions.map((data: any) => new Transaction(

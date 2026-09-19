@@ -3,12 +3,12 @@ import { Request, Response } from 'express';
 import { Logger } from '../Logger';
 
 jest.mock('../Logger');
-jest.mock('@clerk/clerk-sdk-node', () => ({
-    createClerkClient: () => ({
+jest.mock('@clerk/express', () => ({
+    clerkClient: {
         users: {
             getUser: jest.fn()
         }
-    })
+    }
 }));
 
 describe('AuthController', () => {
@@ -35,14 +35,14 @@ describe('AuthController', () => {
 
     describe('me', () => {
         it('should return 401 if no user in request auth', async () => {
-            (req as any).auth = undefined;
+            (req as any).clerkUserId = undefined;
             await authController.me(req as Request, res as Response);
             expect(res.status).toHaveBeenCalledWith(401);
             expect(res.json).toHaveBeenCalledWith({ message: 'Not authenticated' });
         });
 
         it('should return user from DB if found', async () => {
-            (req as any).auth = { userId: 'clerk_123' };
+            (req as any).clerkUserId = 'clerk_123';
             mockUserRepository.findByProviderId.mockResolvedValue({ id: '1', name: 'Test' });
 
             await authController.me(req as Request, res as Response);
@@ -52,7 +52,7 @@ describe('AuthController', () => {
         });
 
         it('should return 500 on repository error', async () => {
-            (req as any).auth = { userId: 'clerk_123' };
+            (req as any).clerkUserId = 'clerk_123';
             mockUserRepository.findByProviderId.mockRejectedValue(new Error('DB Fail'));
 
             await authController.me(req as Request, res as Response);

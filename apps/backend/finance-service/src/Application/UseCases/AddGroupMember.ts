@@ -1,6 +1,6 @@
 import { GroupMember } from '../../Domain/Entities/GroupMember';
 import { GroupMemberRepository } from '../../Domain/Interfaces/GroupMemberRepository';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'crypto';
 
 export class AddGroupMember {
     constructor(private repository: GroupMemberRepository) { }

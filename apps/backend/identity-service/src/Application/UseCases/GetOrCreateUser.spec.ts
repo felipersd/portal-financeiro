@@ -6,6 +6,7 @@ describe('GetOrCreateUser', () => {
     let mockUserRepository: any;
 
     beforeEach(() => {
+        jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response);
         mockUserRepository = {
             findByProviderId: jest.fn(),
             findByEmail: jest.fn(),
@@ -14,6 +15,8 @@ describe('GetOrCreateUser', () => {
         };
         useCase = new GetOrCreateUser(mockUserRepository);
     });
+
+    afterEach(() => jest.restoreAllMocks());
 
     it('should return existing user if found by provider', async () => {
         const existingUser = new User('1', 'test@example.com', 'Test', null, new Date());
