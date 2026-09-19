@@ -23,7 +23,7 @@ jobs:
           POSTGRES_DB: finance_db
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U portal -d finance_db'
+          --health-cmd "pg_isready -U portal -d finance_db"
           --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
