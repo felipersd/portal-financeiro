@@ -1,33 +1,26 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
-
+FROM node:24-bookworm-slim AS builder
 WORKDIR /app
-
-# Install OpenSSL (required for Prisma)
-RUN apk add --no-cache openssl
-
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
-COPY prisma ./prisma/
-
-RUN --mount=type=cache,target=/root/.npm npm install
-
+COPY prisma ./prisma
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
+RUN npm run build && chmod +x entrypoint.sh
 
-RUN npm run build
+FROM builder AS production-dependencies
+RUN npm prune --omit=dev
 
-# Stage 2: Production
-FROM node:20-alpine AS runner
-
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
-
-# Install OpenSSL
-RUN apk add --no-cache openssl
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prisma ./prisma
-
-EXPOSE 3001
-
-CMD ["/bin/sh", "-c", "npx prisma db push --accept-data-loss && exec node dist/server/server.js"]
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
+ARG APP_REVISION=development
+ENV APP_REVISION=$APP_REVISION
+LABEL org.opencontainers.image.source="https://github.com/felipersd/portal-financeiro"
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/package.json /app/entrypoint.sh ./
+USER node
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["node", "dist/server/server.js"]

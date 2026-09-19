@@ -1,6 +1,6 @@
 import { Category } from '../../Domain/Entities/Category';
 import { CategoryRepository } from '../../Domain/Interfaces/CategoryRepository';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'crypto';
 
 export class CreateCategory {
     constructor(private categoryRepository: CategoryRepository) { }

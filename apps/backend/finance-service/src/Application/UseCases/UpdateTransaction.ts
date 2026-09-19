@@ -46,7 +46,7 @@ export class UpdateTransaction {
         const saved = await this.transactionRepository.update(updatedTransaction);
         
         if (transaction.isFixed && transaction.recurrenceId) {
-            const futures = await this.transactionRepository.findFutureByRecurrenceId(transaction.recurrenceId, transaction.date);
+            const futures = await this.transactionRepository.findFutureByRecurrenceId(transaction.recurrenceId, transaction.date, data.userId);
             const toUpdate = futures.filter(f => f.id !== transaction.id).map(f => {
                 return new Transaction(
                     f.id,

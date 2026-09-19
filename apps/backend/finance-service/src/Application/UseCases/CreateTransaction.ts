@@ -1,6 +1,6 @@
 import { Transaction } from '../../Domain/Entities/Transaction';
 import { TransactionRepository } from '../../Domain/Interfaces/TransactionRepository';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'crypto';
 
 export class CreateTransaction {
     constructor(private transactionRepository: TransactionRepository) { }

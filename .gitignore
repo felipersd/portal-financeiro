@@ -24,7 +24,12 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+.env
+.env.*
 !.env.example
+!.env.*.example
+*.pem
+*.key
 runs.json
 docker-compose.prod.yml
 

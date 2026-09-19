@@ -7,12 +7,9 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '')
 
-  // Prioritize process.env (Docker) over .env file (Localhost)
-  let apiUrl = process.env.VITE_API_URL || env.VITE_API_URL;
-  
-  if (!apiUrl || apiUrl.startsWith('/')) {
-    apiUrl = 'http://localhost:8080';
-  }
+  // The proxy calls the gateway, which expects the /api prefix intact.
+  // Inside Docker, localhost refers to this frontend container.
+  const apiUrl = process.env.VITE_API_PROXY_TARGET || env.VITE_API_PROXY_TARGET || 'http://localhost:8080';
 
   return {
     plugins: [react()],
@@ -28,7 +25,6 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: apiUrl,
           changeOrigin: false,
-          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

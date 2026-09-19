@@ -1,0 +1,4 @@
+**
+!deploy/
+!deploy/nginx.production.conf
+!deploy/Dockerfile.gateway
