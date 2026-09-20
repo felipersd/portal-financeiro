@@ -1,3 +1,4 @@
+import { ShareExpenseActions } from './SharingCenter';
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { Inbox, ArrowUpCircle, ArrowDownCircle, Edit2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
@@ -61,7 +62,7 @@ const CategorySection = ({
 };
 
 export const TransactionList: React.FC = () => {
-    const { filteredTransactions, removeTransaction } = useFinance();
+    const { filteredTransactions, removeTransaction, members } = useFinance();
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
     if (filteredTransactions.length === 0) {
@@ -88,9 +89,10 @@ export const TransactionList: React.FC = () => {
                     <span style={{ wordBreak: 'break-word' }}>{t.description}</span>
                     {t.isShared && (
                         <span style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
-                            Compartilhado ({t.payer === 'me' ? 'Eu' : 'Cônjuge'})
+                            Compartilhado ({t.payer === 'me' ? 'Eu' : members.find(m => m.id === t.payer)?.name || 'Membro'})
                         </span>
                     )}
+                    {t.readOnly && <span className="sharing-badge">Aceita · de {t.sharedFromName}</span>}
                     {t.recurrenceId && (
                         <span style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
                             Recorrente
@@ -100,6 +102,7 @@ export const TransactionList: React.FC = () => {
                 <span className="text-secondary" style={{ fontSize: '0.875rem' }}>
                     {t.category}
                 </span>
+                {t.isShared && <ShareExpenseActions transactionId={t.id} memberIds={t.splitDetails?.splits.map(s => s.memberId) || []} />}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: '1.125rem', color: t.type === 'income' ? 'var(--success)' : 'var(--text-primary)', textAlign: 'right' }}>
@@ -117,6 +120,7 @@ export const TransactionList: React.FC = () => {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                         className="icon-btn edit"
+                        disabled={t.readOnly}
                         onClick={() => setEditingTransaction(t)}
                         title="Editar transação"
                     >
@@ -124,6 +128,7 @@ export const TransactionList: React.FC = () => {
                     </button>
                     <button
                         className="icon-btn delete"
+                        disabled={t.readOnly}
                         onClick={() => {
                             if (confirm('Tem certeza que deseja excluir?')) {
                                 removeTransaction(t.id);

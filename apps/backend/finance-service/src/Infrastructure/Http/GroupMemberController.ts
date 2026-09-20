@@ -4,6 +4,8 @@ import { GetGroupMembers } from '../../Application/UseCases/GetGroupMembers';
 import { UpdateGroupMember } from '../../Application/UseCases/UpdateGroupMember';
 import { DeleteGroupMember } from '../../Application/UseCases/DeleteGroupMember';
 import { Logger } from '../Logger';
+import { memberSchema } from './validation';
+import { FinanceError } from '../../Domain/FinanceError';
 
 export class GroupMemberController {
     constructor(
@@ -27,10 +29,13 @@ export class GroupMemberController {
     async handleCreate(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const data = { ...req.body, userId };
+            const parsed = memberSchema.safeParse(req.body);
+            if (!parsed.success) return res.status(400).json({ error: 'Revise o nome e o e-mail do membro.', details: parsed.error.issues });
+            const data = { ...parsed.data, userId };
             const member = await this.addGroupMember.execute(data);
             res.status(201).json(member);
         } catch (error: any) {
+            if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
             Logger.error('Error creating group member', error);
             if (error.message === 'Maximum of 10 group members reached.') {
                 return res.status(400).json({ error: error.message });
@@ -43,10 +48,13 @@ export class GroupMemberController {
         try {
             const userId = (req as any).internalUserId;
             const id = req.params.id;
-            const data = { ...req.body, userId };
+            const parsed = memberSchema.safeParse(req.body);
+            if (!parsed.success) return res.status(400).json({ error: 'Revise o nome e o e-mail do membro.', details: parsed.error.issues });
+            const data = { ...parsed.data, userId };
             const member = await this.updateGroupMember.execute(id, data);
             res.json(member);
         } catch (error: any) {
+            if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
             Logger.error('Error updating group member', error);
             if (error.message === 'Unauthorized' || error.message === 'Group member not found') {
                 return res.status(error.message === 'Unauthorized' ? 403 : 404).json({ error: error.message });
@@ -62,6 +70,7 @@ export class GroupMemberController {
             await this.deleteGroupMember.execute(id, userId);
             res.status(204).send();
         } catch (error: any) {
+            if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
             Logger.error('Error deleting group member', error);
             if (error.message === 'Unauthorized' || error.message === 'Group member not found') {
                 return res.status(error.message === 'Unauthorized' ? 403 : 404).json({ error: error.message });

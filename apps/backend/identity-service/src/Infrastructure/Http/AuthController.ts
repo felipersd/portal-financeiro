@@ -39,6 +39,10 @@ export class AuthController {
                 
                 res.json(user);
             } catch (error) {
+                if (error instanceof Error && error.message === 'IDENTITY_LINK_REQUIRED') {
+                    res.status(409).json({ message: 'Este e-mail está associado a outro acesso. Use a conta original ou solicite recuperação.' });
+                    return;
+                }
                 Logger.error('Error fetching current user profile', error, { clerkId });
                 res.status(500).json({ message: 'Internal server error' });
             }

@@ -7,7 +7,7 @@ describe('CreateTransaction', () => {
 
     beforeEach(() => {
         mockTransactionRepository = {
-            create: jest.fn().mockImplementation((t) => Promise.resolve(t))
+            createMany: jest.fn().mockResolvedValue(undefined)
         };
         useCase = new CreateTransaction(mockTransactionRepository);
     });
@@ -28,7 +28,7 @@ describe('CreateTransaction', () => {
 
         expect(result).toBeInstanceOf(Transaction);
         expect(result.description).toBe('Test');
-        expect(mockTransactionRepository.create).toHaveBeenCalledTimes(1);
+        expect(mockTransactionRepository.createMany).toHaveBeenCalledTimes(1);
     });
 
     it('should create recurring transactions', async () => {
@@ -47,10 +47,10 @@ describe('CreateTransaction', () => {
 
         const result = await useCase.execute(data);
 
-        expect(mockTransactionRepository.create).toHaveBeenCalledTimes(3);
+        expect(mockTransactionRepository.createMany).toHaveBeenCalledTimes(1);
 
         // Check recurrence ID is same for all
-        const calls = mockTransactionRepository.create.mock.calls;
+        const calls = mockTransactionRepository.createMany.mock.calls[0][0].map((t: Transaction) => [t]);
         const recurrenceId = calls[0][0].recurrenceId;
         expect(recurrenceId).toBeDefined();
         expect(calls[1][0].recurrenceId).toBe(recurrenceId);
@@ -83,7 +83,7 @@ describe('CreateTransaction', () => {
 
         await useCase.execute(data);
 
-        const calls = mockTransactionRepository.create.mock.calls;
+        const calls = mockTransactionRepository.createMany.mock.calls[0][0].map((t: Transaction) => [t]);
         expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
         expect(calls[1][0].date).toEqual(new Date(2023, 0, 8)); // +7 days
     });
@@ -104,7 +104,7 @@ describe('CreateTransaction', () => {
 
         await useCase.execute(data);
 
-        const calls = mockTransactionRepository.create.mock.calls;
+        const calls = mockTransactionRepository.createMany.mock.calls[0][0].map((t: Transaction) => [t]);
         expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
         expect(calls[1][0].date).toEqual(new Date(2024, 0, 1)); // +1 year
     });

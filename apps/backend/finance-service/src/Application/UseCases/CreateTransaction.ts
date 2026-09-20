@@ -27,14 +27,19 @@ export class CreateTransaction {
         // If installments > 1, generate a recurrenceId if not provided
         const recurrenceId = (installments > 1 && !data.recurrenceId) ? uuidv4() : data.recurrenceId;
 
-        let firstTransaction: Transaction | null = null;
+        if (!Number.isInteger(installments) || installments < 1 || installments > 120) throw new Error('Invalid installment count');
+        const transactions: Transaction[] = [];
 
         for (let i = 0; i < installments; i++) {
             const transactionDate = new Date(data.date);
 
             if (i > 0) {
                 if (frequency === 'monthly' || frequency === 'fixed') {
-                    transactionDate.setMonth(transactionDate.getMonth() + i);
+                    const day = transactionDate.getUTCDate();
+                    transactionDate.setUTCDate(1);
+                    transactionDate.setUTCMonth(transactionDate.getUTCMonth() + i);
+                    const lastDay = new Date(Date.UTC(transactionDate.getUTCFullYear(), transactionDate.getUTCMonth() + 1, 0)).getUTCDate();
+                    transactionDate.setUTCDate(Math.min(day, lastDay));
                 } else if (frequency === 'weekly') {
                     transactionDate.setDate(transactionDate.getDate() + (i * 7));
                 } else if (frequency === 'daily') {
@@ -64,12 +69,10 @@ export class CreateTransaction {
                 isFixed
             );
 
-            const created = await this.transactionRepository.create(transaction);
-            if (i === 0) {
-                firstTransaction = created;
-            }
+            transactions.push(transaction);
         }
 
-        return firstTransaction!;
+        await this.transactionRepository.createMany(transactions);
+        return transactions[0];
     }
 }

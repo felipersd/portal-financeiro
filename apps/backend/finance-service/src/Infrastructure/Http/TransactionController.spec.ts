@@ -106,7 +106,7 @@ describe('TransactionController', () => {
     describe('handleUpdate', () => {
         it('should update transaction', async () => {
             req.params = { id: 'tx-1' };
-            req.body = { description: 'Updated' };
+            req.body = { description: 'Updated', amount: 10, type: 'expense', category: 'Food', date: '2026-09-20' };
             (req as any).internalUserId = 'user-1';
 
             mockUpdateTransaction.execute.mockResolvedValue({});
@@ -128,6 +128,7 @@ describe('TransactionController', () => {
         it('should handle service errors', async () => {
             req.params = { id: 'tx-1' };
             (req as any).internalUserId = 'user-1';
+            req.body = { description: 'Updated', amount: 10, type: 'expense', category: 'Food', date: '2026-09-20' };
             mockUpdateTransaction.execute.mockRejectedValue(new Error('Fail'));
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 

@@ -1,10 +1,11 @@
+import { SharingCenter, MemberConnectionActions } from './SharingCenter';
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { UserPlus, Trash2, Edit2 } from 'lucide-react';
 import type { GroupMember } from '../types';
 
 export const MembersManager: React.FC = () => {
-    const { members, addMember, updateMember, removeMember } = useFinance();
+    const { members, addMember, updateMember, removeMember, isProcessing } = useFinance();
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -37,9 +38,9 @@ export const MembersManager: React.FC = () => {
         e.preventDefault();
         try {
             if (editingId) {
-                await updateMember(editingId, name, surname || undefined, email || undefined, category);
+                if (!await updateMember(editingId, name, surname || undefined, email || undefined, category)) return;
             } else {
-                await addMember(name, surname || undefined, email || undefined, category);
+                if (!await addMember(name, surname || undefined, email || undefined, category)) return;
             }
             resetForm();
         } catch (error) {
@@ -64,6 +65,8 @@ export const MembersManager: React.FC = () => {
                 </div>
             )}
 
+            <p>Adicione pessoas com ou sem conta. O e-mail é opcional; use o convite para vincular alguém ao Portal.</p>
+            <SharingCenter />
             {isAdding && (
                 <div className="card" style={{ marginBottom: '2rem' }}>
                     <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{editingId ? 'Editar Membro' : 'Novo Membro'}</h3>
@@ -119,7 +122,7 @@ export const MembersManager: React.FC = () => {
                             <button type="button" className="btn-secondary" onClick={resetForm}>
                                 Cancelar
                             </button>
-                            <button type="submit" className="btn-primary">
+                            <button type="submit" className="btn-primary" disabled={isProcessing}>
                                 {editingId ? 'Salvar Alterações' : 'Adicionar'}
                             </button>
                         </div>
@@ -142,6 +145,7 @@ export const MembersManager: React.FC = () => {
                                     {member.email && <span>✉️ {member.email}</span>}
                                 </div>
                             </div>
+                            <MemberConnectionActions memberId={member.id} email={member.email} />
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
                                     onClick={() => handleEdit(member)}
@@ -152,7 +156,7 @@ export const MembersManager: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        if (window.confirm('Tem certeza que deseja remover este membro? Ele será desvinculado de transações conjuntas.')) {
+                                        if (window.confirm('Tem certeza que deseja remover este membro? Membros com lançamentos são preservados para manter o histórico.')) {
                                             removeMember(member.id);
                                         }
                                     }}

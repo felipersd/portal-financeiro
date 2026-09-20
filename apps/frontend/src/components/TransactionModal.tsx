@@ -1,3 +1,4 @@
+import { splitEqually } from '../utils/money';
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransaction }) => {
-    const { addTransaction, updateTransaction, categories, members } = useFinance();
+    const { addTransaction, updateTransaction, categories, members, isProcessing } = useFinance();
 
     const [type, setType] = useState<TransactionType>('expense');
     const [description, setDescription] = useState('');
@@ -165,10 +166,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             const splits: Array<{ memberId: string; amount: number }> = [];
             
             if (splitMode === 'equal') {
-                const chunk = totalAmount / participants.length;
-                participants.forEach(p => {
-                    splits.push({ memberId: p, amount: chunk });
-                });
+                splits.push(...splitEqually(totalAmount, participants));
             } else {
                 participants.forEach(p => {
                     const amtStr = customSplits[p] || '';
@@ -187,16 +185,16 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             category: categoryId,
             date: `${date}T12:00:00`,
             isShared: type === 'expense' ? isShared : false,
-            payer,
+            payer: isShared && type === 'expense' ? payer : 'me',
             recurrenceFrequency: !editTransaction ? recurrenceFrequency : undefined,
             recurrenceCount: !editTransaction ? recurrenceCount : undefined,
             splitDetails
         };
 
         if (editTransaction) {
-            await updateTransaction(editTransaction.id, data);
+            if (!await updateTransaction(editTransaction.id, data)) return;
         } else {
-            await addTransaction(data);
+            if (!await addTransaction(data)) return;
         }
         onClose();
     };
@@ -454,7 +452,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
                         <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
-                        <button type="submit" className="btn-primary">Salvar</button>
+                        <button type="submit" disabled={isProcessing} className="btn-primary">Salvar</button>
                     </div>
                 </form>
             </div>

@@ -23,6 +23,10 @@ model Transaction {
   splitDetails Json?
   
   userId      String   // Logical reference to IdentityService User
+  shares      ExpenseShare[]
+
+  @@index([userId, date])
+  @@index([userId, recurrenceId, date])
 }
 
 model Category {
@@ -31,6 +35,7 @@ model Category {
   type String // 'income' | 'expense'
   
   userId String // Logical reference to IdentityService User
+  @@index([userId])
 }
 
 model GroupMember {
@@ -41,6 +46,47 @@ model GroupMember {
   category  String   // 'Filho(a)', 'Cônjuge', 'Pai(a)', etc.
   userId    String
   createdAt DateTime @default(now())
+  connection MemberConnection?
+  @@index([userId])
+}
+
+model MemberConnection {
+  id String @id @default(uuid())
+  memberId String @unique
+  member GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  ownerId String
+  ownerName String
+  email String
+  recipientId String?
+  status String @default("pending")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([email, status])
+  @@index([recipientId, status])
+  @@index([ownerId])
+}
+
+model ExpenseShare {
+  id String @id @default(uuid())
+  transactionId String
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  ownerId String
+  recipientId String
+  memberId String
+  ownerName String
+  description String
+  amountCents Int
+  totalCents Int
+  date DateTime
+  paidByRecipient Boolean @default(false)
+  status String @default("pending")
+  createdAt DateTime @default(now())
+  decidedAt DateTime?
+  @@unique([transactionId, recipientId])
+  @@index([recipientId, status, date])
+  @@index([ownerId, status])
+  @@index([memberId, status])
 }
 
 model BudgetRule {

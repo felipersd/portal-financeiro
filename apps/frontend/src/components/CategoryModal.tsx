@@ -37,7 +37,7 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim()) {
-            await updateCategory(category.id, name, type);
+            if (!await updateCategory(category.id, name, type)) return;
             onClose();
         }
     };

@@ -12,7 +12,8 @@ export class GetOrCreateUser {
             user = await this.userRepository.findByEmail(data.email);
             
             if (user) {
-                await this.userRepository.linkIdentity(user.id, data.provider, data.providerId);
+                // Reusing an email must never recover a different provider account's financial history.
+                throw new Error('IDENTITY_LINK_REQUIRED');
             } else {
                 user = new User(uuidv4(), data.email, data.name, data.avatar, new Date());
                 await this.userRepository.create(user, data.provider, data.providerId);

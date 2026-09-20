@@ -13,7 +13,7 @@ export const CategoryManager: React.FC = () => {
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newCatName.trim()) {
-            await addCategory(newCatName, newCatType);
+            if (!await addCategory(newCatName, newCatType)) return;
             setNewCatName('');
         }
     };

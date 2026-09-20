@@ -16,6 +16,10 @@ import { userResolutionMiddleware } from '../Infrastructure/Http/Middleware/User
 import { Logger } from '../Infrastructure/Logger';
 
 import compression from 'compression';
+import { SharingService } from '../Application/UseCases/SharingService';
+import { sharingRouter } from '../Infrastructure/Http/SharingRouter';
+import { respondError } from '../Infrastructure/Http/TransactionController';
+import { ZodError } from 'zod';
 
 dotenv.config();
 
@@ -27,7 +31,8 @@ app.use(cors({
     credentials: true
 }));
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: '64kb' }));
+app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.use(cookieParser());
 
 // Request Logging Middleware
@@ -121,7 +126,6 @@ app.delete('/transactions/:id', sessionAuth, userResolutionMiddleware, (req: exp
 
 app.post('/categories', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleCreate(req, res));
 app.get('/categories', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => {
-    res.set('Cache-Control', 'private, max-age=300');
     return categoryController.handleGet(req, res);
 });
 app.put('/categories/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleUpdate(req, res));
@@ -129,11 +133,12 @@ app.delete('/categories/:id', sessionAuth, userResolutionMiddleware, (req: expre
 
 app.post('/members', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleCreate(req, res));
 app.get('/members', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => {
-    res.set('Cache-Control', 'private, max-age=300');
     return groupMemberController.handleGet(req, res);
 });
 app.put('/members/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleUpdate(req, res));
 app.delete('/members/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleDelete(req, res));
+
+app.use('/sharing', sessionAuth, userResolutionMiddleware, sharingRouter(new SharingService(prisma)));
 
 app.get('/budget-rules/:month', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => budgetRuleController.handleGet(req, res));
 app.put('/budget-rules/:month', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => budgetRuleController.handleUpdate(req, res));
@@ -178,6 +183,12 @@ app.delete('/internal/users/:userId/delete', internalAuth, async (req: express.R
 });
 
 const PORT = process.env.PORT || 3002;
+
+app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (error instanceof ZodError) { res.status(400).json({ error: 'Dados inválidos.', details: error.issues }); return; }
+    if ([400, 401, 413].includes(error.status)) { res.status(error.status).json({ error: 'Requisição inválida ou não autenticada.' }); return; }
+    respondError(res, error);
+});
 
 app.listen(Number(PORT), '0.0.0.0', () => {
     Logger.info(`Finance Service running on port ${PORT}`);

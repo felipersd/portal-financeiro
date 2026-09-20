@@ -2,6 +2,7 @@ import { Transaction } from '../Entities/Transaction';
 
 export interface TransactionRepository {
     create(transaction: Transaction): Promise<Transaction>;
+    createMany(transactions: Transaction[]): Promise<void>;
     findByUserId(userId: string, year?: number): Promise<Transaction[]>;
     findById(id: string): Promise<Transaction | null>;
     update(transaction: Transaction): Promise<Transaction>;

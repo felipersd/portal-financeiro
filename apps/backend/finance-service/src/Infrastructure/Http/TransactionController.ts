@@ -3,135 +3,55 @@ import { CreateTransaction } from '../../Application/UseCases/CreateTransaction'
 import { GetTransactions } from '../../Application/UseCases/GetTransactions';
 import { UpdateTransaction } from '../../Application/UseCases/UpdateTransaction';
 import { DeleteTransaction } from '../../Application/UseCases/DeleteTransaction';
-import { z } from 'zod';
+import { FinanceError } from '../../Domain/FinanceError';
+import { transactionSchema } from './validation';
 
-// Validador Zod Oficial para DTO de Transações (Bloqueia sujeira e lixo gerado no payload)
-const transactionSchema = z.object({
-    description: z.string().min(2, "A descrição deve ter pelo menos 2 caracteres"),
-    amount: z.number().positive("O valor deve ser maior que zero").or(z.string().transform(v => parseFloat(v)).refine(v => v > 0)),
-    type: z.enum(['income', 'expense']),
-    category: z.string().min(1),
-    date: z.string().datetime().or(z.date()).or(z.string()), // Flexible by accepting valid Date strings
-    isShared: z.boolean().optional().default(false),
-    payer: z.string().optional().default('me'),
-    recurrenceId: z.string().optional(),
-    splitDetails: z.any().optional(),
-    recurrenceFrequency: z.enum(['none', 'monthly', 'fixed']).optional(),
-    recurrenceCount: z.number().optional()
-});
+export function respondError(res: Response, error: unknown) {
+    if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
+    if (error instanceof Error && ['Unauthorized', 'Transaction not found', 'Group member not found'].includes(error.message)) {
+        return res.status(404).json({ error: 'Registro não encontrado.' });
+    }
+    console.error('Finance operation failed', error instanceof Error ? error.name : 'UnknownError');
+    return res.status(500).json({ error: 'Não foi possível concluir a operação. Tente novamente.' });
+}
 
 export class TransactionController {
-    constructor(
-        private createTransaction: CreateTransaction,
-        private getTransactions: GetTransactions,
-        private updateTransaction: UpdateTransaction,
-        private deleteTransaction: DeleteTransaction
-    ) { }
-
+    constructor(private createTransaction: CreateTransaction, private getTransactions: GetTransactions,
+        private updateTransaction: UpdateTransaction, private deleteTransaction: DeleteTransaction) {}
     async handleCreate(req: Request, res: Response): Promise<void> {
+        const userId = (req as any).internalUserId;
+        if (!userId) { res.status(401).json({ error: 'Não autenticado.' }); return; }
+        const parsed = transactionSchema.safeParse(req.body);
+        if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0].message, details: parsed.error.issues }); return; }
         try {
-            const userId = (req as any).internalUserId || req.body.userId;
-            if (!userId) {
-                res.status(401).json({ error: 'Unauthorized: Missing User Identification' });
-                return;
-            }
-
-            // Validação de Contrato Firme usando Zod DTO
-            const parsedData = transactionSchema.safeParse(req.body);
-            
-            if (!parsedData.success) {
-                const errors = parsedData.error.issues.map((e: any) => ({ field: e.path.join('.'), message: e.message }));
-                res.status(400).json({ error: 'Payload de Transação Inválido (Bad Request)', details: errors });
-                return;
-            }
-
-            const payload = parsedData.data;
-
-            const transaction = await this.createTransaction.execute({
-                description: payload.description,
-                amount: Number(payload.amount),
-                type: payload.type,
-                category: payload.category,
-                date: new Date(payload.date),
-                isShared: payload.isShared,
-                payer: payload.payer,
-                userId,
-                recurrenceId: payload.recurrenceId,
-                splitDetails: payload.splitDetails,
-                frequency: payload.recurrenceFrequency === 'none' ? undefined : payload.recurrenceFrequency,
-                isFixed: payload.recurrenceFrequency === 'fixed',
-                installments: payload.recurrenceCount
-            });
-            res.json(transaction);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Internal Server Error' });
-        }
+            const data = parsed.data;
+            res.json(await this.createTransaction.execute({ ...data, userId, date: new Date(data.date),
+                frequency: data.recurrenceFrequency === 'none' ? undefined : data.recurrenceFrequency,
+                isFixed: data.recurrenceFrequency === 'fixed', installments: data.recurrenceCount }));
+        } catch (error) { respondError(res, error); }
     }
-
     async handleGet(req: Request, res: Response): Promise<void> {
-        try {
-            const userId = (req as any).internalUserId || req.query.userId;
-            const yearStr = req.query.year as string;
-            const year = yearStr ? parseInt(yearStr, 10) : undefined;
-
-            if (!userId || typeof userId !== 'string') {
-                res.status(400).json({ error: 'Missing userId' });
-                return;
-            }
-
-            const transactions = await this.getTransactions.execute(userId, year);
-            res.json(transactions);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Internal Server Error' });
+        const userId = (req as any).internalUserId;
+        if (!userId) { res.status(401).json({ error: 'Não autenticado.' }); return; }
+        const year = req.query.year === undefined ? undefined : Number(req.query.year);
+        if (year !== undefined && (!Number.isInteger(year) || year < 1900 || year > 2200)) {
+            res.status(400).json({ error: 'Ano inválido.' }); return;
         }
+        try { res.json(await this.getTransactions.execute(userId, year)); }
+        catch (error) { respondError(res, error); }
     }
-
     async handleUpdate(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params;
-            const { description, amount, type, category, date, isShared, payer, splitDetails } = req.body;
-            const userId = (req as any).internalUserId;
-
-            if (!userId) {
-                res.status(401).json({ error: 'Unauthorized' });
-                return;
-            }
-
-            const transaction = await this.updateTransaction.execute(id, {
-                description,
-                amount,
-                type,
-                category,
-                date: new Date(date),
-                isShared: isShared || false,
-                payer: payer || 'me',
-                userId,
-                splitDetails
-            });
-            res.json(transaction);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Internal Server Error' });
-        }
+        const userId = (req as any).internalUserId;
+        if (!userId) { res.status(401).json({ error: 'Não autenticado.' }); return; }
+        const parsed = transactionSchema.safeParse(req.body);
+        if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0].message, details: parsed.error.issues }); return; }
+        try { res.json(await this.updateTransaction.execute(req.params.id, { ...parsed.data, userId, date: new Date(parsed.data.date) })); }
+        catch (error) { respondError(res, error); }
     }
-
     async handleDelete(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params;
-            const userId = (req as any).internalUserId;
-
-            if (!userId) {
-                res.status(401).json({ error: 'Unauthorized' });
-                return;
-            }
-
-            await this.deleteTransaction.execute(id, userId);
-            res.status(204).send();
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Internal Server Error' });
-        }
+        const userId = (req as any).internalUserId;
+        if (!userId) { res.status(401).json({ error: 'Não autenticado.' }); return; }
+        try { await this.deleteTransaction.execute(req.params.id, userId); res.status(204).send(); }
+        catch (error) { respondError(res, error); }
     }
 }
