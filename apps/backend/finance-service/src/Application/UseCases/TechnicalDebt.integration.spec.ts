@@ -46,6 +46,24 @@ suite('Financial integrity and monthly versions', () => {
   await expect(update.execute(userId, '2026-09', { revision: 0, divisions })).rejects.toMatchObject({ status: 409 });
   expect(await db.budgetRuleVersion.count({ where:{ruleId:current.id} })).toBe(2);
  });
+ it('updates the category and relational splits together and rolls back an invalid batch', async () => {
+  const member = await db.groupMember.create({ data: { userId, name: 'Test', category: 'Amigo' } });
+  const category = await db.category.create({ data: { userId, name: 'Mercado', type: 'expense' } });
+  const original = new Transaction(randomUUID(), 'Original', 10, 'expense', 'Casa', new Date(), true, 'me', userId, new Date(), null,
+   { splits: [{ memberId: 'me', amount: 6 }, { memberId: member.id, amount: 4 }] });
+  await repository.create(original);
+  const edited = new Transaction(original.id, 'Edited', 12, 'expense', category.name, original.date, true, member.id, userId, original.createdAt, null,
+   { splits: [{ memberId: 'me', amount: 7 }, { memberId: member.id, amount: 5 }] }, false, category.id);
+  await repository.update(edited);
+  expect(await repository.findById(original.id)).toMatchObject({ categoryId: category.id, amount: 12, payer: member.id,
+   splitDetails: { splits: expect.arrayContaining([{memberId:'me',amount:7},{memberId:member.id,amount:5}]) } });
+  const invalid = new Transaction(randomUUID(), 'Invalid', 1, 'expense', 'Casa', new Date(), true, 'me', userId, new Date(), null,
+   {splits:[{memberId:randomUUID(),amount:1}]});
+  await expect(repository.updateMany([original, invalid])).rejects.toMatchObject({status:400});
+  expect((await repository.findById(original.id))?.amount).toBe(12);
+  await repository.update(new Transaction(original.id, 'Individual', 9, 'expense', 'Casa', original.date, false, 'me', userId, original.createdAt));
+  expect(await db.transactionSplit.count({where:{transactionId:original.id}})).toBe(0);
+ });
  it('serializes two simultaneous creations of the same month', async () => {
   const budgets = new PrismaBudgetRuleRepository(db);
   const make = () => new BudgetRule(randomUUID(), userId, '2026-09', [{id:'one',name:'Total',percentage:100,color:'#ffffff'}], {});

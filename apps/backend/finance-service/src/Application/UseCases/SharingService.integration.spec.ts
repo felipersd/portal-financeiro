@@ -1,3 +1,4 @@
+import { ShareLedger } from './ShareLedger';
 import { createDatabaseClient } from '../../Infrastructure/Database/createDatabaseClient';
 import { randomUUID } from 'crypto';
 import { SharingService, SharingActor } from './SharingService';
@@ -103,6 +104,30 @@ suite('Sharing with real PostgreSQL', () => {
             { splits: [{ memberId, amount: 10 }] }))).rejects.toMatchObject({ status: 400 });
         await expect(memberRepository.delete(memberId)).rejects.toMatchObject({ status: 409 });
         expect(original.amount).toBe(100);
+    });
+    it('requires the other person for adjustments and settlements and preserves the exact total', async () => {
+        await connect();
+        const share = await service.share(owner, transactionId, memberId);
+        await service.decideShare(recipient, share.id, 'accept');
+        const ledger = new ShareLedger(db);
+        const correction = await ledger.propose(owner, share.id, 'adjustment', 3000);
+        await expect(ledger.decide(owner, correction, 'accept')).rejects.toMatchObject({ status: 403 });
+        await ledger.decide(recipient, correction, 'accept');
+        const source = await repository.findById(transactionId);
+        expect(source?.splitDetails.splits.find((s: {memberId:string}) => s.memberId === 'me').amount).toBe(70);
+        expect(source?.splitDetails.splits.reduce((n:number,s:{amount:number})=>n+s.amount,0)).toBe(100);
+        const [payment, same] = await Promise.all([ledger.propose(recipient, share.id, 'payment', 2000),ledger.propose(recipient, share.id, 'payment', 2000)]);
+        expect(payment).toBe(same);
+        await Promise.all([ledger.decide(owner, payment, 'accept'),ledger.decide(owner, payment, 'accept')]);
+        expect((await db.expenseShare.findUniqueOrThrow({where:{id:share.id}})).paidCents).toBe(2000);
+        const invalid = await ledger.propose(owner, share.id, 'adjustment', 500);
+        await expect(ledger.decide(recipient, invalid, 'accept')).rejects.toMatchObject({status:409});
+        await ledger.decide(owner, invalid, 'cancel');
+        const refund = await ledger.propose(owner, share.id, 'refund', 500);
+        await ledger.decide(recipient, refund, 'accept');
+        expect((await db.expenseShare.findUniqueOrThrow({where:{id:share.id}})).paidCents).toBe(1500);
+        await expect(ledger.history(stranger, share.id)).rejects.toMatchObject({status:404});
+        expect((await ledger.history(owner, share.id)).items).toHaveLength(4);
     });
     it('supports offline members without creating a connection', async () => {
         await db.groupMember.update({ where: { id: memberId }, data: { email: null } });

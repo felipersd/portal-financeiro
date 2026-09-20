@@ -1,3 +1,4 @@
+import { useModalDialog } from '../hooks/useModalDialog';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinance } from '../context/FinanceContext';
@@ -11,6 +12,7 @@ interface BudgetRuleConfigModalProps {
 export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ onClose }) => {
     const { budgetRule, updateBudgetRule, categories, selectedDate } = useFinance();
     
+    const dialogRef = useModalDialog(!!budgetRule);
     const [divisions, setDivisions] = useState<BudgetDivision[]>(budgetRule?.divisions || []);
     const [mapping, setMapping] = useState<Record<string, string>>(budgetRule?.mapping ?? {});
 
@@ -77,7 +79,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
             zIndex: 9999, backdropFilter: 'blur(4px)',
             touchAction: 'none', overscrollBehavior: 'none'
         }}>
-            <div className="card" style={{
+            <dialog ref={dialogRef} onCancel={e => { e.preventDefault(); onClose(); }} className="card native-modal" aria-labelledby="budget-heading" style={{
                 width: '90%', maxWidth: '500px', maxHeight: '90vh', overflow: 'hidden',
                 boxShadow: 'var(--shadow-lg)', padding: 0, display: 'flex', flexDirection: 'column',
                 backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-lg)'
@@ -89,7 +91,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                     borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0
                 }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', paddingRight: '1rem' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Configurar Regra</h2>
+                        <h2 id="budget-heading" style={{ margin: 0, fontSize: '1.25rem' }}>Configurar Regra</h2>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
                         <span style={{ 
@@ -117,7 +119,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
                                         <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: div.color, flexShrink: 0 }} />
-                                        <input
+                                        <input aria-label={`Nome da divisão ${div.name}`}
                                             type="text"
                                             value={div.name}
                                             onChange={(e) => handleNameChange(div.id, e.target.value)}
@@ -144,7 +146,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                                         </button>
                                     </div>
                                 </div>
-                                <input 
+                                <input aria-label={`Percentual de ${div.name}`}
                                     type="range" min="0" max="100" value={div.percentage} 
                                     onChange={(e) => handlePercentageChange(div.id, Number(e.target.value))} 
                                     style={{ width: '100%', accentColor: div.color }} 
@@ -242,7 +244,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                         </button>
                     </div>
                 </div>
-            </div>
+            </dialog>
         </div>,
         document.body
     );

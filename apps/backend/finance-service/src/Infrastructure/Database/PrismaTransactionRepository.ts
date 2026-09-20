@@ -3,13 +3,13 @@ import { Transaction } from '../../Domain/Entities/Transaction';
 import { TransactionRepository } from '../../Domain/Interfaces/TransactionRepository';
 import { FinanceError } from '../../Domain/FinanceError';
 import { atomic } from './atomic';
-const include = { categoryRef: true, splits: true } as const;
+const include = { categoryRef: true, splits: true, shares: { where: { status: 'accepted' } } } as const;
 type Loaded = Prisma.TransactionGetPayload<{ include: typeof include }>;
-const entity = (d: Loaded) => new Transaction(d.id, d.description, Number(d.amount), d.type as 'income' | 'expense',
+const entity = (d: Loaded) => Object.assign(new Transaction(d.id, d.description, Number(d.amount), d.type as 'income' | 'expense',
     d.categoryRef?.name || d.category, d.date, d.isShared, d.payer, d.userId, d.createdAt, d.recurrenceId,
     d.isShared ? { splits: d.splits.map(s => ({ memberId: s.participantKey, amount: s.amountCents / 100 })) } : undefined,
-    d.isFixed, d.categoryId || undefined);
-const splitRows = (t: Transaction) => (t.isShared ? t.splitDetails?.splits || [] : []).map((s: { memberId: string; amount: number }) =>
+    d.isFixed, d.categoryId || undefined), { settlements: d.shares.map(s => ({ memberId: s.memberId, paidAmount: s.paidCents / 100 })) });
+const splitRows = (t: Transaction): Array<{participantKey: string; memberId: string | null; amountCents: number}> => (t.isShared ? t.splitDetails?.splits || [] : []).map((s: { memberId: string; amount: number }) =>
     ({ participantKey: s.memberId, memberId: s.memberId === 'me' ? null : s.memberId, amountCents: Math.round(s.amount * 100) }));
 async function categoryFor(tx: Prisma.TransactionClient, t: Transaction) {
     const category = await tx.category.findFirst({ where: { userId: t.userId, type: t.type,
@@ -70,10 +70,13 @@ export class PrismaTransactionRepository implements TransactionRepository {
     async updateMany(transactions: Transaction[]) {
         await atomic(this.prisma, async tx => {
             await requireEditable(tx, transactions.map(t => t.id));
-            if (transactions.length) await validateMembers(tx, transactions[0]);
             for (const t of transactions) {
-                const result = await tx.transaction.updateMany({ where: { id: t.id, userId: t.userId }, data: fields(t) });
+                await validateMembers(tx, t);
+                const categoryId = await categoryFor(tx, t);
+                const result = await tx.transaction.updateMany({ where: { id: t.id, userId: t.userId }, data: { ...fields(t), categoryId } });
                 if (!result.count) throw new FinanceError(404, 'Conta não encontrada.');
+                await tx.transactionSplit.deleteMany({ where: { transactionId: t.id } });
+                if (t.isShared) await tx.transactionSplit.createMany({ data: splitRows(t).map(s => ({ ...s, transactionId: t.id })) });
             }
         });
     }

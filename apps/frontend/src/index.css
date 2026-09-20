@@ -604,3 +604,8 @@ input:checked+.slider:before {
 .cookie-banner-action {
   flex-shrink: 0;
 }
+/* Native modal semantics retain focus and keep background content inert. */
+dialog.native-modal { margin: auto; color: var(--text-primary); max-height: 90dvh; overflow-y: auto; }
+dialog.native-modal::backdrop { background: rgba(0,0,0,.6); backdrop-filter: blur(4px); }
+.sidebar li > button.nav-item { width: 100%; border: 0; text-align: left; font: inherit; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }

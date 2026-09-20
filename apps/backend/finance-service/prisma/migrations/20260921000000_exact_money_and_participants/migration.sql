@@ -65,4 +65,14 @@ CREATE UNIQUE INDEX "BudgetRuleVersion_ruleId_revision_key" ON "BudgetRuleVersio
 INSERT INTO "BudgetRuleVersion" (id,"ruleId",revision,divisions,mapping) SELECT gen_random_uuid()::text,id,revision,divisions,mapping FROM "BudgetRule";
 CREATE TABLE "RequestBudget" (key TEXT NOT NULL PRIMARY KEY, count INTEGER NOT NULL, "expiresAt" TIMESTAMP(3) NOT NULL);
 CREATE INDEX "RequestBudget_expiresAt_idx" ON "RequestBudget"("expiresAt");
+ALTER TABLE "ExpenseShare" ADD COLUMN "paidCents" INTEGER NOT NULL DEFAULT 0, ADD COLUMN revision INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "ExpenseShare" ADD CONSTRAINT "ExpenseShare_paid_nonnegative" CHECK ("paidCents">=0 AND revision>=0);
+CREATE TABLE "ShareProposal" (
+ id TEXT NOT NULL PRIMARY KEY, "shareId" TEXT NOT NULL, "proposerId" TEXT NOT NULL, kind TEXT NOT NULL,
+ "amountCents" INTEGER NOT NULL, "baseRevision" INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "decidedAt" TIMESTAMP(3),
+ CONSTRAINT "ShareProposal_shareId_fkey" FOREIGN KEY ("shareId") REFERENCES "ExpenseShare"(id) ON DELETE CASCADE ON UPDATE CASCADE,
+ CONSTRAINT "ShareProposal_amount_valid" CHECK ("amountCents">=0)
+);
+CREATE INDEX "ShareProposal_shareId_status_idx" ON "ShareProposal"("shareId",status);
 COMMIT;

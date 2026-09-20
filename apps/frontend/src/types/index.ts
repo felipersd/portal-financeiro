@@ -17,6 +17,7 @@ export interface GroupMember {
 export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
+    settlements?: Array<{ memberId: string; paidAmount: number }>;
     readOnly?: boolean;
     sharedFromName?: string;
     receivedShareId?: string;
@@ -43,7 +44,9 @@ export interface SharingState {
         status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired'; direction: 'incoming' | 'outgoing'; expiresAt: string }>;
     shares: Array<{ id: string; transactionId?: string; memberId?: string; ownerName: string; description: string;
         amount: number; total: number; date: string; paidByRecipient: boolean;
-        status: 'pending' | 'accepted' | 'declined' | 'cancelled'; direction: 'incoming' | 'outgoing' }>;
+        status: 'pending' | 'accepted' | 'declined' | 'cancelled'; direction: 'incoming' | 'outgoing';
+        paidAmount?: number; settlementAmount?: number; debtor?: 'me' | 'other' | 'thirdParty'; canAdjust?: boolean;
+        proposal?: { id: string; kind: 'adjustment' | 'payment' | 'refund'; amount: number; proposedByMe: boolean } | null }>;
 }
 
 export interface FinanceSummary {
@@ -76,4 +79,9 @@ export interface BudgetRule {
     month: string;
     divisions: BudgetDivision[];
     mapping: Record<string, string>;
+}
+
+export interface ShareHistoryPage {
+    items: Array<{id:string; kind:'adjustment'|'payment'|'refund'; amount:number; status:string; proposedByMe:boolean; createdAt:string; decidedAt:string|null}>;
+    nextCursor: string | null;
 }

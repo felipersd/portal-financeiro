@@ -1,3 +1,4 @@
+import { ShareLedger } from '../Application/UseCases/ShareLedger';
 import { accountRateLimit } from '../Infrastructure/Http/Middleware/AccountRateLimit';
 import { pathParam } from '../Infrastructure/Http/pathParam';
 import '../Infrastructure/Environment';
@@ -142,7 +143,7 @@ app.get('/members', (req: express.Request, res: express.Response) => {
 app.put('/members/:id', (req: express.Request, res: express.Response) => groupMemberController.handleUpdate(req, res));
 app.delete('/members/:id', (req: express.Request, res: express.Response) => groupMemberController.handleDelete(req, res));
 
-app.use('/sharing', sharingRouter(new SharingService(prisma)));
+app.use('/sharing', sharingRouter(new SharingService(prisma), new ShareLedger(prisma)));
 
 app.get('/budget-rules/:month', (req: express.Request, res: express.Response) => budgetRuleController.handleGet(req, res));
 app.put('/budget-rules/:month', (req: express.Request, res: express.Response) => budgetRuleController.handleUpdate(req, res));

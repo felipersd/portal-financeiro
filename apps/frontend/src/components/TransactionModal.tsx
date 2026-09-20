@@ -1,3 +1,4 @@
+import { useModalDialog } from '../hooks/useModalDialog';
 import { currency, splitEqually } from '../utils/money';
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
@@ -13,6 +14,7 @@ interface Props {
 export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransaction }) => {
     const { addTransaction, updateTransaction, categories, members, isProcessing } = useFinance();
 
+    const dialogRef = useModalDialog(isOpen);
     const [type, setType] = useState<TransactionType>('expense');
     const [description, setDescription] = useState('');
     const [amountStr, setAmountStr] = useState('');
@@ -222,7 +224,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             zIndex: 1000, backdropFilter: 'blur(4px)', overflow: 'hidden',
             touchAction: 'none', overscrollBehavior: 'none'
         }}>
-            <div className="card" role="dialog" aria-modal="true" aria-labelledby="transaction-heading" style={{
+            <dialog ref={dialogRef} onCancel={e => { e.preventDefault(); onClose(); }} className="card native-modal" aria-labelledby="transaction-heading" style={{
                 width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto',
                 boxShadow: 'var(--shadow-lg)', touchAction: 'pan-y'
             }}>
@@ -459,7 +461,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         <button type="submit" disabled={isProcessing} className="btn-primary">Salvar</button>
                     </div>
                 </form>
-            </div>
+            </dialog>
         </div>
     );
 };

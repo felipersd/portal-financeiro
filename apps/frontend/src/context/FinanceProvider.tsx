@@ -5,7 +5,7 @@ import { FinanceContext } from './FinanceContext';
 import { Login } from '../components/Login';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { summarize } from '../utils/summary';
-import type { User, Transaction, Category, GroupMember, BudgetRule, SharingState } from '../types';
+import type { User, Transaction, Category, GroupMember, BudgetRule, SharingState, ShareHistoryPage } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 class ApiError extends Error {
@@ -106,6 +106,9 @@ const FinanceData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         decideConnection: (id, action) => write(`/sharing/connections/${id}/${action}`, 'POST', undefined, ['sharing']),
         shareExpense: (id, memberId) => write(`/sharing/transactions/${id}`, 'POST', { memberId }, ['sharing']),
         decideShare: (id, action) => write(`/sharing/expenses/${id}/${action}`, 'POST', undefined, ['sharing', 'transactions']),
+        proposeShareChange: (id, kind, amount) => write(`/sharing/expenses/${id}/proposals`, 'POST', {kind,amount}, ['sharing']),
+        decideProposal: (id, action) => write(`/sharing/proposals/${id}/${action}`, 'POST', undefined, ['sharing','transactions']),
+        getShareHistory: (id, cursor) => api<ShareHistoryPage>(`/sharing/expenses/${id}/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
         refreshSharing: () => { void client.invalidateQueries({ queryKey: ['sharing'] }); void client.invalidateQueries({ queryKey: ['transactions'] }); },
         logout: () => { client.clear(); void signOut(); },
     }}>

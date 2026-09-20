@@ -12,4 +12,13 @@ OUTPUT="$ROOT/backups/daily-$(date -u +%Y%m%dT%H%M%SZ).dump"
 "${COMPOSE[@]}" exec -T db pg_restore --list < "$OUTPUT.partial" > /dev/null
 mv -- "$OUTPUT.partial" "$OUTPUT"
 sha256sum "$OUTPUT" > "$OUTPUT.sha256"
-echo "Backup complete: $OUTPUT"
+# Local success alone is insufficient when offsite backup is enabled.
+if [[ -f "$ROOT/secrets/restic.env" ]]; then
+  bash "$RELEASE_DIR/offsite-backup.sh" "$OUTPUT"
+else
+  echo 'Offsite backup is not configured.' >&2
+  exit 1
+fi
+# Only our timestamped daily archives are rotated after verified remote success.
+find "$ROOT/backups" -maxdepth 1 -type f \( -name 'daily-????????T??????Z.dump' -o -name 'daily-????????T??????Z.dump.sha256' \) -mtime +14 -delete
+echo "Local and encrypted offsite backup complete: $OUTPUT"

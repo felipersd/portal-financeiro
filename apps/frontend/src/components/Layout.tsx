@@ -66,49 +66,43 @@ export const Layout: React.FC = () => {
                     {user?.avatar && <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} />}
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={logout}>Sair</div>
+                        <button type="button" className="btn-secondary" onClick={logout}>Sair</button>
                     </div>
                 </div>
 
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '0.5rem', marginRight: '-0.5rem' }}>
-                    <li
-                        onClick={() => setCurrentView('dashboard')}
+                    <li><button type="button" aria-current={currentView === 'dashboard' ? 'page' : undefined} onClick={() => setCurrentView('dashboard')}
                         className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
                     >
                         <LayoutDashboard size={20} /> Dashboard
-                    </li>
-                    <li
-                        onClick={() => setCurrentView('transactions')}
+                    </button></li>
+                    <li><button type="button" aria-current={currentView === 'transactions' ? 'page' : undefined} onClick={() => setCurrentView('transactions')}
                         className={`nav-item ${currentView === 'transactions' ? 'active' : ''}`}
                     >
                         <List size={20} /> Transações
-                    </li>
+                    </button></li>
                     {hasSharedTransactions && (
-                        <li
-                            onClick={() => setCurrentView('settlement')}
+                        <li><button type="button" aria-current={currentView === 'settlement' ? 'page' : undefined} onClick={() => setCurrentView('settlement')}
                             className={`nav-item ${currentView === 'settlement' ? 'active' : ''}`}
                         >
                             <Scale size={20} /> Acerto de Contas
-                        </li>
+                        </button></li>
                     )}
-                    <li
-                        onClick={() => setCurrentView('categories')}
+                    <li><button type="button" aria-current={currentView === 'categories' ? 'page' : undefined} onClick={() => setCurrentView('categories')}
                         className={`nav-item ${currentView === 'categories' ? 'active' : ''}`}
                     >
                         <Tag size={20} /> Categorias
-                    </li>
-                    <li
-                        onClick={() => setCurrentView('members')}
+                    </button></li>
+                    <li><button type="button" aria-current={currentView === 'members' ? 'page' : undefined} onClick={() => setCurrentView('members')}
                         className={`nav-item ${currentView === 'members' ? 'active' : ''}`}
                     >
                         <Users size={20} /> Membros {sharing.connections.filter(c => c.direction === 'incoming' && c.status === 'pending').length + sharing.shares.filter(s => s.direction === 'incoming' && s.status === 'pending').length > 0 && <span className="sharing-badge">Novos convites</span>}
-                    </li>
-                    <li
-                        onClick={() => setCurrentView('reports')}
+                    </button></li>
+                    <li><button type="button" aria-current={currentView === 'reports' ? 'page' : undefined} onClick={() => setCurrentView('reports')}
                         className={`nav-item ${currentView === 'reports' ? 'active' : ''}`}
                     >
                         <PieChart size={20} /> Relatórios
-                    </li>
+                    </button></li>
                 </ul>
 
                 <button onClick={logout} className="nav-item" style={{ marginTop: '0.5rem', border: 'none', background: 'none', width: '100%', flexShrink: 0 }}>

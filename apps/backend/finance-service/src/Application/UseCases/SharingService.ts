@@ -16,6 +16,7 @@ export class SharingService {
                 orderBy: { createdAt: 'desc' }, take: 200,
             }),
             this.db.expenseShare.findMany({
+                include: { transaction: { include: { splits: true } }, proposals: { where: { status: 'pending' }, take: 1 } },
                 where: { OR: [{ ownerId: actor.id }, { recipientId: actor.id }] }, orderBy: { createdAt: 'desc' }, take: 200,
             }),
         ]);
@@ -29,7 +30,13 @@ export class SharingService {
                 memberId: s.ownerId === actor.id ? s.memberId : undefined, ownerName: s.ownerName,
                 description: s.description, amount: s.amountCents / 100, total: s.totalCents / 100,
                 date: s.date, paidByRecipient: s.paidByRecipient, status: s.status,
-                direction: s.ownerId === actor.id ? 'outgoing' : 'incoming' })),
+                direction: s.ownerId === actor.id ? 'outgoing' : 'incoming',
+                paidAmount: s.paidCents / 100,
+                settlementAmount: (s.transaction.payer === 'me' ? s.amountCents : s.transaction.payer === s.memberId ? s.transaction.splits.find(p => p.participantKey === 'me')?.amountCents || 0 : 0) / 100,
+                canAdjust: ['me', s.memberId].includes(s.transaction.payer),
+                debtor: s.transaction.payer === 'me' ? (s.ownerId === actor.id ? 'other' : 'me') : s.transaction.payer === s.memberId ? (s.ownerId === actor.id ? 'me' : 'other') : 'thirdParty',
+                proposal: s.proposals[0] ? { id: s.proposals[0].id, kind: s.proposals[0].kind, amount: s.proposals[0].amountCents / 100,
+                    proposedByMe: s.proposals[0].proposerId === actor.id } : null })),
         };
     }
 

@@ -1,10 +1,12 @@
+import { ShareLedger } from '../../Application/UseCases/ShareLedger';
+import { money } from './validation';
 import { Router, Request, Response, NextFunction } from 'express';
 import { clerkClient } from '@clerk/express';
 import { z } from 'zod';
 import { SharingActor, SharingService } from '../../Application/UseCases/SharingService';
 import { FinanceError } from '../../Domain/FinanceError';
 
-export function sharingRouter(service: SharingService) {
+export function sharingRouter(service: SharingService, ledger?: ShareLedger) {
     const router = Router();
     router.use(async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -29,6 +31,19 @@ export function sharingRouter(service: SharingService) {
         z.string().uuid().parse(req.params.id), z.enum(['accept', 'decline', 'revoke']).parse(req.params.action))));
     router.post('/transactions/:id', endpoint((req, actor) => service.share(actor,
         z.string().uuid().parse(req.params.id), body.parse(req.body).memberId)));
+    router.post('/expenses/:id/proposals', endpoint((req, actor) => {
+        const parsed = z.object({ kind: z.enum(['adjustment','payment','refund']), amount: money }).parse(req.body);
+        if (!ledger) throw new FinanceError(503, 'Acertos indisponíveis.');
+        return ledger.propose(actor, z.string().uuid().parse(req.params.id), parsed.kind, Math.round(parsed.amount * 100));
+    }));
+    router.post('/proposals/:id/:action', endpoint((req, actor) => {
+        if (!ledger) throw new FinanceError(503, 'Acertos indisponíveis.');
+        return ledger.decide(actor, z.string().uuid().parse(req.params.id), z.enum(['accept','decline','cancel']).parse(req.params.action));
+    }));
+    router.get('/expenses/:id/history', endpoint((req, actor) => {
+        if (!ledger) throw new FinanceError(503, 'Acertos indisponíveis.');
+        return ledger.history(actor, z.string().uuid().parse(req.params.id), z.string().uuid().optional().parse(req.query.cursor));
+    }));
     router.post('/expenses/:id/:action', endpoint((req, actor) => service.decideShare(actor,
         z.string().uuid().parse(req.params.id), z.enum(['accept', 'decline', 'cancel']).parse(req.params.action))));
     return router;

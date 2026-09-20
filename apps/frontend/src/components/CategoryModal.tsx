@@ -1,3 +1,4 @@
+import { useModalDialog } from '../hooks/useModalDialog';
 import React, { useState, useEffect } from 'react';
 import { X, Tag, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
@@ -11,6 +12,7 @@ interface Props {
 
 export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) => {
     const { updateCategory } = useFinance();
+    const dialogRef = useModalDialog(isOpen && !!category);
     const [name, setName] = useState('');
     const [type, setType] = useState<'income' | 'expense'>('expense');
 
@@ -49,35 +51,33 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
             zIndex: 1000, backdropFilter: 'blur(4px)', overflow: 'hidden',
             touchAction: 'none', overscrollBehavior: 'none'
         }}>
-            <div className="card" style={{
+            <dialog ref={dialogRef} onCancel={e => { e.preventDefault(); onClose(); }} className="card native-modal" aria-labelledby="category-heading" style={{
                 width: '90%', maxWidth: '400px',
                 boxShadow: 'var(--shadow-lg)', touchAction: 'pan-y'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <h2 id="category-heading" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Tag size={20} /> Editar Categoria
                     </h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <button aria-label="Fechar categoria" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                         <X />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Nome</label>
-                        <input
+                        <label htmlFor="category-name">Nome</label>
+                        <input id="category-name"
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="Nome da categoria"
-                            autoFocus
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Tipo</label>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div
-                                onClick={() => setType('expense')}
+                        <span id="category-type-label">Tipo</span>
+                        <div role="group" aria-labelledby="category-type-label" style={{ display: 'flex', gap: '1rem' }}>
+                            <button type="button" aria-pressed={type === 'expense'} onClick={() => setType('expense')}
                                 style={{
                                     flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
                                     cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
@@ -87,9 +87,8 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
                                 }}
                             >
                                 <ArrowDownCircle size={18} /> Despesa
-                            </div>
-                            <div
-                                onClick={() => setType('income')}
+                            </button>
+                            <button type="button" aria-pressed={type === 'income'} onClick={() => setType('income')}
                                 style={{
                                     flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
                                     cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
@@ -99,7 +98,7 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
                                 }}
                             >
                                 <ArrowUpCircle size={18} /> Receita
-                            </div>
+                            </button>
                         </div>
                     </div>
 
@@ -108,7 +107,7 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
                         <button type="submit" className="btn-primary">Salvar</button>
                     </div>
                 </form>
-            </div>
+            </dialog>
         </div>
     );
 };

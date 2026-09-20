@@ -1,0 +1,37 @@
+name: Production availability
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-availability
+  cancel-in-progress: false
+jobs:
+  health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Public website and dependency health
+        run: |
+          set -Eeuo pipefail
+          for path in / /health/identity /health/finance /version.json; do
+            curl --fail --silent --show-error --retry 2 --retry-all-errors --connect-timeout 10 --max-time 20 "https://portalfinanceiro.net$path" > /dev/null
+          done
+      - name: Backup freshness
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$VPS_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$VPS_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/portal
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/portal ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/portal' EXIT
+          ssh -i ~/.ssh/portal -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=15 "$VPS_USER@$VPS_HOST" 'test -n "$(find /srv/portal-financeiro/backups -maxdepth 1 -name offsite-last-success -mmin -1560 -print)" && test -n "$(find /srv/portal-financeiro/backups -maxdepth 1 -name restore-last-success -mmin -11520 -print)"'

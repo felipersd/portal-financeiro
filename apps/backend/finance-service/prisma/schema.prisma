@@ -96,6 +96,9 @@ model ExpenseShare {
   totalCents Int
   date DateTime
   paidByRecipient Boolean @default(false)
+  paidCents Int @default(0)
+  revision Int @default(0)
+  proposals ShareProposal[]
   status String @default("pending")
   createdAt DateTime @default(now())
   decidedAt DateTime?
@@ -135,4 +138,18 @@ model RequestBudget {
   count Int
   expiresAt DateTime
   @@index([expiresAt])
+}
+
+model ShareProposal {
+  id String @id @default(uuid())
+  shareId String
+  share ExpenseShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  proposerId String
+  kind String
+  amountCents Int
+  baseRevision Int
+  status String @default("pending")
+  createdAt DateTime @default(now())
+  decidedAt DateTime?
+  @@index([shareId, status])
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Transaction, FinanceSummary, Category, User, GroupMember, BudgetRule, SharingState } from '../types';
+import type { Transaction, FinanceSummary, Category, User, GroupMember, BudgetRule, SharingState, ShareHistoryPage } from '../types';
 
 interface FinanceContextType {
     user: User | null;
@@ -29,6 +29,9 @@ interface FinanceContextType {
     decideConnection: (id: string, action: 'accept' | 'decline' | 'revoke') => Promise<boolean>;
     shareExpense: (transactionId: string, memberId: string) => Promise<boolean>;
     decideShare: (id: string, action: 'accept' | 'decline' | 'cancel') => Promise<boolean>;
+    proposeShareChange: (id:string,kind:'adjustment'|'payment'|'refund',amount:number) => Promise<boolean>;
+    decideProposal: (id:string,action:'accept'|'decline'|'cancel') => Promise<boolean>;
+    getShareHistory: (id:string,cursor?:string) => Promise<ShareHistoryPage>;
     refreshSharing: () => void;
     logout: () => void;
 }

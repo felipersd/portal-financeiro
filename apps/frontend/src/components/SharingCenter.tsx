@@ -1,3 +1,4 @@
+import { ShareSettlement } from './ShareSettlement';
 import { useFinance } from '../context/FinanceContext';
 import { currency } from '../utils/money';
 import './sharing.css';
@@ -32,6 +33,7 @@ export function SharingCenter() {
                 <p><strong>{s.direction === 'incoming' ? 'Sua parte' : 'Parte do membro'}: {currency(s.amount)}</strong> · Total da conta: {currency(s.total)}</p>
                 {s.direction === 'incoming' && s.status === 'pending' && <p>{s.paidByRecipient ? 'Você foi indicado como pagador. Confira antes de aceitar.' : 'Confira o valor e a descrição antes de aceitar.'}</p>}
             </div>
+            {s.status === 'accepted' && <ShareSettlement share={s} />}
             {s.status === 'pending' && <div className="sharing-actions">
                 {s.direction === 'incoming' ? <><button className="btn-primary" disabled={isProcessing} onClick={() => void decideShare(s.id, 'accept')}>Aceitar conta</button>
                     <button className="btn-secondary" disabled={isProcessing} onClick={() => void decideShare(s.id, 'decline')}>Recusar conta</button></> :
