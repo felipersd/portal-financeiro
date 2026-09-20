@@ -43,7 +43,7 @@ export class UpdateTransaction {
             transaction.isFixed
         );
 
-        const saved = await this.transactionRepository.update(updatedTransaction);
+        const changes = [updatedTransaction];
         
         if (transaction.isFixed && transaction.recurrenceId) {
             const futures = await this.transactionRepository.findFutureByRecurrenceId(transaction.recurrenceId, transaction.date, data.userId);
@@ -64,11 +64,10 @@ export class UpdateTransaction {
                     f.isFixed
                 );
             });
-            if (toUpdate.length > 0) {
-                await this.transactionRepository.updateMany(toUpdate);
-            }
+            changes.push(...toUpdate);
         }
 
-        return saved;
+        await this.transactionRepository.updateMany(changes);
+        return updatedTransaction;
     }
 }

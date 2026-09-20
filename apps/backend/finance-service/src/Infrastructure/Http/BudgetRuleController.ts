@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { GetBudgetRule } from '../../Application/UseCases/GetBudgetRule';
 import { UpdateBudgetRule } from '../../Application/UseCases/UpdateBudgetRule';
 import { Logger } from '../Logger';
+import { budgetSchema } from './validation';
 
 export class BudgetRuleController {
     constructor(
@@ -14,7 +15,7 @@ export class BudgetRuleController {
             const userId = (req as any).internalUserId;
             const month = req.params.month;
 
-            if (!month.match(/^\d{4}-\d{2}$/)) {
+            if (!month.match(/^(19|20|21|22)\d{2}-(0[1-9]|1[0-2])$/)) {
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM.' });
             }
 
@@ -31,11 +32,13 @@ export class BudgetRuleController {
             const userId = (req as any).internalUserId;
             const month = req.params.month;
             
-            if (!month.match(/^\d{4}-\d{2}$/)) {
+            if (!month.match(/^(19|20|21|22)\d{2}-(0[1-9]|1[0-2])$/)) {
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM.' });
             }
 
-            const rule = await this.updateBudgetRule.execute(userId, month, req.body);
+            const parsed = budgetSchema.safeParse(req.body);
+            if (!parsed.success) return res.status(400).json({ error: 'Revise as divisões do orçamento: elas precisam somar 100%.', details: parsed.error.issues });
+            const rule = await this.updateBudgetRule.execute(userId, month, parsed.data);
             res.json(rule);
         } catch (error: any) {
             Logger.error('Error updating budget rule', error);

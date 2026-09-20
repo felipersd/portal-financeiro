@@ -21,6 +21,7 @@ cleanup() { rm -f -- "$DOCKER_CONFIG/config.json"; rmdir -- "$DOCKER_CONFIG" 2>/
 trap cleanup EXIT
 docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
 COMPOSE=(docker compose --env-file "$ROOT/config.env" --env-file "$RELEASE_DIR/images.env" -f "$RELEASE_DIR/compose.vps.yml")
+source "$RELEASE_DIR/rollback-compatibility.sh"
 "${COMPOSE[@]}" config --quiet
 "${COMPOSE[@]}" pull
 "${COMPOSE[@]}" up -d --wait --wait-timeout 120 db
@@ -35,7 +36,11 @@ previous=''
 rollback() {
   echo 'Release failed. Backup retained; database is never restored automatically.' >&2
   if [[ "$previous" =~ ^/srv/portal-financeiro/releases/[a-f0-9]{40}/deploy$ && -f "$previous/images.env" ]]; then
-    docker compose --env-file "$ROOT/config.env" --env-file "$previous/images.env" -f "$previous/compose.vps.yml" up -d --wait --wait-timeout 180
+    if assert_rollback_compatible "$previous" "${COMPOSE[@]}"; then
+      docker compose --env-file "$ROOT/config.env" --env-file "$previous/images.env" -f "$previous/compose.vps.yml" up -d --wait --wait-timeout 180
+    else
+      "${COMPOSE[@]}" stop gateway || true
+    fi
   else
     "${COMPOSE[@]}" stop gateway || true
   fi

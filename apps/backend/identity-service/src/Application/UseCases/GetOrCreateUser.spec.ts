@@ -35,24 +35,14 @@ describe('GetOrCreateUser', () => {
         expect(mockUserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should link identity and return user if found by email but not by provider', async () => {
-        const existingUser = new User('1', 'test@example.com', 'Test', null, new Date());
+    it('does not link a different account merely because it reuses an email', async () => {
         mockUserRepository.findByProviderId.mockResolvedValue(null);
-        mockUserRepository.findByEmail.mockResolvedValue(existingUser);
-
-        const result = await useCase.execute({
-            provider: 'clerk',
-            providerId: 'clerk_1',
-            email: 'test@example.com',
-            name: 'Test',
-            avatar: null
-        });
-
-        expect(result).toBe(existingUser);
-        expect(mockUserRepository.linkIdentity).toHaveBeenCalledWith('1', 'clerk', 'clerk_1');
+        mockUserRepository.findByEmail.mockResolvedValue(new User('1', 'test@example.com', 'Test', null, new Date()));
+        await expect(useCase.execute({ provider: 'clerk', providerId: 'different-clerk-user',
+            email: 'test@example.com', name: 'New Person', avatar: null })).rejects.toThrow('IDENTITY_LINK_REQUIRED');
+        expect(mockUserRepository.linkIdentity).not.toHaveBeenCalled();
         expect(mockUserRepository.create).not.toHaveBeenCalled();
     });
-
     it('should create new user if not found by provider or email', async () => {
         mockUserRepository.findByProviderId.mockResolvedValue(null);
         mockUserRepository.findByEmail.mockResolvedValue(null);

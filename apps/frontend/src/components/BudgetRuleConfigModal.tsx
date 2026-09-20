@@ -62,7 +62,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
         }
 
         const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
-        await updateBudgetRule(monthStr, { divisions, mapping });
+        if (!await updateBudgetRule(monthStr, { divisions, mapping })) return;
         onClose();
     };
 

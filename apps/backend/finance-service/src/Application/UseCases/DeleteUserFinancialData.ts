@@ -10,6 +10,8 @@ export class DeleteUserFinancialData {
             
             // Ordem importa devido a foreign keys (se houver), ou apenas rodar tudo em batch sync
             await this.prisma.$transaction([
+                this.prisma.expenseShare.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
+                this.prisma.memberConnection.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
                 this.prisma.transaction.deleteMany({ where: { userId } }),
                 this.prisma.category.deleteMany({ where: { userId } }),
                 this.prisma.groupMember.deleteMany({ where: { userId } }),

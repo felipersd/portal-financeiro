@@ -1,292 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { FinanceContext } from './FinanceContext';
 import { Login } from '../components/Login';
 import { LoadingScreen } from '../components/LoadingScreen';
-import type { User, Transaction, Category, GroupMember, BudgetRule } from '../types';
+import { summarize } from '../utils/summary';
+import type { User, Transaction, Category, GroupMember, BudgetRule, SharingState } from '../types';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) { super(message); this.status = status; }
+}
+
+// The entire in-memory cache is replaced when the signed-in account changes.
+const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [client] = useState(() => new QueryClient({ defaultOptions: {
+        queries: { staleTime: 30000, gcTime: 300000, retry: (count, error) => count < 1 && (!(error instanceof ApiError) || error.status >= 500) },
+        mutations: { retry: false },
+    } }));
+    return <QueryClientProvider client={client}><FinanceData>{children}</FinanceData></QueryClientProvider>;
+};
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+    const { user, isLoaded } = useUser();
+    if (!isLoaded) return <LoadingScreen />;
+    if (!user) return <Login />;
+    return <AccountProvider key={user.id}>{children}</AccountProvider>;
+};
+
+const FinanceData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { getToken, signOut } = useAuth();
-
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [serverError, setServerError] = useState(false);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [members, setMembers] = useState<GroupMember[]>([]);
-    const [budgetRule, setBudgetRule] = useState<BudgetRule | null>(null);
+    const client = useQueryClient();
     const [selectedDate, setSelectedDate] = useState(new Date());
-
-    const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-    const authFetch = React.useCallback(async (url: string, options: RequestInit = {}) => {
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const writeLock = useRef(false);
+    const year = selectedDate.getFullYear();
+    const month = `${year}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+    async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
         const token = await getToken();
-        if (token) {
-            options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+        if (!token) throw new ApiError(401, 'Sua sessão expirou. Entre novamente.');
+        const headers = new Headers(options.headers);
+        headers.set('Authorization', `Bearer ${token}`);
+        if (options.body) headers.set('Content-Type', 'application/json');
+        const signal = AbortSignal.any([AbortSignal.timeout(15000), ...(options.signal ? [options.signal] : [])]);
+        const response = await fetch(`${API_URL}${path}`, { ...options, headers, signal, cache: 'no-store' });
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new ApiError(response.status, body.error || body.message || 'Não foi possível concluir. Tente novamente.');
         }
-        return fetch(url, options);
-    }, [getToken]);
+        return response.status === 204 ? undefined as T : response.json();
+    }
+    const profile = useQuery({ queryKey: ['profile'], queryFn: ({ signal }) => api<User>('/auth/me', { signal }), staleTime: 300000 });
+    const enabled = profile.isSuccess;
+    const txQuery = useQuery({ queryKey: ['transactions', year], queryFn: ({ signal }) => api<Transaction[]>(`/transactions?year=${year}`, { signal }), enabled });
+    const catQuery = useQuery({ queryKey: ['categories'], queryFn: ({ signal }) => api<Category[]>('/categories', { signal }), enabled });
+    const memberQuery = useQuery({ queryKey: ['members'], queryFn: ({ signal }) => api<GroupMember[]>('/members', { signal }), enabled });
+    const budgetQuery = useQuery({ queryKey: ['budget', month], queryFn: ({ signal }) => api<BudgetRule>(`/budget-rules/${month}`, { signal }), enabled });
+    const sharingQuery = useQuery({ queryKey: ['sharing'], queryFn: ({ signal }) => api<SharingState>('/sharing', { signal }), enabled, refetchInterval: 60000 });
+    const mutation = useMutation({ mutationFn: (input: { path: string; method: string; body?: unknown }) =>
+        api(input.path, { method: input.method, body: input.body === undefined ? undefined : JSON.stringify(input.body) }) });
 
-    const fetchTransactions = React.useCallback(async () => {
+    async function write(path: string, method: string, body: unknown, keys: string[]): Promise<boolean> {
+        if (writeLock.current) return false;
+        writeLock.current = true;
+        setErrorMessage(null);
         try {
-            const currentYear = selectedDate.getFullYear();
-            const res = await authFetch(`${API_URL}/transactions?year=${currentYear}`);
-            if (res.ok) setTransactions(await res.json());
-        } catch (error) { console.error(error); }
-    }, [API_URL, authFetch, selectedDate]);
-
-    const fetchCategories = React.useCallback(async () => {
-        try {
-            const res = await authFetch(`${API_URL}/categories`);
-            if (res.ok) setCategories(await res.json());
-        } catch (error) { console.error(error); }
-    }, [API_URL, authFetch]);
-
-    const fetchMembers = React.useCallback(async () => {
-        try {
-            const res = await authFetch(`${API_URL}/members`);
-            if (res.ok) setMembers(await res.json());
-        } catch (error) { console.error(error); }
-    }, [API_URL, authFetch]);
-
-    const fetchBudgetRule = React.useCallback(async (month: string) => {
-        try {
-            const res = await authFetch(`${API_URL}/budget-rules/${month}`);
-            if (res.ok) setBudgetRule(await res.json());
-        } catch (error) { console.error(error); }
-    }, [API_URL, authFetch]);
-
-    const checkAuth = React.useCallback(async () => {
-        try {
-            const res = await authFetch(`${API_URL}/auth/me`);
-            if (res.ok) {
-                setServerError(false);
-                const fetchedUser = await res.json();
-                setUser(fetchedUser);
-
-                const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
-                
-                // Wait for all initial dashboard data so Loading spinner stays visible.
-                await Promise.allSettled([
-                    fetchTransactions(),
-                    fetchCategories(),
-                    fetchMembers(),
-                    fetchBudgetRule(monthStr)
-                ]);
-
-            } else if (res.status === 401) {
-                setServerError(false);
-                setUser(null);
-                try {
-                    await signOut();
-                } catch (e) {
-                    console.error('Error signing out:', e);
-                }
-            } else {
-                setServerError(true);
-            }
+            await mutation.mutateAsync({ path, method, body });
+            await Promise.all(keys.map(key => client.invalidateQueries({ queryKey: [key] })));
+            return true;
         } catch (error) {
-            console.error('Network error checking auth:', error);
-            setServerError(true);
-        } finally {
-            setLoading(false);
-        }
-    }, [API_URL, fetchTransactions, fetchCategories, fetchMembers, fetchBudgetRule, authFetch, signOut, selectedDate]);
-
-    useEffect(() => {
-        if (isClerkLoaded) {
-            if (clerkUser) checkAuth();
-            else { setUser(null); setLoading(false); }
-        }
-    }, [isClerkLoaded, clerkUser, checkAuth]);
-
-    useEffect(() => {
-        // Only fetch budget rule and transactions when selectedDate changes *after* initial load finishes
-        if (user && !loading) {
-            const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
-            fetchBudgetRule(monthStr);
-            // Re-fetch transactions optimally if the user changed the year in the calendar
-            fetchTransactions();
-        }
-    }, [selectedDate, user, fetchBudgetRule, fetchTransactions, loading]);
-
-    const filteredTransactions = transactions.filter(t => {
-        const tDate = new Date(t.date);
-        return tDate.getMonth() === selectedDate.getMonth() && tDate.getFullYear() === selectedDate.getFullYear();
-    });
-
-    const addTransaction = async (t: Omit<Transaction, 'id' | 'userId' | 'createdAt'>) => {
-        setIsProcessing(true);
-        try {
-            await authFetch(`${API_URL}/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
-            await fetchTransactions();
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const updateTransaction = async (id: string, t: Partial<Transaction>) => {
-        setIsProcessing(true);
-        try {
-            await authFetch(`${API_URL}/transactions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
-            await fetchTransactions();
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const removeTransaction = async (id: string) => {
-        setIsProcessing(true);
-        try {
-            await authFetch(`${API_URL}/transactions/${id}`, { method: 'DELETE' });
-            setTransactions(prev => prev.filter(t => t.id !== id));
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const addCategory = async (name: string, type: 'income' | 'expense') => {
-        setIsProcessing(true);
-        try {
-            const res = await authFetch(`${API_URL}/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
-            if (res.ok) {
-                const data = await res.json();
-                setCategories(prev => [...prev, data]);
-            }
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const updateCategory = async (id: string, name: string, type: 'income' | 'expense') => {
-        setIsProcessing(true);
-        try {
-            const res = await authFetch(`${API_URL}/categories/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
-            if (res.ok) {
-                const updatedCat = await res.json();
-                setCategories(prev => prev.map(c => c.id === id ? updatedCat : c));
-            }
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const removeCategory = async (id: string) => {
-        setIsProcessing(true);
-        try {
-            await authFetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
-            setCategories(prev => prev.filter(c => c.id !== id));
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const addMember = async (name: string, surname: string | undefined, email: string | undefined, category: string) => {
-        setIsProcessing(true);
-        try {
-            const res = await authFetch(`${API_URL}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, surname, email, category }) });
-            if (res.ok) {
-                const data = await res.json();
-                setMembers(prev => [...prev, data]);
-            } else {
-                const errorData = await res.json();
-                alert(errorData.error || 'Erro ao adicionar membro');
-            }
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const updateMember = async (id: string, name: string, surname: string | undefined, email: string | undefined, category: string) => {
-        setIsProcessing(true);
-        try {
-            const res = await authFetch(`${API_URL}/members/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, surname, email, category }) });
-            if (res.ok) {
-                const updated = await res.json();
-                setMembers(prev => prev.map(m => m.id === id ? updated : m));
-            }
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const removeMember = async (id: string) => {
-        setIsProcessing(true);
-        try {
-            await authFetch(`${API_URL}/members/${id}`, { method: 'DELETE' });
-            setMembers(prev => prev.filter(m => m.id !== id));
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const updateBudgetRule = async (month: string, data: Partial<BudgetRule>) => {
-        setIsProcessing(true);
-        try {
-            const res = await authFetch(`${API_URL}/budget-rules/${month}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (res.ok) setBudgetRule(await res.json());
-        } catch (error) { console.error(error); } finally { setIsProcessing(false); }
-    };
-
-    const logout = () => signOut();
-
-    const getSummary = () => {
-        const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-
-        const totalSpent = filteredTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
-            let myShare = t.amount;
-            if (t.isShared && t.splitDetails?.splits) {
-                const meSplit = t.splitDetails.splits.find((s: { memberId: string; amount: number }) => s.memberId === 'me');
-                if (meSplit) myShare = meSplit.amount;
-                else myShare = 0;
-            }
-            return acc + myShare;
-        }, 0);
-
-        const currentBalance = totalIncome - totalSpent;
-
-        const memberBalances: Record<string, number> = {};
-        members.forEach(m => memberBalances[m.id] = 0);
-
-        filteredTransactions.filter(t => t.isShared && t.type === 'expense').forEach(t => {
-            if (!t.splitDetails?.splits) return;
-
-            t.splitDetails.splits.forEach((split: { memberId: string; amount: number }) => {
-                if (split.memberId === t.payer) return;
-
-                if (t.payer === 'me') {
-                    if (memberBalances[split.memberId] !== undefined) {
-                        memberBalances[split.memberId] += split.amount;
-                    }
-                } else {
-                    if (split.memberId === 'me') {
-                        if (memberBalances[t.payer] !== undefined) {
-                            memberBalances[t.payer] -= split.amount;
-                        }
-                    }
-                }
-            });
-        });
-
-        const netBalance = Object.values(memberBalances).reduce((acc, val) => acc + val, 0);
-
-        return {
-            totalIncome,
-            totalSpent,
-            currentBalance,
-            netBalance,
-            memberBalances,
-            hasSharedTransactions: filteredTransactions.some(t => t.isShared)
-        };
-    };
-
-    if (!isClerkLoaded || loading) return <LoadingScreen />;
-    if (serverError) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', textAlign: 'center', padding: '2rem' }}>
-        <h2 style={{ marginBottom: '1rem', color: 'var(--danger)' }}>Erro de Conexão</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Não foi possível conectar ao servidor. Por favor, verifique sua conexão ou tente novamente mais tarde.</p>
-        <button onClick={() => window.location.reload()} className="btn-primary" style={{ padding: '0.75rem 2rem', borderRadius: '0.5rem', background: 'var(--primary-gradient)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Tentar Novamente</button>
-    </div>;
-    if (!clerkUser || !user) return <Login />;
-
-    return (
-        <FinanceContext.Provider value={{
-            user, transactions, filteredTransactions, categories, selectedDate, setSelectedDate,
-            addTransaction, updateTransaction, removeTransaction,
-            addCategory, updateCategory, removeCategory,
-            members, addMember, updateMember, removeMember,
-            budgetRule, fetchBudgetRule, updateBudgetRule,
-            getSummary, logout
-        }}>
-            {isProcessing && <LoadingScreen />}
-            {children}
-        </FinanceContext.Provider>
-    );
+            setErrorMessage(error instanceof Error ? error.message : 'Erro de conexão. Seus dados não foram confirmados.');
+            return false;
+        } finally { writeLock.current = false; }
+    }
+    const transactions = txQuery.data || [];
+    const categories = catQuery.data || [];
+    const members = memberQuery.data || [];
+    const filteredTransactions = transactions.filter(t => t.date.slice(0, 7) === month);
+    const queries = [profile, txQuery, catQuery, memberQuery, budgetQuery];
+    const initialError = queries.find(q => q.isError && q.data === undefined);
+    const refreshError = queries.find(q => q.isError && q.data !== undefined);
+    if (initialError) return <main className="card" role="alert"><h2>Não foi possível carregar suas finanças</h2>
+        <p>{initialError.error?.message}</p><button className="btn-primary" onClick={() => void client.refetchQueries()}>Tentar novamente</button>
+        <button className="btn-secondary" onClick={() => { client.clear(); void signOut(); }}>Sair</button></main>;
+    if (profile.isPending || txQuery.isPending || catQuery.isPending || memberQuery.isPending || budgetQuery.isPending) return <LoadingScreen />;
+    return <FinanceContext.Provider value={{
+        user: profile.data || null, transactions, filteredTransactions, categories, members, selectedDate, setSelectedDate,
+        budgetRule: budgetQuery.data || null,
+        getSummary: () => summarize(filteredTransactions, members),
+        addTransaction: t => write('/transactions', 'POST', t, ['transactions', 'sharing']),
+        updateTransaction: (id, t) => write(`/transactions/${id}`, 'PUT', t, ['transactions']),
+        removeTransaction: id => write(`/transactions/${id}`, 'DELETE', undefined, ['transactions', 'sharing']),
+        addCategory: (name, type) => write('/categories', 'POST', { name, type }, ['categories']),
+        updateCategory: (id, name, type) => write(`/categories/${id}`, 'PUT', { name, type }, ['categories']),
+        removeCategory: id => write(`/categories/${id}`, 'DELETE', undefined, ['categories']),
+        addMember: (name, surname, email, category) => write('/members', 'POST', { name, surname, email, category }, ['members']),
+        updateMember: (id, name, surname, email, category) => write(`/members/${id}`, 'PUT', { name, surname, email, category }, ['members']),
+        removeMember: id => write(`/members/${id}`, 'DELETE', undefined, ['members', 'sharing']),
+        fetchBudgetRule: async () => { await client.invalidateQueries({ queryKey: ['budget'] }); return true; },
+        updateBudgetRule: (period, data) => write(`/budget-rules/${period}`, 'PUT', data, ['budget']),
+        sharing: sharingQuery.data || { connections: [], shares: [] },
+        sharingError: sharingQuery.error?.message || null,
+        isProcessing: mutation.isPending,
+        inviteMember: memberId => write('/sharing/connections', 'POST', { memberId }, ['sharing']),
+        decideConnection: (id, action) => write(`/sharing/connections/${id}/${action}`, 'POST', undefined, ['sharing']),
+        shareExpense: (id, memberId) => write(`/sharing/transactions/${id}`, 'POST', { memberId }, ['sharing']),
+        decideShare: (id, action) => write(`/sharing/expenses/${id}/${action}`, 'POST', undefined, ['sharing', 'transactions']),
+        refreshSharing: () => { void client.invalidateQueries({ queryKey: ['sharing'] }); void client.invalidateQueries({ queryKey: ['transactions'] }); },
+        logout: () => { client.clear(); void signOut(); },
+    }}>
+        {refreshError && <div role="alert" className="card"><p>Não foi possível atualizar. Os dados exibidos podem estar desatualizados.</p>
+            <button className="btn-secondary" onClick={() => void client.refetchQueries()}>Tentar novamente</button></div>}
+        {errorMessage && <div role="alert" className="operation-error"><span>{errorMessage}</span><button onClick={() => setErrorMessage(null)} aria-label="Fechar aviso">×</button></div>}
+        {mutation.isPending && <div role="status" className="operation-status">Salvando…</div>}
+        {children}
+    </FinanceContext.Provider>;
 };

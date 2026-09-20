@@ -17,6 +17,9 @@ export interface GroupMember {
 export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
+    readOnly?: boolean;
+    sharedFromName?: string;
+    receivedShareId?: string;
     id: string;
     description: string;
     amount: number;
@@ -32,6 +35,14 @@ export interface Transaction {
     splitDetails?: {
         splits: Array<{ memberId: string; amount: number }>;
     };
+}
+
+export interface SharingState {
+    connections: Array<{ id: string; memberId?: string; ownerName: string; email?: string;
+        status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired'; direction: 'incoming' | 'outgoing'; expiresAt: string }>;
+    shares: Array<{ id: string; transactionId?: string; memberId?: string; ownerName: string; description: string;
+        amount: number; total: number; date: string; paidByRecipient: boolean;
+        status: 'pending' | 'accepted' | 'declined' | 'cancelled'; direction: 'incoming' | 'outgoing' }>;
 }
 
 export interface FinanceSummary {

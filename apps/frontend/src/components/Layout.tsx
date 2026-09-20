@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { LayoutDashboard, List, Scale, Plus, Tag, LogOut, Users, PieChart } from 'lucide-react';
-import { Dashboard } from './Dashboard';
+const Dashboard = lazy(() => import('./Dashboard').then(module => ({ default: module.Dashboard })));
 import { TransactionList } from './TransactionList';
-import { Settlement } from './Settlement';
+const Settlement = lazy(() => import('./Settlement').then(module => ({ default: module.Settlement })));
 import { TransactionModal } from './TransactionModal';
 import { CategoryManager } from './CategoryManager';
 import { MonthYearPicker } from './MonthYearPicker';
 import { MobileDateTrigger, MobileDateCarousel } from './MobileDateSelector';
-import { MemberReport } from './MemberReport';
+const MemberReport = lazy(() => import('./MemberReport').then(module => ({ default: module.MemberReport })));
 import { MembersManager } from './MembersManager';
-import { TermsOfService } from './TermsOfService';
-import { PrivacyPolicy } from './PrivacyPolicy';
+const TermsOfService = lazy(() => import('./TermsOfService').then(module => ({ default: module.TermsOfService })));
+const PrivacyPolicy = lazy(() => import('./PrivacyPolicy').then(module => ({ default: module.PrivacyPolicy })));
 import { Footer } from './Footer';
 import { CookieConsent } from './CookieConsent';
 import { useFinance } from '../context/FinanceContext';
@@ -18,7 +18,7 @@ import { useFinance } from '../context/FinanceContext';
 type View = 'dashboard' | 'transactions' | 'settlement' | 'categories' | 'members' | 'reports' | 'terms' | 'privacy';
 
 export const Layout: React.FC = () => {
-    const { user, logout, getSummary } = useFinance();
+    const { user, logout, getSummary, sharing } = useFinance();
     const [currentView, setCurrentView] = useState<View>('dashboard');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -101,7 +101,7 @@ export const Layout: React.FC = () => {
                         onClick={() => setCurrentView('members')}
                         className={`nav-item ${currentView === 'members' ? 'active' : ''}`}
                     >
-                        <Users size={20} /> Membros
+                        <Users size={20} /> Membros {sharing.connections.filter(c => c.direction === 'incoming' && c.status === 'pending').length + sharing.shares.filter(s => s.direction === 'incoming' && s.status === 'pending').length > 0 && <span className="sharing-badge">Novos convites</span>}
                     </li>
                     <li
                         onClick={() => setCurrentView('reports')}
@@ -229,7 +229,7 @@ export const Layout: React.FC = () => {
                 </header>
 
                 <div className="content-area">
-                    {renderContent()}
+                    <Suspense fallback={<p role="status">Carregando…</p>}>{renderContent()}</Suspense>
                     <Footer onNavigate={(view) => setCurrentView(view)} />
                 </div>
             </main>
@@ -296,7 +296,7 @@ export const Layout: React.FC = () => {
                     className={`nav-item-mobile ${currentView === 'members' ? 'active' : ''}`}
                 >
                     <Users size={24} />
-                    <span>Membros</span>
+                    <span>Membros{sharing.connections.some(c => c.direction === 'incoming' && c.status === 'pending') || sharing.shares.some(s => s.direction === 'incoming' && s.status === 'pending') ? ' •' : ''}</span>
                 </button>
             </nav>
 

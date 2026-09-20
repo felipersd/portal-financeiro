@@ -7,9 +7,21 @@ describe('CreateTransaction', () => {
 
     beforeEach(() => {
         mockTransactionRepository = {
-            create: jest.fn().mockImplementation((t) => Promise.resolve(t))
+            createMany: jest.fn().mockResolvedValue(undefined)
         };
         useCase = new CreateTransaction(mockTransactionRepository);
+    });
+
+    it.each([
+        ['monthly', '2024-01-31T12:00:00Z', ['2024-01-31', '2024-02-29', '2024-03-31']],
+        ['yearly', '2024-02-29T12:00:00Z', ['2024-02-29', '2025-02-28', '2026-02-28']],
+        ['daily', '2024-12-31T12:00:00Z', ['2024-12-31', '2025-01-01', '2025-01-02']],
+    ])('keeps %s recurrences on real calendar dates', async (frequency, date, expected) => {
+        await useCase.execute({ description: 'Calendar', amount: 10, type: 'expense', category: 'Casa',
+            date: new Date(date as string), isShared: false, payer: 'me', userId: 'user-1', installments: 3,
+            frequency: frequency as 'monthly' | 'yearly' | 'daily' });
+        const saved: Transaction[] = mockTransactionRepository.createMany.mock.calls[0][0];
+        expect(saved.map(t => t.date.toISOString().slice(0, 10))).toEqual(expected);
     });
 
     it('should create a single transaction', async () => {
@@ -28,7 +40,7 @@ describe('CreateTransaction', () => {
 
         expect(result).toBeInstanceOf(Transaction);
         expect(result.description).toBe('Test');
-        expect(mockTransactionRepository.create).toHaveBeenCalledTimes(1);
+        expect(mockTransactionRepository.createMany).toHaveBeenCalledTimes(1);
     });
 
     it('should create recurring transactions', async () => {
@@ -47,10 +59,10 @@ describe('CreateTransaction', () => {
 
         const result = await useCase.execute(data);
 
-        expect(mockTransactionRepository.create).toHaveBeenCalledTimes(3);
+        expect(mockTransactionRepository.createMany).toHaveBeenCalledTimes(1);
 
         // Check recurrence ID is same for all
-        const calls = mockTransactionRepository.create.mock.calls;
+        const calls = mockTransactionRepository.createMany.mock.calls[0][0].map((t: Transaction) => [t]);
         const recurrenceId = calls[0][0].recurrenceId;
         expect(recurrenceId).toBeDefined();
         expect(calls[1][0].recurrenceId).toBe(recurrenceId);
@@ -83,7 +95,7 @@ describe('CreateTransaction', () => {
 
         await useCase.execute(data);
 
-        const calls = mockTransactionRepository.create.mock.calls;
+        const calls = mockTransactionRepository.createMany.mock.calls[0][0].map((t: Transaction) => [t]);
         expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
         expect(calls[1][0].date).toEqual(new Date(2023, 0, 8)); // +7 days
     });
@@ -104,7 +116,7 @@ describe('CreateTransaction', () => {
 
         await useCase.execute(data);
 
-        const calls = mockTransactionRepository.create.mock.calls;
+        const calls = mockTransactionRepository.createMany.mock.calls[0][0].map((t: Transaction) => [t]);
         expect(calls[0][0].date).toEqual(new Date(2023, 0, 1));
         expect(calls[1][0].date).toEqual(new Date(2024, 0, 1)); // +1 year
     });

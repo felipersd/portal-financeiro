@@ -3,6 +3,7 @@ import { GetCategories } from '../../Application/UseCases/GetCategories';
 import { CreateCategory } from '../../Application/UseCases/CreateCategory';
 import { DeleteCategory } from '../../Application/UseCases/DeleteCategory';
 import { UpdateCategory } from '../../Application/UseCases/UpdateCategory';
+import { categorySchema } from './validation';
 
 export class CategoryController {
     constructor(
@@ -25,7 +26,9 @@ export class CategoryController {
     async handleCreate(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const { name, type } = req.body;
+            const parsed = categorySchema.safeParse(req.body);
+            if (!parsed.success) return res.status(400).json({ error: 'Informe nome e tipo válidos.' });
+            const { name, type } = parsed.data;
 
             if (!name || !type) {
                 return res.status(400).json({ error: 'Name and type are required' });
@@ -60,7 +63,9 @@ export class CategoryController {
         try {
             const userId = (req as any).internalUserId;
             const { id } = req.params;
-            const { name } = req.body;
+            const parsed = categorySchema.pick({ name: true }).safeParse(req.body);
+            if (!parsed.success) return res.status(400).json({ error: 'Informe um nome válido.' });
+            const { name } = parsed.data;
 
             if (!name) {
                 return res.status(400).json({ error: 'Name is required' });
