@@ -37,6 +37,12 @@ describe('TransactionController', () => {
     });
 
     describe('handleCreate', () => {
+        it('does not repeat a single expense after the user disables recurrence', async () => {
+            req.body = { description: 'Test', amount: 100, type: 'expense', category: 'Food',
+                date: '2026-09-20', recurrenceFrequency: 'none', recurrenceCount: 12 };
+            await controller.handleCreate(req as Request, res as Response);
+            expect(mockCreateTransaction.execute).toHaveBeenCalledWith(expect.objectContaining({ installments: 1 }));
+        });
         it('should create a transaction successfully', async () => {
             req.body = {
                 description: 'Test',

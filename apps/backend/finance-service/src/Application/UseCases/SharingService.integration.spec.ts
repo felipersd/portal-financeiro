@@ -54,7 +54,7 @@ suite('Sharing with real PostgreSQL', () => {
         expect(await repository.findByUserId(stranger.id, 2026)).toHaveLength(0);
         expect(await repository.findByUserId(recipient.id, 2025)).toHaveLength(0);
     });
-    it('declined shares never enter balances; accepted values cannot be changed or deleted by owner', async () => {
+    it('accepted values cannot be changed or deleted by owner', async () => {
         await connect();
         const share = await service.share(owner, transactionId, memberId);
         const original = (await repository.findById(transactionId))!;
@@ -64,13 +64,29 @@ suite('Sharing with real PostgreSQL', () => {
         await expect(service.decideShare(owner, share.id, 'cancel')).rejects.toMatchObject({ status: 409 });
         await expect(repository.update(original)).rejects.toMatchObject({ status: 409 });
     });
-    it('revokes pending shares, preserving accepted history', async () => {
+    it('revokes pending shares', async () => {
         const invite = await connect();
         const share = await service.share(owner, transactionId, memberId);
         await service.decideConnection(recipient, invite.id, 'revoke');
         await expect(service.decideShare(recipient, share.id, 'accept')).rejects.toMatchObject({ status: 409 });
         expect(await repository.findByUserId(recipient.id)).toHaveLength(0);
         await repository.delete(transactionId);
+    });
+    it('never books a declined expense and cannot resend it to bypass refusal', async () => {
+        await connect();
+        const share = await service.share(owner, transactionId, memberId);
+        await service.decideShare(recipient, share.id, 'decline');
+        expect(await repository.findByUserId(recipient.id)).toHaveLength(0);
+        expect(await service.share(owner, transactionId, memberId)).toMatchObject({ id: share.id, status: 'declined' });
+        await expect(service.decideShare(recipient, share.id, 'accept')).rejects.toMatchObject({ status: 409 });
+    });
+    it('preserves accepted history when either party revokes the link', async () => {
+        const invite = await connect();
+        const share = await service.share(owner, transactionId, memberId);
+        await service.decideShare(recipient, share.id, 'accept');
+        await service.decideConnection(owner, invite.id, 'revoke');
+        expect(await repository.findByUserId(recipient.id)).toHaveLength(1);
+        await expect(repository.delete(transactionId)).rejects.toMatchObject({ status: 409 });
     });
     it('rejects expired invitations and forged owner/member ids', async () => {
         const invite = await service.invite(owner, memberId);

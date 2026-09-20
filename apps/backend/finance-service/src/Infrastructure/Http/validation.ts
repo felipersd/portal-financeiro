@@ -14,7 +14,7 @@ export const transactionSchema = z.object({
     isShared: z.boolean().default(false),
     payer: z.string().min(1).max(100).default('me'),
     splitDetails: z.object({ splits: z.array(z.object({ memberId: z.string().min(1).max(100), amount: money })).min(1).max(11) }).nullish(),
-    recurrenceFrequency: z.enum(['none', 'monthly', 'fixed']).optional(),
+    recurrenceFrequency: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly', 'fixed']).optional(),
     recurrenceCount: z.number().int().min(1).max(120).optional(),
 }).superRefine((data, ctx) => {
     if (data.isShared) {

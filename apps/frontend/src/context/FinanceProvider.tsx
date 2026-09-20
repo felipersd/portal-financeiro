@@ -77,7 +77,9 @@ const FinanceData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const categories = catQuery.data || [];
     const members = memberQuery.data || [];
     const filteredTransactions = transactions.filter(t => t.date.slice(0, 7) === month);
-    const initialError = [profile, txQuery, catQuery, memberQuery, budgetQuery].find(q => q.isError);
+    const queries = [profile, txQuery, catQuery, memberQuery, budgetQuery];
+    const initialError = queries.find(q => q.isError && q.data === undefined);
+    const refreshError = queries.find(q => q.isError && q.data !== undefined);
     if (initialError) return <main className="card" role="alert"><h2>Não foi possível carregar suas finanças</h2>
         <p>{initialError.error?.message}</p><button className="btn-primary" onClick={() => void client.refetchQueries()}>Tentar novamente</button>
         <button className="btn-secondary" onClick={() => { client.clear(); void signOut(); }}>Sair</button></main>;
@@ -107,6 +109,8 @@ const FinanceData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         refreshSharing: () => { void client.invalidateQueries({ queryKey: ['sharing'] }); void client.invalidateQueries({ queryKey: ['transactions'] }); },
         logout: () => { client.clear(); void signOut(); },
     }}>
+        {refreshError && <div role="alert" className="card"><p>Não foi possível atualizar. Os dados exibidos podem estar desatualizados.</p>
+            <button className="btn-secondary" onClick={() => void client.refetchQueries()}>Tentar novamente</button></div>}
         {errorMessage && <div role="alert" className="operation-error"><span>{errorMessage}</span><button onClick={() => setErrorMessage(null)} aria-label="Fechar aviso">×</button></div>}
         {mutation.isPending && <div role="status" className="operation-status">Salvando…</div>}
         {children}

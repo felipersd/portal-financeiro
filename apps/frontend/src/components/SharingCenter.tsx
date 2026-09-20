@@ -30,7 +30,7 @@ export function SharingCenter() {
                 <h3>{s.description}</h3>
                 <p>{s.direction === 'incoming' ? `De ${s.ownerName}` : `Para ${members.find(m => m.id === s.memberId)?.name || 'membro'}`} · {new Date(s.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
                 <p><strong>{s.direction === 'incoming' ? 'Sua parte' : 'Parte do membro'}: {currency(s.amount)}</strong> · Total da conta: {currency(s.total)}</p>
-                {s.direction === 'incoming' && <p>{s.paidByRecipient ? 'Você foi indicado como pagador. Confira antes de aceitar.' : 'Confira o valor e a descrição antes de aceitar.'}</p>}
+                {s.direction === 'incoming' && s.status === 'pending' && <p>{s.paidByRecipient ? 'Você foi indicado como pagador. Confira antes de aceitar.' : 'Confira o valor e a descrição antes de aceitar.'}</p>}
             </div>
             {s.status === 'pending' && <div className="sharing-actions">
                 {s.direction === 'incoming' ? <><button className="btn-primary" disabled={isProcessing} onClick={() => void decideShare(s.id, 'accept')}>Aceitar conta</button>

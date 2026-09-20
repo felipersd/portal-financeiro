@@ -3,6 +3,9 @@
 .sharing-heading h2, .sharing-item h3 { margin: 0.5rem 0; }
 .sharing-center p, .sharing-member small { color: var(--text-secondary); line-height: 1.6; }
 .sharing-item { margin: 1rem 0; }
+.sharing-item > div { min-width: 0; overflow-wrap: anywhere; }
+.member-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; overflow-wrap: anywhere; }
+.member-card > .sharing-member { grid-column: 1 / -1; grid-row: 2; }
 .sharing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .sharing-actions button { min-height: 44px; }
 .sharing-member { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.75rem; font-size: 0.85rem; }

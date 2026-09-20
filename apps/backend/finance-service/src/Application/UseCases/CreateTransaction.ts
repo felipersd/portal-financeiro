@@ -41,11 +41,13 @@ export class CreateTransaction {
                     const lastDay = new Date(Date.UTC(transactionDate.getUTCFullYear(), transactionDate.getUTCMonth() + 1, 0)).getUTCDate();
                     transactionDate.setUTCDate(Math.min(day, lastDay));
                 } else if (frequency === 'weekly') {
-                    transactionDate.setDate(transactionDate.getDate() + (i * 7));
+                    transactionDate.setUTCDate(transactionDate.getUTCDate() + (i * 7));
                 } else if (frequency === 'daily') {
-                    transactionDate.setDate(transactionDate.getDate() + i);
+                    transactionDate.setUTCDate(transactionDate.getUTCDate() + i);
                 } else if (frequency === 'yearly') {
-                    transactionDate.setFullYear(transactionDate.getFullYear() + i);
+                    const month = transactionDate.getUTCMonth();
+                    transactionDate.setUTCFullYear(transactionDate.getUTCFullYear() + i);
+                    if (transactionDate.getUTCMonth() !== month) transactionDate.setUTCDate(0);
                 }
             }
 

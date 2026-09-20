@@ -27,7 +27,7 @@ export class TransactionController {
             const data = parsed.data;
             res.json(await this.createTransaction.execute({ ...data, userId, date: new Date(data.date),
                 frequency: data.recurrenceFrequency === 'none' ? undefined : data.recurrenceFrequency,
-                isFixed: data.recurrenceFrequency === 'fixed', installments: data.recurrenceCount }));
+                isFixed: data.recurrenceFrequency === 'fixed', installments: data.recurrenceFrequency && data.recurrenceFrequency !== 'none' ? data.recurrenceCount : 1 }));
         } catch (error) { respondError(res, error); }
     }
     async handleGet(req: Request, res: Response): Promise<void> {

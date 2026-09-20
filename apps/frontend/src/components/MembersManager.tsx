@@ -50,7 +50,7 @@ export const MembersManager: React.FC = () => {
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', margin: 0 }}>Gerenciar Membros</h2>
                 {!isAdding && members.length < 10 && (
                     <button className="btn-primary" onClick={() => setIsAdding(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -73,10 +73,11 @@ export const MembersManager: React.FC = () => {
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <div className="form-row">
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Nome *</label>
+                                <label htmlFor="member-name" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Nome *</label>
                                 <input
                                     required
                                     type="text"
+                                    id="member-name"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     className="input-field"
@@ -84,9 +85,10 @@ export const MembersManager: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Sobrenome</label>
+                                <label htmlFor="member-surname" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Sobrenome</label>
                                 <input
                                     type="text"
+                                    id="member-surname"
                                     value={surname}
                                     onChange={(e) => setSurname(e.target.value)}
                                     className="input-field"
@@ -97,9 +99,10 @@ export const MembersManager: React.FC = () => {
 
                         <div className="form-row">
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>E-mail</label>
+                                <label htmlFor="member-email" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>E-mail</label>
                                 <input
                                     type="email"
+                                    id="member-email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="input-field"
@@ -107,8 +110,9 @@ export const MembersManager: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Categoria/Parentesco *</label>
+                                <label htmlFor="member-category" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Categoria/Parentesco *</label>
                                 <select
+                                    id="member-category"
                                     value={category}
                                     onChange={(e) => setCategory(e.target.value)}
                                     className="input-field"
@@ -137,11 +141,11 @@ export const MembersManager: React.FC = () => {
                     </div>
                 ) : (
                     members.map(member => (
-                        <div key={member.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div key={member.id} className="card member-card">
                             <div>
                                 <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{member.name} {member.surname}</h3>
-                                <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                    <span>Resp: <span style={{ color: 'var(--primary)' }}>{member.category}</span></span>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                    <span style={{ color: 'var(--primary)' }}>{member.category}</span>
                                     {member.email && <span>✉️ {member.email}</span>}
                                 </div>
                             </div>

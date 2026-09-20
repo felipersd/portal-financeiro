@@ -1,4 +1,4 @@
-import { splitEqually } from '../utils/money';
+import { currency, splitEqually } from '../utils/money';
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
@@ -221,13 +221,13 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             zIndex: 1000, backdropFilter: 'blur(4px)', overflow: 'hidden',
             touchAction: 'none', overscrollBehavior: 'none'
         }}>
-            <div className="card" style={{
+            <div className="card" role="dialog" aria-modal="true" aria-labelledby="transaction-heading" style={{
                 width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto',
                 boxShadow: 'var(--shadow-lg)', touchAction: 'pan-y'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2>{editTransaction ? 'Editar Transação' : 'Nova Transação'}</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <h2 id="transaction-heading">{editTransaction ? 'Editar Transação' : 'Nova Transação'}</h2>
+                    <button aria-label="Fechar transação" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                         <X />
                     </button>
                 </div>
@@ -235,7 +235,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 <form onSubmit={handleSubmit}>
                     {/* Type Toggle */}
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div
+                        <button type="button" aria-pressed={type === 'expense'}
                             onClick={() => setType('expense')}
                             style={{
                                 flex: 1, padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
@@ -246,8 +246,8 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                             }}
                         >
                             <ArrowDownCircle size={20} /> Despesa
-                        </div>
-                        <div
+                        </button>
+                        <button type="button" aria-pressed={type === 'income'}
                             onClick={() => setType('income')}
                             style={{
                                 flex: 1, padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
@@ -258,22 +258,22 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                             }}
                         >
                             <ArrowUpCircle size={20} /> Receita
-                        </div>
+                        </button>
                     </div>
 
                     <div className="form-group">
-                        <label>Descrição</label>
-                        <input required value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Mercado..." />
+                        <label htmlFor="transaction-description">Descrição</label>
+                        <input id="transaction-description" autoFocus required minLength={2} maxLength={200} value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Mercado..." />
                     </div>
 
                     <div className="form-group">
-                        <label>Valor (R$)</label>
-                        <input required value={amountStr} onChange={handleAmountChange} placeholder="0,00" inputMode="numeric" />
+                        <label htmlFor="transaction-amount">Valor (R$)</label>
+                        <input id="transaction-amount" required value={amountStr} onChange={handleAmountChange} placeholder="0,00" inputMode="numeric" />
                     </div>
 
                     <div className="form-group">
-                        <label>Categoria</label>
-                        <select required value={categoryId} onChange={e => setCategoryId(e.target.value)}>
+                        <label htmlFor="transaction-category">Categoria</label>
+                        <select id="transaction-category" required value={categoryId} onChange={e => setCategoryId(e.target.value)}>
                             <option value="">Selecione...</option>
                             {filteredCategories.map(c => (
                                 <option key={c.id} value={c.name}>{c.name}</option>
@@ -282,7 +282,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                     </div>
 
                     <div className="form-group">
-                        <label>Data</label>
+                        <label htmlFor="transaction-date">Data</label>
                         <div style={{ position: 'relative' }}>
                             <div style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -295,6 +295,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                             </div>
                             <input
                                 type="date"
+                                id="transaction-date"
                                 required
                                 value={date}
                                 onChange={e => setDate(e.target.value)}
@@ -313,8 +314,8 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Frequência</label>
-                                    <select value={recurrenceFrequency} onChange={e => setRecurrenceFrequency(e.target.value)}>
+                                    <label htmlFor="transaction-frequency">Frequência</label>
+                                    <select id="transaction-frequency" value={recurrenceFrequency} onChange={e => { setRecurrenceFrequency(e.target.value); setRecurrenceCount(2); }}>
                                         <option value="none">Única</option>
                                         <option value="daily">Diária</option>
                                         <option value="monthly">Mensal</option>
@@ -324,11 +325,12 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                 </div>
                                 {recurrenceFrequency !== 'none' && recurrenceFrequency !== 'fixed' && (
                                     <div className="form-group" style={{ flex: 1 }}>
-                                        <label>Vezes</label>
+                                        <label htmlFor="transaction-count">Vezes</label>
                                         <input
                                             type="number"
+                                            id="transaction-count"
                                             min="2"
-                                            max="360"
+                                            max="120"
                                             value={recurrenceCount}
                                             onChange={e => setRecurrenceCount(parseInt(e.target.value))}
                                         />
@@ -340,19 +342,19 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
                     {type === 'expense' && (
                         <>
-                            <div className="form-group">
-                                <label>Quem pagou?</label>
-                                <select value={payer} onChange={e => setPayer(e.target.value)}>
+                            {isShared && <div className="form-group">
+                                <label htmlFor="transaction-payer">Quem pagou?</label>
+                                <select id="transaction-payer" value={payer} onChange={e => setPayer(e.target.value)}>
                                     <option value="me">Eu</option>
                                     {members.map(m => (
                                         <option key={m.id} value={m.id}>{m.name}</option>
                                     ))}
                                 </select>
-                            </div>
+                            </div>}
 
                             <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
                                 <label className="switch">
-                                    <input type="checkbox" checked={isShared} onChange={e => setIsShared(e.target.checked)} />
+                                    <input aria-label="Dividir despesa com o grupo" type="checkbox" checked={isShared} onChange={e => setIsShared(e.target.checked)} />
                                     <span className="slider round"></span>
                                 </label>
                                 <label>Dividir despesa com o grupo?</label>
@@ -364,7 +366,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                         <label style={{ marginBottom: '0.5rem' }}>Integrantes da divisão</label>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                             {['me', ...members.map(m => m.id)].map(mid => (
-                                                <div 
+                                                <button type="button" aria-pressed={participants.includes(mid)}
                                                     key={mid}
                                                     onClick={() => toggleParticipant(mid)}
                                                     style={{
@@ -378,7 +380,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                                     }}
                                                 >
                                                     {getMemberName(mid)}
-                                                </div>
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
@@ -386,7 +388,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                     <div className="form-group">
                                         <label>Forma de Divisão</label>
                                         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                                            <div
+                                            <button type="button" aria-pressed={splitMode === 'equal'}
                                                 onClick={() => setSplitMode('equal')}
                                                 style={{
                                                     flex: 1, padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
@@ -397,8 +399,8 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                                 }}
                                             >
                                                 Partes Iguais
-                                            </div>
-                                            <div
+                                            </button>
+                                            <button type="button" aria-pressed={splitMode === 'custom'}
                                                 onClick={() => setSplitMode('custom')}
                                                 style={{
                                                     flex: 1, padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
@@ -409,7 +411,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                                 }}
                                             >
                                                 Personalizado
-                                            </div>
+                                            </button>
                                         </div>
 
                                         {/* Dynamic inputs for each participant */}
@@ -419,11 +421,12 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                                     <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{getMemberName(p)}</span>
                                                     {splitMode === 'equal' ? (
                                                         <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                                            R$ {(numericAmount / participants.length).toFixed(2)}
+                                                            {currency(splitEqually(numericAmount, participants).find(s => s.memberId === p)?.amount || 0)}
                                                         </span>
                                                     ) : (
                                                         <input 
                                                             type="text"
+                                                            aria-label={`Parte de ${getMemberName(p)}`}
                                                             inputMode="numeric"
                                                             placeholder="0,00"
                                                             value={customSplits[p] || ''}
