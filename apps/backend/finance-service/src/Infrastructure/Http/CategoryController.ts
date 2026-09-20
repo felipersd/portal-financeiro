@@ -1,3 +1,5 @@
+import { FinanceError } from '../../Domain/FinanceError';
+import { pathParam } from './pathParam';
 import { Request, Response } from 'express';
 import { GetCategories } from '../../Application/UseCases/GetCategories';
 import { CreateCategory } from '../../Application/UseCases/CreateCategory';
@@ -44,11 +46,12 @@ export class CategoryController {
     async handleDelete(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const { id } = req.params;
+            const id = pathParam(req, 'id');
 
             await this.deleteCategory.execute(id, userId);
             res.status(204).send();
         } catch (error: any) {
+            if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
             if (error.message === 'Category not found') {
                 return res.status(404).json({ error: error.message });
             } else if (error.message === 'Unauthorized') {
@@ -62,8 +65,8 @@ export class CategoryController {
     async handleUpdate(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const { id } = req.params;
-            const parsed = categorySchema.pick({ name: true }).safeParse(req.body);
+            const id = pathParam(req, 'id');
+            const parsed = categorySchema.safeParse(req.body);
             if (!parsed.success) return res.status(400).json({ error: 'Informe um nome válido.' });
             const { name } = parsed.data;
 
@@ -71,9 +74,10 @@ export class CategoryController {
                 return res.status(400).json({ error: 'Name is required' });
             }
 
-            const category = await this.updateCategory.execute(id, name, userId);
+            const category = await this.updateCategory.execute(id, name, userId, parsed.data.type);
             res.json(category);
         } catch (error: any) {
+            if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
             if (error.message === 'Category not found') {
                 return res.status(404).json({ error: error.message });
             } else if (error.message === 'Unauthorized') {

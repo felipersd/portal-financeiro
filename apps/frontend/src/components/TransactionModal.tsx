@@ -39,7 +39,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 if (description !== editTransaction.description) setDescription(editTransaction.description);
 
                 setAmountStr(editTransaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-                setCategoryId(editTransaction.category);
+                setCategoryId(editTransaction.categoryId || categories.find(c => c.name === editTransaction.category && c.type === editTransaction.type)?.id || "");
                 setDate(new Date(editTransaction.date).toISOString().split('T')[0]);
                 setIsShared(editTransaction.isShared);
                 setPayer(editTransaction.payer);
@@ -182,7 +182,8 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             description,
             amount: totalAmount,
             type,
-            category: categoryId,
+            category: categories.find(c => c.id === categoryId)?.name || "",
+            categoryId,
             date: `${date}T12:00:00`,
             isShared: type === 'expense' ? isShared : false,
             payer: isShared && type === 'expense' ? payer : 'me',
@@ -276,7 +277,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         <select id="transaction-category" required value={categoryId} onChange={e => setCategoryId(e.target.value)}>
                             <option value="">Selecione...</option>
                             {filteredCategories.map(c => (
-                                <option key={c.id} value={c.name}>{c.name}</option>
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>

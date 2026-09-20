@@ -3,7 +3,6 @@ import { GroupMember } from '../../Domain/Entities/GroupMember';
 import { GroupMemberRepository } from '../../Domain/Interfaces/GroupMemberRepository';
 import { FinanceError } from '../../Domain/FinanceError';
 import { atomic } from './atomic';
-
 export class PrismaGroupMemberRepository implements GroupMemberRepository {
     constructor(private prisma: PrismaClient) {}
     async create(member: GroupMember): Promise<GroupMember> {
@@ -32,8 +31,8 @@ export class PrismaGroupMemberRepository implements GroupMemberRepository {
             const member = await tx.groupMember.findUnique({ where: { id }, include: { connection: true } });
             if (!member) throw new FinanceError(404, 'Membro não encontrado.');
             if (member.connection && ['pending', 'accepted'].includes(member.connection.status)) throw new FinanceError(409, 'Encerre o vínculo antes de remover este membro.');
-            const used = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM finance."Transaction" WHERE "userId" = ${member.userId} AND (payer = ${id} OR "splitDetails"->'splits' @> ${JSON.stringify([{ memberId: id }])}::jsonb) LIMIT 1`;
-            if (used.length) throw new FinanceError(409, 'Este membro possui lançamentos. Preserve-o para manter o histórico correto.');
+            const used = await tx.transaction.count({ where: { userId: member.userId, OR: [{ payer: id }, { splits: { some: { memberId: id } } }] } });
+            if (used) throw new FinanceError(409, 'Este membro possui lançamentos. Preserve-o para manter o histórico correto.');
             await tx.groupMember.delete({ where: { id } });
         });
     }

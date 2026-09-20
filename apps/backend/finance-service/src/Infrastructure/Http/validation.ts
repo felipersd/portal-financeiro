@@ -9,6 +9,7 @@ export const transactionSchema = z.object({
     amount: money.refine(value => value > 0, 'Informe um valor maior que zero.'),
     type: z.enum(['income', 'expense']),
     category: z.string().trim().min(1).max(100),
+    categoryId: z.string().uuid().optional(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})?)?$/)
         .refine(value => Number.isFinite(Date.parse(value)) && Number(value.slice(0, 4)) >= 1900 && Number(value.slice(0, 4)) <= 2200 && new Date(value).toISOString().slice(0, 10) === value.slice(0, 10), 'Data inválida.'),
     isShared: z.boolean().default(false),
@@ -36,6 +37,7 @@ export const memberSchema = z.object({
 
 export const categorySchema = z.object({ name: z.string().trim().min(1).max(100), type: z.enum(['income', 'expense']) });
 export const budgetSchema = z.object({
+    revision: z.number().int().min(0).optional(),
     divisions: z.array(z.object({ id: z.string().min(1).max(100), name: z.string().trim().min(1).max(80),
         percentage: z.number().finite().min(0).max(100), color: z.string().regex(/^#[0-9a-fA-F]{6}$/) })).min(1).max(10),
     mapping: z.record(z.string().max(100), z.string().max(100)).refine(v => Object.keys(v).length <= 200),

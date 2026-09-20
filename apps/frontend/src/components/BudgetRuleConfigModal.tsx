@@ -66,7 +66,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
         onClose();
     };
 
-    const expenseCategories = categories.filter(c => c.type === 'expense').map(c => c.name);
+    const expenseCategories = categories.filter(c => c.type === 'expense');
 
     if (!budgetRule) return null;
 
@@ -172,7 +172,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                     <div style={{ marginTop: '2rem' }}>
                         <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Mapeamento de Categorias</h3>
                         <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-                            Defina em qual fatia da regra cada categoria se encaixa. Mudanças feitas aqui valem para o mês atual em diante.
+                            Defina em qual fatia da regra cada categoria se encaixa. As alterações valem somente para o mês selecionado. Meses já configurados são preservados.
                         </p>
                         
                         {expenseCategories.length === 0 && (
@@ -181,17 +181,18 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {expenseCategories.map(cat => {
-                                const activeMap = divisions.find(d => d.id === mapping[cat]) ? mapping[cat] : divisions[0]?.id;
+                                const activeMap = divisions.find(d => d.id === mapping[cat.id]) ? mapping[cat.id] : divisions[0]?.id;
                                 return (
-                                    <div key={cat} style={{ 
+                                    <div key={cat.id} style={{
                                         display: 'flex', flexDirection: 'column', gap: '0.5rem', 
                                         backgroundColor: 'rgba(255,255,255,0.02)', padding: '0.75rem 1rem', 
                                         borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.03)' 
                                     }}>
                                         <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                                            {cat}
+                                            {cat.name}
                                         </span>
                                         <select 
+                                            aria-label={`Divisão de ${cat.name}`}
                                             className="input" 
                                             style={{ 
                                                 width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', 
@@ -199,7 +200,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                                                 borderRadius: '0.375rem', color: 'var(--text-primary)'
                                             }}
                                             value={activeMap || ''}
-                                            onChange={(e) => handleMappingChange(cat, e.target.value)}
+                                            onChange={(e) => handleMappingChange(cat.id, e.target.value)}
                                         >
                                             {divisions.map(d => (
                                                 <option key={d.id} value={d.id}>{d.name}</option>

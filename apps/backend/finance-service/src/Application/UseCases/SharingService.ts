@@ -82,9 +82,9 @@ export class SharingService {
         return atomic(this.db, async tx => {
             const link = await tx.memberConnection.findFirst({ where: { memberId, ownerId: actor.id, status: 'accepted' } });
             if (!link?.recipientId) throw new FinanceError(409, 'O membro precisa aceitar o vínculo antes de receber contas.');
-            const source = await tx.transaction.findFirst({ where: { id: transactionId, userId: actor.id } });
+            const source = await tx.transaction.findFirst({ where: { id: transactionId, userId: actor.id }, include: { splits: true } });
             if (!source) throw notFound();
-            const parsed = transactionSchema.safeParse({ ...source, date: source.date.toISOString() });
+            const parsed = transactionSchema.safeParse({ ...source, amount: Number(source.amount), splitDetails: { splits: source.splits.map(s => ({ memberId: s.participantKey, amount: s.amountCents / 100 })) }, date: source.date.toISOString() });
             if (!parsed.success || !source.isShared) throw new FinanceError(400, 'Revise os valores da divisão antes de compartilhar.');
             const split = parsed.data.splitDetails?.splits.find(s => s.memberId === memberId);
             if (!split || split.amount <= 0) throw new FinanceError(400, 'Este membro não possui uma parte nesta conta.');
@@ -93,7 +93,7 @@ export class SharingService {
             if (prior) return { id: prior.id, status: prior.status };
             const result = await tx.expenseShare.create({ data: { transactionId, memberId, ownerId: actor.id,
                 recipientId: link.recipientId, ownerName: actor.name, description: source.description,
-                amountCents: Math.round(split.amount * 100), totalCents: Math.round(source.amount * 100),
+                amountCents: Math.round(split.amount * 100), totalCents: Number(source.amount.mul(100)),
                 date: source.date, paidByRecipient: source.payer === memberId } });
             return { id: result.id, status: result.status };
         });

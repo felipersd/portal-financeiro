@@ -1,3 +1,4 @@
+import { pathParam } from './pathParam';
 import { Request, Response } from 'express';
 import { AddGroupMember } from '../../Application/UseCases/AddGroupMember';
 import { GetGroupMembers } from '../../Application/UseCases/GetGroupMembers';
@@ -47,7 +48,7 @@ export class GroupMemberController {
     async handleUpdate(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const id = req.params.id;
+            const id = pathParam(req, 'id');
             const parsed = memberSchema.safeParse(req.body);
             if (!parsed.success) return res.status(400).json({ error: 'Revise o nome e o e-mail do membro.', details: parsed.error.issues });
             const data = { ...parsed.data, userId };
@@ -66,7 +67,7 @@ export class GroupMemberController {
     async handleDelete(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const id = req.params.id;
+            const id = pathParam(req, 'id');
             await this.deleteGroupMember.execute(id, userId);
             res.status(204).send();
         } catch (error: any) {

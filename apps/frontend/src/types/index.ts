@@ -24,7 +24,8 @@ export interface Transaction {
     description: string;
     amount: number;
     type: TransactionType;
-    category: string; // We store the category name or ID
+    category: string;
+    categoryId?: string;
     date: string;
     isShared: boolean;
     isFixed?: boolean;
@@ -69,6 +70,7 @@ export interface BudgetDivision {
 }
 
 export interface BudgetRule {
+    revision?: number;
     id: string;
     userId: string;
     month: string;

@@ -1,15 +1,28 @@
-import { Prisma, PrismaClient, Transaction as Row } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Transaction } from '../../Domain/Entities/Transaction';
 import { TransactionRepository } from '../../Domain/Interfaces/TransactionRepository';
 import { FinanceError } from '../../Domain/FinanceError';
 import { atomic } from './atomic';
-
-const entity = (d: Row) => new Transaction(d.id, d.description, d.amount, d.type as 'income' | 'expense',
-    d.category, d.date, d.isShared, d.payer, d.userId, d.createdAt, d.recurrenceId, d.splitDetails, d.isFixed);
-const fields = (t: Transaction) => ({ description: t.description, amount: t.amount, type: t.type,
+const include = { categoryRef: true, splits: true } as const;
+type Loaded = Prisma.TransactionGetPayload<{ include: typeof include }>;
+const entity = (d: Loaded) => new Transaction(d.id, d.description, Number(d.amount), d.type as 'income' | 'expense',
+    d.categoryRef?.name || d.category, d.date, d.isShared, d.payer, d.userId, d.createdAt, d.recurrenceId,
+    d.isShared ? { splits: d.splits.map(s => ({ memberId: s.participantKey, amount: s.amountCents / 100 })) } : undefined,
+    d.isFixed, d.categoryId || undefined);
+const splitRows = (t: Transaction) => (t.isShared ? t.splitDetails?.splits || [] : []).map((s: { memberId: string; amount: number }) =>
+    ({ participantKey: s.memberId, memberId: s.memberId === 'me' ? null : s.memberId, amountCents: Math.round(s.amount * 100) }));
+async function categoryFor(tx: Prisma.TransactionClient, t: Transaction) {
+    const category = await tx.category.findFirst({ where: { userId: t.userId, type: t.type,
+        ...(t.categoryId ? { id: t.categoryId } : { name: t.category }) }, orderBy: { id: 'asc' } });
+    if (category) return category.id;
+    if (t.categoryId) throw new FinanceError(400, 'Categoria inválida para esta conta.');
+    // Compatibility with existing clients that send category names.
+    if (await tx.category.count({ where: { userId: t.userId } }) >= 200) throw new FinanceError(400, 'Limite de categorias atingido.');
+    return (await tx.category.create({ data: { name: t.category, type: t.type, userId: t.userId } })).id;
+}
+const fields = (t: Transaction) => ({ description: t.description, amount: new Prisma.Decimal(t.amount.toFixed(2)), type: t.type,
     category: t.category, date: t.date, isShared: t.isShared, isFixed: t.isFixed, payer: t.payer,
     recurrenceId: t.recurrenceId, splitDetails: t.splitDetails ?? Prisma.DbNull });
-
 async function validateMembers(tx: Prisma.TransactionClient, t: Transaction) {
     const ids = new Set<string>((t.splitDetails?.splits || []).map((s: { memberId: string }) => s.memberId));
     ids.add(t.payer); ids.delete('me');
@@ -22,20 +35,23 @@ async function requireEditable(tx: Prisma.TransactionClient, ids: string[]) {
         throw new FinanceError(409, 'Esta conta possui compartilhamento pendente ou aceito. Cancele os pendentes antes de editar; valores aceitos são preservados.');
     }
 }
-
 export class PrismaTransactionRepository implements TransactionRepository {
     constructor(private prisma: PrismaClient) {}
     async create(t: Transaction) { await this.createMany([t]); return t; }
     async createMany(transactions: Transaction[]) {
         await atomic(this.prisma, async tx => {
-            if (transactions.length) await validateMembers(tx, transactions[0]);
-            await tx.transaction.createMany({ data: transactions.map(t => ({ ...fields(t), id: t.id, userId: t.userId, createdAt: t.createdAt })) });
+            for (const t of transactions) {
+                await validateMembers(tx, t);
+                const categoryId = await categoryFor(tx, t);
+                await tx.transaction.create({ data: { ...fields(t), categoryId, id: t.id, userId: t.userId,
+                    createdAt: t.createdAt, splits: { create: splitRows(t) } } });
+            }
         });
     }
     async findByUserId(userId: string, year?: number): Promise<Transaction[]> {
         const date = year ? { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } : undefined;
         const [owned, received] = await Promise.all([
-            this.prisma.transaction.findMany({ where: { userId, date }, orderBy: { date: 'desc' } }),
+            this.prisma.transaction.findMany({ include, where: { userId, date }, orderBy: { date: 'desc' } }),
             this.prisma.expenseShare.findMany({ where: { recipientId: userId, status: 'accepted', date }, orderBy: { date: 'desc' } }),
         ]);
         const incoming = received.map(s => Object.assign(new Transaction(`share:${s.id}`, s.description,
@@ -44,11 +60,11 @@ export class PrismaTransactionRepository implements TransactionRepository {
         return [...owned.map(entity), ...incoming].sort((a, b) => b.date.getTime() - a.date.getTime());
     }
     async findById(id: string) {
-        const row = await this.prisma.transaction.findUnique({ where: { id } });
+        const row = await this.prisma.transaction.findUnique({ where: { id }, include });
         return row ? entity(row) : null;
     }
     async findFutureByRecurrenceId(recurrenceId: string, fromDate: Date, userId: string) {
-        return (await this.prisma.transaction.findMany({ where: { recurrenceId, userId, date: { gte: fromDate } }, orderBy: { date: 'asc' } })).map(entity);
+        return (await this.prisma.transaction.findMany({ include, where: { recurrenceId, userId, date: { gte: fromDate } }, orderBy: { date: 'asc' } })).map(entity);
     }
     async update(t: Transaction) { await this.updateMany([t]); return t; }
     async updateMany(transactions: Transaction[]) {

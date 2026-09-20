@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { createDatabaseClient } from '../../Infrastructure/Database/createDatabaseClient';
 import { randomUUID } from 'crypto';
 import { SharingService, SharingActor } from './SharingService';
 import { PrismaTransactionRepository } from '../../Infrastructure/Database/PrismaTransactionRepository';
@@ -8,10 +8,14 @@ import { Transaction } from '../../Domain/Entities/Transaction';
 // This suite only runs against the explicit disposable DB used by local verification/CI.
 const suite = process.env.INTEGRATION_TESTS === '1' ? describe : describe.skip;
 suite('Sharing with real PostgreSQL', () => {
-    const db = new PrismaClient();
-    const service = new SharingService(db);
-    const repository = new PrismaTransactionRepository(db);
-    const memberRepository = new PrismaGroupMemberRepository(db);
+    let db: ReturnType<typeof createDatabaseClient>;
+    let service: SharingService;
+    let repository: PrismaTransactionRepository;
+    let memberRepository: PrismaGroupMemberRepository;
+    beforeAll(() => {
+        db = createDatabaseClient(); service = new SharingService(db);
+        repository = new PrismaTransactionRepository(db); memberRepository = new PrismaGroupMemberRepository(db);
+    });
     const owners: string[] = [];
     let owner: SharingActor, recipient: SharingActor, stranger: SharingActor, memberId: string, transactionId: string;
     beforeEach(async () => {
@@ -27,6 +31,7 @@ suite('Sharing with real PostgreSQL', () => {
     afterAll(async () => {
         await db.expenseShare.deleteMany({ where: { ownerId: { in: owners } } });
         await db.transaction.deleteMany({ where: { userId: { in: owners } } });
+        await db.category.deleteMany({ where: { userId: { in: owners } } });
         await db.groupMember.deleteMany({ where: { userId: { in: owners } } });
         await db.$disconnect();
     });

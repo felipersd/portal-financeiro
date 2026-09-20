@@ -20,7 +20,7 @@ LABEL org.opencontainers.image.source="https://github.com/felipersd/portal-finan
 COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/prisma ./prisma
-COPY --from=builder --chown=node:node /app/package.json /app/entrypoint.sh ./
+COPY --from=builder --chown=node:node /app/package.json /app/entrypoint.sh /app/prisma.config.ts ./
 USER node
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "dist/server/server.js"]

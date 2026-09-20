@@ -56,7 +56,7 @@ jobs:
           npm test -- --runInBand
           npm run db:migrate
           npm run db:migrate
-          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - name: Finance checks and migrations
         working-directory: apps/backend/finance-service
         env:
@@ -68,16 +68,17 @@ jobs:
           npm test -- --runInBand
           npm run db:migrate
           npm run db:migrate
-          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - name: Sharing consent and concurrency integration
         # The PostgreSQL service above is disposable; production credentials are never used here.
         run: |
           cd apps/backend/finance-service
-          DATABASE_URL='postgresql://portal:test-only-password@localhost:5432/finance_db?schema=finance' INTEGRATION_TESTS=1 npm test -- --runInBand SharingService.integration
+          DATABASE_URL='postgresql://portal:test-only-password@localhost:5432/finance_db?schema=finance' INTEGRATION_TESTS=1 npm test -- --runInBand --testPathPatterns=integration
       - name: Validate deployment configuration
         run: |
           for script in deploy/*.sh apps/backend/*/entrypoint.sh; do bash -n "$script"; done
           bash deploy/tests/rollback-compatibility.sh
+          bash deploy/tests/financial-migration.sh
           export IDENTITY_IMAGE=identity:test FINANCE_IMAGE=finance:test FRONTEND_IMAGE=frontend:test GATEWAY_IMAGE=gateway:test
           docker compose --env-file deploy/.env.vps.example -f deploy/compose.vps.yml config --quiet
   image:

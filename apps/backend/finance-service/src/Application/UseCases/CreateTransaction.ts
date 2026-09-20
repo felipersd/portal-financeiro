@@ -10,6 +10,7 @@ export class CreateTransaction {
         amount: number;
         type: 'income' | 'expense';
         category: string;
+        categoryId?: string;
         date: Date;
         isShared: boolean;
         payer: string;
@@ -68,7 +69,7 @@ export class CreateTransaction {
                 new Date(),
                 recurrenceId,
                 data.splitDetails,
-                isFixed
+                isFixed, data.categoryId
             );
 
             transactions.push(transaction);

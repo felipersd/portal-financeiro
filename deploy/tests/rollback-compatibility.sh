@@ -12,6 +12,6 @@ if assert_rollback_compatible "$fixture" database_state; then exit 1; fi
 schema_state=unexpected
 if assert_rollback_compatible "$fixture" database_state; then exit 1; fi
 if assert_rollback_compatible "$fixture" database_unavailable; then exit 1; fi
-printf '1\n' > "$fixture/sharing-contract-version"
+printf '2\n' > "$fixture/sharing-contract-version"
 assert_rollback_compatible "$fixture" database_unavailable
 echo 'Rollback compatibility checks passed.'
