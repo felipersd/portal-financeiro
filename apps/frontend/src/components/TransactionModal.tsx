@@ -12,7 +12,7 @@ interface Props {
 }
 
 export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransaction }) => {
-    const { addTransaction, updateTransaction, categories, members, isProcessing } = useFinance();
+    const { addTransaction, updateTransaction, categories, members, isProcessing, requestError } = useFinance();
 
     const dialogRef = useModalDialog(isOpen);
     const [type, setType] = useState<TransactionType>('expense');
@@ -297,7 +297,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                 <Calendar size={20} color="var(--text-secondary)" />
                             </div>
                             <input
-                                type="date"
+                                type="date" disabled={!!editTransaction?.isFixed}
                                 id="transaction-date"
                                 required
                                 value={date}
@@ -461,6 +461,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         <button type="submit" disabled={isProcessing} className="btn-primary">Salvar</button>
                     </div>
                 </form>
+                {requestError && <p role="alert">{requestError}</p>}
             </dialog>
         </div>
     );

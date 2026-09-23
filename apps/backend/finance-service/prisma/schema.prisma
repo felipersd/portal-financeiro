@@ -19,6 +19,10 @@ model Transaction {
   payer       String   // 'me' | 'spouse'
   createdAt   DateTime @default(now())
   recurrenceId String?
+  fixedRuleId String?
+  fixedRule FixedRule? @relation(fields: [fixedRuleId], references: [id], onDelete: Restrict)
+  occurrenceMonth String?
+  deletedAt DateTime?
   splitDetails Json?
   
   userId      String   // Logical reference to IdentityService User
@@ -30,6 +34,18 @@ model Transaction {
 
   @@index([userId, date])
   @@index([userId, recurrenceId, date])
+  @@unique([fixedRuleId, occurrenceMonth])
+}
+
+model FixedRule {
+  id String @id
+  userId String
+  anchorDate DateTime
+  anchorDay Int
+  endMonth String?
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
+  @@index([userId])
 }
 
 model TransactionSplit {

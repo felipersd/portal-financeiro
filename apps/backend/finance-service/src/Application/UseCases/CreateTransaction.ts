@@ -23,10 +23,10 @@ export class CreateTransaction {
     }): Promise<Transaction> {
         const frequency = data.frequency || 'monthly';
         const isFixed = data.isFixed || frequency === 'fixed';
-        const installments = isFixed ? 120 : (data.installments || 1);
+        const installments = isFixed ? 1 : (data.installments || 1);
 
         // If installments > 1, generate a recurrenceId if not provided
-        const recurrenceId = (installments > 1 && !data.recurrenceId) ? uuidv4() : data.recurrenceId;
+        const recurrenceId = ((installments > 1 || isFixed) && !data.recurrenceId) ? uuidv4() : data.recurrenceId;
 
         if (!Number.isInteger(installments) || installments < 1 || installments > 120) throw new Error('Invalid installment count');
         const transactions: Transaction[] = [];

@@ -135,6 +135,26 @@ suite('Sharing with real PostgreSQL', () => {
         expect(await repository.findByUserId(owner.id)).toHaveLength(1);
         expect((await service.list(owner)).connections).toHaveLength(0);
     });
+    it('paginates more than 200 expenses without hiding the total pending count or leaking a foreign cursor', async () => {
+        const rows = Array.from({length:205}, (_,i) => ({ id: randomUUID(), description: `Page ${i}`, amount: 1,
+            type: 'expense', category: 'Casa', date: new Date(), isShared: true, payer: 'me', userId: owner.id }));
+        await db.transaction.createMany({data: rows});
+        await db.expenseShare.createMany({data: rows.map((t,i) => ({transactionId:t.id, memberId, ownerId:owner.id,
+            recipientId:recipient.id, ownerName:owner.name, description:t.description, amountCents:100, totalCents:100,
+            date:t.date, createdAt: new Date(Date.UTC(2026,0,1,0,i))}))});
+        let page = await service.list(recipient);
+        expect(page.shares).toHaveLength(50);
+        expect(page.attentionCount).toBe(205);
+        const ids = page.shares.map(s=>s.id);
+        await expect(service.list(stranger, {shares:ids[0]})).rejects.toMatchObject({status:400});
+        while (page.nextCursor) {
+            page = await service.list(recipient, page.nextCursor);
+            ids.push(...page.shares.map(s=>s.id));
+        }
+        expect(ids).toHaveLength(205);
+        expect(new Set(ids).size).toBe(205);
+        expect((await service.list(stranger)).shares).toHaveLength(0);
+    });
     it('serializes concurrent revocation and acceptance', async () => {
         const invite = await connect();
         const share = await service.share(owner, transactionId, memberId);

@@ -6,6 +6,14 @@ import { PrismaBudgetRuleRepository } from '../../Infrastructure/Database/Prisma
 import { Transaction } from '../../Domain/Entities/Transaction';
 import { BudgetRule } from '../../Domain/Entities/BudgetRule';
 import { UpdateBudgetRule } from './UpdateBudgetRule';
+import { TransactionQueries } from '../../Infrastructure/Database/TransactionQueries';
+import { accountRateLimit } from '../../Infrastructure/Http/Middleware/AccountRateLimit';
+import express from 'express';
+import request from 'supertest';
+import { createHash } from 'crypto';
+import { FixedRecurrences } from '../../Infrastructure/Database/FixedRecurrences';
+import { CreateTransaction } from './CreateTransaction';
+import { UpdateTransaction } from './UpdateTransaction';
 const suite = process.env.INTEGRATION_TESTS === '1' ? describe : describe.skip;
 suite('Financial integrity and monthly versions', () => {
  let db: ReturnType<typeof createDatabaseClient>;
@@ -16,8 +24,10 @@ suite('Financial integrity and monthly versions', () => {
  afterEach(async () => {
   await db.budgetRule.deleteMany({ where: { userId } });
   await db.transaction.deleteMany({ where: { userId } });
+  await db.fixedRule.deleteMany({where:{userId}});
   await db.category.deleteMany({ where: { userId } });
   await db.groupMember.deleteMany({ where: { userId } });
+  await db.requestBudget.deleteMany({where:{key:{in:['sharing','read','write'].map(scope=>createHash('sha256').update(`${scope}:${userId}`).digest('hex'))}}});
  });
  afterAll(async () => { await db.$disconnect(); });
  it('stores decimal money and relational parts; rename preserves category references', async () => {
@@ -69,5 +79,68 @@ suite('Financial integrity and monthly versions', () => {
   const make = () => new BudgetRule(randomUUID(), userId, '2026-09', [{id:'one',name:'Total',percentage:100,color:'#ffffff'}], {});
   const [a,b] = await Promise.all([budgets.create(make()),budgets.create(make())]);
   expect(a.id).toBe(b.id);
+ });
+ it('pages a month with tied dates and calculates exact annual totals without exposing another account', async () => {
+  const date = new Date('2026-01-01T00:00:00Z');
+  await db.transaction.createMany({data:Array.from({length:105},()=>({id:randomUUID(),userId,date,amount:0.1,
+   description:'Page fixture',type:'expense',category:'Casa',payer:'me',isShared:false}))});
+  await repository.create(new Transaction(randomUUID(),'Income',1.23,'income','Salário',date,false,'me',userId,new Date()));
+  const member = await db.groupMember.create({data:{userId,name:'Friend',category:'Amigo'}});
+  await repository.create(new Transaction(randomUUID(),'Shared',0.3,'expense','Casa',date,true,'me',userId,new Date(),null,
+   {splits:[{memberId:'me',amount:0.1},{memberId:member.id,amount:0.2}]}));
+  const queries = new TransactionQueries(db);
+  const first = await queries.page(userId,'2026-01');
+  expect(first.items).toHaveLength(100);
+  const second = await queries.page(userId,'2026-01',first.nextCursor!);
+  expect(second.items).toHaveLength(7);
+  expect(second.nextCursor).toBeNull();
+  expect(new Set([...first.items,...second.items].map(t=>t.id)).size).toBe(107);
+  expect((await queries.annual(userId,2026))[0]).toEqual({month:1,income:1.23,expense:10.6});
+  expect(await queries.page(randomUUID(),'2026-01',first.nextCursor!)).toMatchObject({items:[],nextCursor:null});
+  expect((await queries.annual(randomUUID(),2026)).every(m=>m.income===0 && m.expense===0)).toBe(true);
+  await expect(queries.page(userId,'2026-01','malformed')).rejects.toMatchObject({status:400});
+ });
+ it('atomically enforces the account sharing budget despite concurrent requests and resets expired windows', async () => {
+  const app = express();
+  app.use((req,_res,next)=>{(req as any).internalUserId=userId;next();});
+  app.use('/sharing',accountRateLimit(db));
+  app.post('/sharing',(_req,res)=>{res.json({ok:true});});
+  const warn = jest.spyOn(console,'warn').mockImplementation(()=>{});
+  try {
+   const responses = await Promise.all(Array.from({length:21},()=>request(app).post('/sharing')));
+   expect(responses.filter(r=>r.status===200)).toHaveLength(20);
+   const limited = responses.filter(r=>r.status===429);
+   expect(limited).toHaveLength(1);
+   expect(Number(limited[0].headers['retry-after'])).toBeGreaterThan(0);
+   const key=createHash('sha256').update(`sharing:${userId}`).digest('hex');
+   await db.requestBudget.update({where:{key},data:{expiresAt:new Date(0)}});
+   expect((await request(app).post('/sharing')).status).toBe(200);
+  } finally {warn.mockRestore();}
+ });
+ it('generates fixed series by year, keeps deleted months deleted and stops future generation', async () => {
+  const original = await new CreateTransaction(repository).execute({userId,description:'Fixed',amount:10,type:'expense',category:'Casa',
+   date:new Date('2024-01-31T00:00:00Z'),isShared:false,payer:'me',frequency:'fixed'});
+  expect(await db.transaction.count({where:{userId}})).toBe(1);
+  const fixed = new FixedRecurrences(db);
+  await Promise.all([fixed.ensureYear(userId,2024),fixed.ensureYear(userId,2024)]);
+  expect(await db.transaction.count({where:{userId}})).toBe(12);
+  const feb = await db.transaction.findFirstOrThrow({where:{userId,occurrenceMonth:'2024-02'}});
+  expect(feb.date.toISOString().slice(0,10)).toBe('2024-02-29');
+  await repository.delete(feb.id);
+  await fixed.ensureYear(userId,2024);
+  expect(await repository.findById(feb.id)).toBeNull();
+  expect((await new TransactionQueries(db).annual(userId,2024))[1].expense).toBe(0);
+  const september = await db.transaction.findFirstOrThrow({where:{userId,occurrenceMonth:'2024-09'}});
+  await new UpdateTransaction(repository).execute(september.id,{userId,description:'Changed',amount:20,type:'expense',category:'Casa',
+   date:september.date,isShared:false,payer:'me'});
+  await fixed.ensureYear(userId,2025);
+  const march = await db.transaction.findFirstOrThrow({where:{userId,occurrenceMonth:'2025-03'}});
+  expect(Number(march.amount)).toBe(20);
+  expect(march.date.toISOString().slice(0,10)).toBe('2025-03-31');
+  await fixed.stop(userId,march.id);
+  await fixed.ensureYear(userId,2026);
+  expect(await repository.findByUserId(userId,2025)).toHaveLength(2);
+  expect(await repository.findByUserId(userId,2026)).toHaveLength(0);
+  expect((await repository.findById(original.id))?.amount).toBe(10);
  });
 });

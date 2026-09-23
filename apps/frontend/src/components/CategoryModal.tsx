@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) => {
-    const { updateCategory } = useFinance();
+    const { updateCategory, isProcessing, requestError } = useFinance();
     const dialogRef = useModalDialog(isOpen && !!category);
     const [name, setName] = useState('');
     const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -104,9 +104,10 @@ export const CategoryModal: React.FC<Props> = ({ isOpen, onClose, category }) =>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
                         <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
-                        <button type="submit" className="btn-primary">Salvar</button>
+                        <button type="submit" disabled={isProcessing} className="btn-primary">Salvar</button>
                     </div>
                 </form>
+                {requestError && <p role="alert">{requestError}</p>}
             </dialog>
         </div>
     );

@@ -1,15 +1,18 @@
 import { createContext, useContext } from 'react';
-import type { Transaction, FinanceSummary, Category, User, GroupMember, BudgetRule, SharingState, ShareHistoryPage } from '../types';
+import type { Transaction, FinanceSummary, Category, User, GroupMember, BudgetRule, SharingState, ShareHistoryPage, AnnualTotal } from '../types';
 
 interface FinanceContextType {
     user: User | null;
-    transactions: Transaction[]; // All transactions (for annual charts)
+    transactions: Transaction[]; // Complete selected month
+    annualTotals: AnnualTotal[];
+    requestError: string | null;
     filteredTransactions: Transaction[]; // Filtered by selected month
     categories: Category[];
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
     addTransaction: (t: Omit<Transaction, 'id' | 'userId' | 'createdAt'>) => Promise<boolean>;
     updateTransaction: (id: string, t: Partial<Transaction>) => Promise<boolean>;
+    stopRecurrence: (id:string) => Promise<boolean>;
     removeTransaction: (id: string) => Promise<boolean>;
     addCategory: (name: string, type: 'income' | 'expense') => Promise<boolean>;
     updateCategory: (id: string, name: string, type: 'income' | 'expense') => Promise<boolean>;
@@ -24,6 +27,9 @@ interface FinanceContextType {
     getSummary: () => FinanceSummary;
     sharing: SharingState;
     sharingError: string | null;
+    hasMoreSharing: boolean;
+    isLoadingMoreSharing: boolean;
+    loadMoreSharing: () => void;
     isProcessing: boolean;
     inviteMember: (id: string) => Promise<boolean>;
     decideConnection: (id: string, action: 'accept' | 'decline' | 'revoke') => Promise<boolean>;

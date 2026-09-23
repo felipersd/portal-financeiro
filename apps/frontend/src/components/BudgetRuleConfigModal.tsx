@@ -10,7 +10,7 @@ interface BudgetRuleConfigModalProps {
 }
 
 export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ onClose }) => {
-    const { budgetRule, updateBudgetRule, categories, selectedDate } = useFinance();
+    const { budgetRule, updateBudgetRule, categories, selectedDate, isProcessing, requestError } = useFinance();
     
     const dialogRef = useModalDialog(!!budgetRule);
     const [divisions, setDivisions] = useState<BudgetDivision[]>(budgetRule?.divisions || []);
@@ -236,7 +236,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', width: '100%', justifyContent: 'flex-end', flexDirection: 'row-reverse' }}>
-                        <button className="btn-primary" onClick={handleSave} disabled={total !== 100} style={{ opacity: total !== 100 ? 0.5 : 1, cursor: total !== 100 ? 'not-allowed' : 'pointer', flex: '1 1 auto', minWidth: '150px', justifyContent: 'center' }}>
+                        <button className="btn-primary" onClick={handleSave} disabled={total !== 100 || isProcessing} style={{ opacity: total !== 100 ? 0.5 : 1, cursor: total !== 100 ? 'not-allowed' : 'pointer', flex: '1 1 auto', minWidth: '150px', justifyContent: 'center' }}>
                             Salvar Configurações
                         </button>
                         <button className="btn-secondary" onClick={onClose} style={{ flex: '1 1 auto', minWidth: '120px', justifyContent: 'center' }}>
@@ -244,6 +244,7 @@ export const BudgetRuleConfigModal: React.FC<BudgetRuleConfigModalProps> = ({ on
                         </button>
                     </div>
                 </div>
+                {requestError && <p role="alert">{requestError}</p>}
             </dialog>
         </div>,
         document.body

@@ -25,7 +25,7 @@ export function sharingRouter(service: SharingService, ledger?: ShareLedger) {
             try { const result = await work(req, res.locals.actor); res.json(result ?? { success: true }); }
             catch (error) { next(error); }
         };
-    router.get('/', endpoint((req, actor) => service.list(actor)));
+    router.get('/', endpoint((req, actor) => service.list(actor, z.object({ connections: z.union([z.string().uuid(), z.literal('end')]).optional(), shares: z.union([z.string().uuid(), z.literal('end')]).optional() }).parse(req.query))));
     router.post('/connections', endpoint((req, actor) => service.invite(actor, body.parse(req.body).memberId)));
     router.post('/connections/:id/:action', endpoint((req, actor) => service.decideConnection(actor,
         z.string().uuid().parse(req.params.id), z.enum(['accept', 'decline', 'revoke']).parse(req.params.action))));

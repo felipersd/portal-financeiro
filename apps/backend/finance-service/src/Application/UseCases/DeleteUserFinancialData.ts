@@ -13,6 +13,7 @@ export class DeleteUserFinancialData {
                 this.prisma.expenseShare.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
                 this.prisma.memberConnection.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
                 this.prisma.transaction.deleteMany({ where: { userId } }),
+                this.prisma.fixedRule.deleteMany({where:{userId}}),
                 this.prisma.category.deleteMany({ where: { userId } }),
                 this.prisma.groupMember.deleteMany({ where: { userId } }),
                 this.prisma.budgetRule.deleteMany({ where: { userId } })

@@ -75,4 +75,14 @@ CREATE TABLE "ShareProposal" (
  CONSTRAINT "ShareProposal_amount_valid" CHECK ("amountCents">=0)
 );
 CREATE INDEX "ShareProposal_shareId_status_idx" ON "ShareProposal"("shareId",status);
+CREATE TABLE "FixedRule" (
+ id TEXT PRIMARY KEY, "userId" TEXT NOT NULL, "anchorDate" TIMESTAMP(3) NOT NULL, "anchorDay" INTEGER NOT NULL,
+ "endMonth" TEXT, "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE INDEX "FixedRule_userId_idx" ON "FixedRule"("userId");
+ALTER TABLE "Transaction" ADD COLUMN "fixedRuleId" TEXT, ADD COLUMN "occurrenceMonth" TEXT, ADD COLUMN "deletedAt" TIMESTAMP(3);
+-- Existing fixed rows remain untouched. Their deleted occurrences cannot be inferred safely.
+-- Only newly created series use lazy generation; existing ids, gaps and consents are preserved.
+CREATE UNIQUE INDEX "Transaction_fixedRuleId_occurrenceMonth_key" ON "Transaction"("fixedRuleId","occurrenceMonth");
+ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_fixedRuleId_fkey" FOREIGN KEY ("fixedRuleId") REFERENCES "FixedRule"(id) ON DELETE RESTRICT ON UPDATE CASCADE;
 COMMIT;

@@ -96,7 +96,7 @@ export const Layout: React.FC = () => {
                     <li><button type="button" aria-current={currentView === 'members' ? 'page' : undefined} onClick={() => setCurrentView('members')}
                         className={`nav-item ${currentView === 'members' ? 'active' : ''}`}
                     >
-                        <Users size={20} /> Membros {sharing.connections.filter(c => c.direction === 'incoming' && c.status === 'pending').length + sharing.shares.filter(s => s.direction === 'incoming' && s.status === 'pending').length > 0 && <span className="sharing-badge">Novos convites</span>}
+                        <Users size={20} /> Membros {(sharing.attentionCount || 0) > 0 && <span className="sharing-badge">Novidades</span>}
                     </button></li>
                     <li><button type="button" aria-current={currentView === 'reports' ? 'page' : undefined} onClick={() => setCurrentView('reports')}
                         className={`nav-item ${currentView === 'reports' ? 'active' : ''}`}

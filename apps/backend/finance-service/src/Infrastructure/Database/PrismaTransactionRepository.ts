@@ -3,12 +3,12 @@ import { Transaction } from '../../Domain/Entities/Transaction';
 import { TransactionRepository } from '../../Domain/Interfaces/TransactionRepository';
 import { FinanceError } from '../../Domain/FinanceError';
 import { atomic } from './atomic';
-const include = { categoryRef: true, splits: true, shares: { where: { status: 'accepted' } } } as const;
-type Loaded = Prisma.TransactionGetPayload<{ include: typeof include }>;
-const entity = (d: Loaded) => Object.assign(new Transaction(d.id, d.description, Number(d.amount), d.type as 'income' | 'expense',
+export const transactionInclude = { categoryRef: true, splits: true, shares: true } as const;
+type Loaded = Prisma.TransactionGetPayload<{ include: typeof transactionInclude }>;
+export const transactionEntity = (d: Loaded) => Object.assign(new Transaction(d.id, d.description, Number(d.amount), d.type as 'income' | 'expense',
     d.categoryRef?.name || d.category, d.date, d.isShared, d.payer, d.userId, d.createdAt, d.recurrenceId,
     d.isShared ? { splits: d.splits.map(s => ({ memberId: s.participantKey, amount: s.amountCents / 100 })) } : undefined,
-    d.isFixed, d.categoryId || undefined), { settlements: d.shares.map(s => ({ memberId: s.memberId, paidAmount: s.paidCents / 100 })) });
+    d.isFixed, d.categoryId || undefined), { sharedWith: d.shares.map(s => ({ memberId: s.memberId, status: s.status })), settlements: d.shares.filter(s => s.status === 'accepted').map(s => ({ memberId: s.memberId, paidAmount: s.paidCents / 100 })) });
 const splitRows = (t: Transaction): Array<{participantKey: string; memberId: string | null; amountCents: number}> => (t.isShared ? t.splitDetails?.splits || [] : []).map((s: { memberId: string; amount: number }) =>
     ({ participantKey: s.memberId, memberId: s.memberId === 'me' ? null : s.memberId, amountCents: Math.round(s.amount * 100) }));
 async function categoryFor(tx: Prisma.TransactionClient, t: Transaction) {
@@ -43,34 +43,47 @@ export class PrismaTransactionRepository implements TransactionRepository {
             for (const t of transactions) {
                 await validateMembers(tx, t);
                 const categoryId = await categoryFor(tx, t);
+                if (t.isFixed && t.recurrenceId) {
+                    if (await tx.fixedRule.count({where:{userId:t.userId,endMonth:null}})>=100) throw new FinanceError(400,'Limite de 100 recorrências ativas atingido.');
+                    await tx.fixedRule.create({data:{id:t.recurrenceId,userId:t.userId,anchorDate:t.date,anchorDay:t.date.getUTCDate()}});
+                }
                 await tx.transaction.create({ data: { ...fields(t), categoryId, id: t.id, userId: t.userId,
-                    createdAt: t.createdAt, splits: { create: splitRows(t) } } });
+                    createdAt: t.createdAt, ...(t.isFixed && t.recurrenceId ? {fixedRuleId:t.recurrenceId,occurrenceMonth:t.date.toISOString().slice(0,7)} : {}), splits: { create: splitRows(t) } } });
             }
         });
     }
     async findByUserId(userId: string, year?: number): Promise<Transaction[]> {
         const date = year ? { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } : undefined;
         const [owned, received] = await Promise.all([
-            this.prisma.transaction.findMany({ include, where: { userId, date }, orderBy: { date: 'desc' } }),
+            this.prisma.transaction.findMany({ include: transactionInclude, where: { userId, date, deletedAt:null }, orderBy: { date: 'desc' } }),
             this.prisma.expenseShare.findMany({ where: { recipientId: userId, status: 'accepted', date }, orderBy: { date: 'desc' } }),
         ]);
         const incoming = received.map(s => Object.assign(new Transaction(`share:${s.id}`, s.description,
             s.amountCents / 100, 'expense', 'Compartilhadas', s.date, false, 'me', userId, s.createdAt),
             { readOnly: true, sharedFromName: s.ownerName, receivedShareId: s.id }));
-        return [...owned.map(entity), ...incoming].sort((a, b) => b.date.getTime() - a.date.getTime());
+        return [...owned.map(transactionEntity), ...incoming].sort((a, b) => b.date.getTime() - a.date.getTime());
     }
     async findById(id: string) {
-        const row = await this.prisma.transaction.findUnique({ where: { id }, include });
-        return row ? entity(row) : null;
+        const row = await this.prisma.transaction.findUnique({ where: { id }, include: transactionInclude });
+        return row && !row.deletedAt ? transactionEntity(row) : null;
     }
     async findFutureByRecurrenceId(recurrenceId: string, fromDate: Date, userId: string) {
-        return (await this.prisma.transaction.findMany({ include, where: { recurrenceId, userId, date: { gte: fromDate } }, orderBy: { date: 'asc' } })).map(entity);
+        return (await this.prisma.transaction.findMany({ include: transactionInclude, where: { recurrenceId, userId, date: { gte: fromDate } }, orderBy: { date: 'asc' } } )).map(transactionEntity);
     }
     async update(t: Transaction) { await this.updateMany([t]); return t; }
     async updateMany(transactions: Transaction[]) {
         await atomic(this.prisma, async tx => {
-            await requireEditable(tx, transactions.map(t => t.id));
-            for (const t of transactions) {
+            for (const id of [...new Set(transactions.filter(t=>t.isFixed && t.recurrenceId).map(t=>t.recurrenceId!))].sort()) {
+                await tx.fixedRule.updateMany({where:{id},data:{updatedAt:new Date()}});
+            }
+            const changes = [...transactions];
+            const first = transactions[0];
+            if (first?.isFixed && first.recurrenceId) {
+                const latest = await tx.transaction.findMany({where:{userId:first.userId,fixedRuleId:first.recurrenceId,date:{gte:first.date}}});
+                for (const row of latest) if (!changes.some(t=>t.id===row.id)) changes.push({...first,id:row.id,date:row.date,createdAt:row.createdAt});
+            }
+            await requireEditable(tx, changes.map(t => t.id));
+            for (const t of changes) {
                 await validateMembers(tx, t);
                 const categoryId = await categoryFor(tx, t);
                 const result = await tx.transaction.updateMany({ where: { id: t.id, userId: t.userId }, data: { ...fields(t), categoryId } });
@@ -83,7 +96,11 @@ export class PrismaTransactionRepository implements TransactionRepository {
     async delete(id: string) {
         await atomic(this.prisma, async tx => {
             await requireEditable(tx, [id]);
-            await tx.transaction.delete({ where: { id } });
+            const row = await tx.transaction.findUniqueOrThrow({where:{id}});
+            if (row.fixedRuleId) {
+                await tx.fixedRule.update({where:{id:row.fixedRuleId},data:{updatedAt:new Date()}});
+                await tx.transaction.update({where:{id},data:{deletedAt:new Date()}});
+            } else await tx.transaction.delete({ where: { id } });
         });
     }
 }

@@ -1,3 +1,5 @@
+import { FixedRecurrences } from '../Infrastructure/Database/FixedRecurrences';
+import { TransactionQueries } from '../Infrastructure/Database/TransactionQueries';
 import { ShareLedger } from '../Application/UseCases/ShareLedger';
 import { accountRateLimit } from '../Infrastructure/Http/Middleware/AccountRateLimit';
 import { pathParam } from '../Infrastructure/Http/pathParam';
@@ -124,7 +126,21 @@ const budgetRuleController = new BudgetRuleController(
 
 app.use(['/transactions', '/categories', '/members', '/sharing', '/budget-rules'], sessionAuth, userResolutionMiddleware, accountRateLimit(prisma));
 
+app.post('/transactions/:id/stop-recurrence', async (req, res, next) => {
+    try { await new FixedRecurrences(prisma).stop((req as any).internalUserId, pathParam(req, 'id')); res.json({success:true}); } catch (error) { next(error); }
+});
 app.post('/transactions', (req: express.Request, res: express.Response) => transactionController.handleCreate(req, res));
+const transactionQueries = new TransactionQueries(prisma);
+app.get('/transactions/page', async (req, res, next) => {
+    try {
+        if (typeof req.query.month !== 'string' || (req.query.cursor !== undefined && typeof req.query.cursor !== 'string')) return res.status(400).json({error:'Página inválida.'});
+        res.json(await transactionQueries.page((req as any).internalUserId, req.query.month, req.query.cursor));
+    } catch (error) { next(error); }
+});
+app.get('/transactions/annual', async (req, res, next) => {
+    try { res.json(await transactionQueries.annual((req as any).internalUserId, Number(req.query.year))); }
+    catch (error) { next(error); }
+});
 app.get('/transactions', (req: express.Request, res: express.Response) => transactionController.handleGet(req, res));
 app.put('/transactions/:id', (req: express.Request, res: express.Response) => transactionController.handleUpdate(req, res));
 app.delete('/transactions/:id', (req: express.Request, res: express.Response) => transactionController.handleDelete(req, res));

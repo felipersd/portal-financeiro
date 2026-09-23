@@ -62,7 +62,7 @@ const CategorySection = ({
 };
 
 export const TransactionList: React.FC = () => {
-    const { filteredTransactions, removeTransaction, members } = useFinance();
+    const { filteredTransactions, removeTransaction, stopRecurrence, members, isProcessing } = useFinance();
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
     if (filteredTransactions.length === 0) {
@@ -102,7 +102,8 @@ export const TransactionList: React.FC = () => {
                 <span className="text-secondary" style={{ fontSize: '0.875rem' }}>
                     {t.category}
                 </span>
-                {t.isShared && <ShareExpenseActions transactionId={t.id} memberIds={t.splitDetails?.splits.map(s => s.memberId) || []} />}
+                {t.isFixed && !t.readOnly && <button className="btn-secondary" disabled={isProcessing} onClick={() => { if (confirm('Encerrar esta conta fixa a partir deste mês, incluindo esta ocorrência? Meses anteriores serão preservados. Contas com aceite precisam ser preservadas.')) void stopRecurrence(t.id); }}>Encerrar recorrência</button>}
+                {t.isShared && <ShareExpenseActions sharedWith={t.sharedWith} transactionId={t.id} memberIds={t.splitDetails?.splits.map(s => s.memberId) || []} />}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: '1.125rem', color: t.type === 'income' ? 'var(--success)' : 'var(--text-primary)', textAlign: 'right' }}>
