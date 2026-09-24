@@ -31,7 +31,7 @@ const CategorySection = ({
             <button type="button" aria-expanded={isExpanded}
                 onClick={() => setIsExpanded(!isExpanded)}
                 style={{ 
-                    display: 'flex', width:'100%', background:'transparent', border:0, color:'inherit', 
+                    display: 'flex', width:'100%', background:'transparent', border:0, color:'inherit',
                     justifyContent: 'space-between', 
                     alignItems: 'center',
                     cursor: 'pointer',
