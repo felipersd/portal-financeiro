@@ -6,15 +6,13 @@ import { CategoryRepository } from '../../Domain/Interfaces/CategoryRepository';
 export class PrismaCategoryRepository implements CategoryRepository {
     constructor(private prisma: PrismaClient) { }
     async create(category: Category): Promise<Category> {
-        const data = await this.prisma.category.create({
-            data: {
-                id: category.id,
-                name: category.name,
-                type: category.type,
-                userId: category.userId,
-            },
+        return atomic(this.prisma, async tx => {
+            const existing=await tx.category.findFirst({where:{userId:category.userId,name:category.name,type:category.type},orderBy:{id:'asc'}});
+            if (existing) return new Category(existing.id,existing.name,existing.type as 'income'|'expense',existing.userId);
+            if (await tx.category.count({where:{userId:category.userId}})>=200) throw new FinanceError(400,'Limite de 200 categorias atingido.');
+            const data=await tx.category.create({data:category});
+            return new Category(data.id,data.name,data.type as 'income'|'expense',data.userId);
         });
-        return new Category(data.id, data.name, data.type as 'income' | 'expense', data.userId);
     }
     async findByUserId(userId: string): Promise<Category[]> {
         const categories = await this.prisma.category.findMany({

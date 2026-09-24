@@ -1,3 +1,4 @@
+import { cents } from '../utils/money';
 import { ShareExpenseActions } from './SharingCenter';
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
@@ -22,15 +23,15 @@ const CategorySection = ({
         const amount = t.isShared && t.type === 'expense' && t.splitDetails?.splits
             ? (t.splitDetails.splits.find(s => s.memberId === 'me')?.amount || 0)
             : t.amount;
-        return acc + amount;
+        return acc + cents(amount);
     }, 0);
 
     return (
         <div style={{ marginBottom: '1.5rem' }}>
-            <div 
+            <button type="button" aria-expanded={isExpanded}
                 onClick={() => setIsExpanded(!isExpanded)}
                 style={{ 
-                    display: 'flex', 
+                    display: 'flex', width:'100%', background:'transparent', border:0, color:'inherit', 
                     justifyContent: 'space-between', 
                     alignItems: 'center',
                     cursor: 'pointer',
@@ -41,16 +42,16 @@ const CategorySection = ({
                     transition: 'margin 0.2s'
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
                     {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                    <h4 style={{ fontSize: '1rem', margin: 0 }}>
+                    <span style={{ fontSize: '1rem', margin: 0 }}>
                         {category}
-                    </h4>
-                </div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: type === 'income' ? 'var(--success)' : 'var(--text-primary)' }}>
-                    {type === 'income' ? '+' : '-'} R$ {categoryTotal.toFixed(2)}
-                </div>
-            </div>
+                    </span>
+                </span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: type === 'income' ? 'var(--success)' : 'var(--text-primary)' }}>
+                    {type === 'income' ? '+' : '-'} R$ {(categoryTotal / 100).toFixed(2)}
+                </span>
+            </button>
             
             {isExpanded && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

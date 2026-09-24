@@ -14,6 +14,8 @@ import { createHash } from 'crypto';
 import { FixedRecurrences } from '../../Infrastructure/Database/FixedRecurrences';
 import { CreateTransaction } from './CreateTransaction';
 import { UpdateTransaction } from './UpdateTransaction';
+import { Category } from '../../Domain/Entities/Category';
+import { DeleteUserFinancialData } from './DeleteUserFinancialData';
 const suite = process.env.INTEGRATION_TESTS === '1' ? describe : describe.skip;
 suite('Financial integrity and monthly versions', () => {
  let db: ReturnType<typeof createDatabaseClient>;
@@ -30,6 +32,52 @@ suite('Financial integrity and monthly versions', () => {
   await db.requestBudget.deleteMany({where:{key:{in:['sharing','read','write'].map(scope=>createHash('sha256').update(`${scope}:${userId}`).digest('hex'))}}});
  });
  afterAll(async () => { await db.$disconnect(); });
+ it('makes simultaneous category creation idempotent and enforces the account limit', async () => {
+  const categories = new PrismaCategoryRepository(db);
+  const make = () => new Category(randomUUID(), 'Casa', 'expense', userId);
+  const [first, second] = await Promise.all([categories.create(make()), categories.create(make())]);
+  expect(first.id).toBe(second.id);
+  expect(await db.category.count({where:{userId}})).toBe(1);
+  await db.category.createMany({data:Array.from({length:199},(_,index)=>({userId,name:`Category ${index}`,type:'expense'}))});
+  expect((await categories.create(make())).id).toBe(first.id);
+  await expect(categories.create(new Category(randomUUID(),'Overflow','expense',userId))).rejects.toMatchObject({status:400});
+  expect(await db.category.count({where:{userId}})).toBe(200);
+ });
+ it('deletes the full account graph idempotently while preserving another account', async () => {
+  const otherUser = randomUUID();
+  const untouched = await db.category.create({data:{userId:otherUser,name:'Private',type:'expense'}});
+  try {
+   const member = await db.groupMember.create({data:{userId,name:'Friend',category:'Amigo'}});
+   const transaction = await new CreateTransaction(repository).execute({userId,description:'Fixed shared',amount:10,type:'expense',category:'Casa',
+    date:new Date('2026-01-01T00:00:00Z'),isShared:true,payer:'me',frequency:'fixed',
+    splitDetails:{splits:[{memberId:'me',amount:5},{memberId:member.id,amount:5}]}});
+   const connection = await db.memberConnection.create({data:{memberId:member.id,ownerId:userId,ownerName:'Owner',email:'fixture@example.invalid',recipientId:otherUser,status:'accepted',expiresAt:new Date('2027-01-01')}});
+   const share = await db.expenseShare.create({data:{transactionId:transaction.id,ownerId:userId,recipientId:otherUser,memberId:member.id,ownerName:'Owner',description:'Shared',amountCents:500,totalCents:1000,date:new Date(),status:'accepted'}});
+   const proposal = await db.shareProposal.create({data:{shareId:share.id,proposerId:userId,kind:'payment',amountCents:100,baseRevision:0}});
+   const budget = await new PrismaBudgetRuleRepository(db).create(new BudgetRule(randomUUID(),userId,'2026-01',[],{}));
+   const keys = ['read','write','sharing'].map(scope=>createHash('sha256').update(`${scope}:${userId}`).digest('hex'));
+   await db.requestBudget.createMany({data:keys.map(key=>({key,count:1,expiresAt:new Date()}))});
+   expect(await db.budgetRuleVersion.count({where:{ruleId:budget.id}})).toBeGreaterThan(0);
+   expect(await db.transactionSplit.count({where:{transactionId:transaction.id}})).toBe(2);
+   const wipe = new DeleteUserFinancialData(db);
+   await wipe.execute(userId);
+   await wipe.execute(userId);
+   expect(await db.transaction.count({where:{userId}})).toBe(0);
+   expect(await db.fixedRule.count({where:{userId}})).toBe(0);
+   expect(await db.transactionSplit.count({where:{transactionId:transaction.id}})).toBe(0);
+   expect(await db.memberConnection.findUnique({where:{id:connection.id}})).toBeNull();
+   expect(await db.expenseShare.findUnique({where:{id:share.id}})).toBeNull();
+   expect(await db.shareProposal.findUnique({where:{id:proposal.id}})).toBeNull();
+   expect(await db.budgetRuleVersion.count({where:{ruleId:budget.id}})).toBe(0);
+   expect(await db.requestBudget.count({where:{key:{in:keys}}})).toBe(0);
+   expect(await db.category.count({where:{userId}})).toBe(0);
+   expect(await db.groupMember.count({where:{userId}})).toBe(0);
+   expect(await db.category.findUnique({where:{id:untouched.id}})).not.toBeNull();
+  } finally {
+   await new DeleteUserFinancialData(db).execute(userId);
+   await db.category.deleteMany({where:{userId:otherUser}});
+  }
+ });
  it('stores decimal money and relational parts; rename preserves category references', async () => {
   const member = await db.groupMember.create({ data: { userId, name: 'Test', category: 'Amigo' } });
   const id = randomUUID();

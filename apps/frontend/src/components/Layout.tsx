@@ -142,7 +142,7 @@ export const Layout: React.FC = () => {
                                 className="show-mobile"
                                 style={{ position: 'relative', marginLeft: '0.25rem' }}
                             >
-                                <div
+                                <button type="button" aria-label="Abrir opções da conta" aria-expanded={isProfileMenuOpen}
                                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                                     style={{
                                         cursor: 'pointer',
@@ -160,7 +160,7 @@ export const Layout: React.FC = () => {
                                         alt="Avatar"
                                         style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'block', objectFit: 'cover' }}
                                     />
-                                </div>
+                                </button>
 
                                 {isProfileMenuOpen && (
                                     <>
@@ -290,7 +290,7 @@ export const Layout: React.FC = () => {
                     className={`nav-item-mobile ${currentView === 'members' ? 'active' : ''}`}
                 >
                     <Users size={24} />
-                    <span>Membros{sharing.connections.some(c => c.direction === 'incoming' && c.status === 'pending') || sharing.shares.some(s => s.direction === 'incoming' && s.status === 'pending') ? ' •' : ''}</span>
+                    <span>Membros{(sharing.attentionCount || 0) > 0 ? ' •' : ''}</span>
                 </button>
             </nav>
 

@@ -266,7 +266,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
                     <div className="form-group">
                         <label htmlFor="transaction-description">Descrição</label>
-                        <input id="transaction-description" autoFocus required minLength={2} maxLength={200} value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Mercado..." />
+                        <input id="transaction-description" required minLength={2} maxLength={200} value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Mercado..." />
                     </div>
 
                     <div className="form-group">
