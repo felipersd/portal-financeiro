@@ -11,7 +11,7 @@ export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE AWS_ACCESS_KEY_ID AWS_SECRET_ACCES
 : "${RESTIC_REPOSITORY:?}" "${RESTIC_PASSWORD_FILE:?}" "${AWS_ACCESS_KEY_ID:?}" "${AWS_SECRET_ACCESS_KEY:?}"
 [[ "$RESTIC_REPOSITORY" == s3:https://*.r2.cloudflarestorage.com/backup-financas/portal-financeiro/restic ]] || exit 1
 restic backup --stdin --stdin-filename database.dump --tag portal-financeiro --host portal-vps < "$DUMP"
-restic check --no-lock
+restic check
 restic forget --tag portal-financeiro --host portal-vps --keep-daily 14 --keep-weekly 8 --keep-monthly 12
 # Atomic success marker is only advanced after the remote archive has been checked.
 date -u +%s > "$ROOT/backups/offsite-last-success.tmp"

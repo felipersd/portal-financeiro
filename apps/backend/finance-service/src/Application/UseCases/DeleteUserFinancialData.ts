@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Logger } from '../../Infrastructure/Logger';
+import { createHash } from 'crypto';
 
 export class DeleteUserFinancialData {
     constructor(private prisma: PrismaClient) {}
@@ -14,6 +15,7 @@ export class DeleteUserFinancialData {
                 this.prisma.memberConnection.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
                 this.prisma.transaction.deleteMany({ where: { userId } }),
                 this.prisma.fixedRule.deleteMany({where:{userId}}),
+                this.prisma.requestBudget.deleteMany({where:{key:{in:['read','write','sharing'].map(scope=>createHash('sha256').update(`${scope}:${userId}`).digest('hex'))}}}),
                 this.prisma.category.deleteMany({ where: { userId } }),
                 this.prisma.groupMember.deleteMany({ where: { userId } }),
                 this.prisma.budgetRule.deleteMany({ where: { userId } })
