@@ -1,3 +1,4 @@
+import { pathParam } from './pathParam';
 import { Request, Response } from 'express';
 import { CreateTransaction } from '../../Application/UseCases/CreateTransaction';
 import { GetTransactions } from '../../Application/UseCases/GetTransactions';
@@ -45,13 +46,13 @@ export class TransactionController {
         if (!userId) { res.status(401).json({ error: 'Não autenticado.' }); return; }
         const parsed = transactionSchema.safeParse(req.body);
         if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0].message, details: parsed.error.issues }); return; }
-        try { res.json(await this.updateTransaction.execute(req.params.id, { ...parsed.data, userId, date: new Date(parsed.data.date) })); }
+        try { res.json(await this.updateTransaction.execute(pathParam(req, 'id'), { ...parsed.data, userId, date: new Date(parsed.data.date) })); }
         catch (error) { respondError(res, error); }
     }
     async handleDelete(req: Request, res: Response): Promise<void> {
         const userId = (req as any).internalUserId;
         if (!userId) { res.status(401).json({ error: 'Não autenticado.' }); return; }
-        try { await this.deleteTransaction.execute(req.params.id, userId); res.status(204).send(); }
+        try { await this.deleteTransaction.execute(pathParam(req, 'id'), userId); res.status(204).send(); }
         catch (error) { respondError(res, error); }
     }
 }

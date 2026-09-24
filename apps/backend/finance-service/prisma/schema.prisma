@@ -1,17 +1,16 @@
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  engineType = "client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Transaction {
   id          String   @id @default(uuid())
   description String
-  amount      Float
+  amount      Decimal @db.Decimal(16, 2)
   type        String   // 'income' | 'expense'
   category    String
   date        DateTime
@@ -20,19 +19,51 @@ model Transaction {
   payer       String   // 'me' | 'spouse'
   createdAt   DateTime @default(now())
   recurrenceId String?
+  fixedRuleId String?
+  fixedRule FixedRule? @relation(fields: [fixedRuleId], references: [id], onDelete: Restrict)
+  occurrenceMonth String?
+  deletedAt DateTime?
   splitDetails Json?
   
   userId      String   // Logical reference to IdentityService User
   shares      ExpenseShare[]
+  categoryId String?
+  categoryRef Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  splits TransactionSplit[]
+  @@index([categoryId])
 
   @@index([userId, date])
   @@index([userId, recurrenceId, date])
+  @@unique([fixedRuleId, occurrenceMonth])
+}
+
+model FixedRule {
+  id String @id
+  userId String
+  anchorDate DateTime
+  anchorDay Int
+  endMonth String?
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
+  @@index([userId])
+}
+
+model TransactionSplit {
+  transactionId String
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  participantKey String
+  memberId String?
+  member GroupMember? @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  amountCents Int
+  @@id([transactionId, participantKey])
+  @@index([memberId])
 }
 
 model Category {
   id   String @id @default(uuid())
   name String
   type String // 'income' | 'expense'
+  transactions Transaction[]
   
   userId String // Logical reference to IdentityService User
   @@index([userId])
@@ -47,6 +78,7 @@ model GroupMember {
   userId    String
   createdAt DateTime @default(now())
   connection MemberConnection?
+  splits TransactionSplit[]
   @@index([userId])
 }
 
@@ -80,6 +112,9 @@ model ExpenseShare {
   totalCents Int
   date DateTime
   paidByRecipient Boolean @default(false)
+  paidCents Int @default(0)
+  revision Int @default(0)
+  proposals ShareProposal[]
   status String @default("pending")
   createdAt DateTime @default(now())
   decidedAt DateTime?
@@ -94,9 +129,43 @@ model BudgetRule {
   userId     String   // Logical reference to User
   month      String   // Format: YYYY-MM
   divisions  Json     @default("[]") // Array of custom divisions
+  revision   Int      @default(0)
+  versions   BudgetRuleVersion[]
   mapping    Json     @default("{}") // e.g. { "Mercado": "divisionId_1" }
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@unique([userId, month])
+}
+
+model BudgetRuleVersion {
+  id String @id @default(uuid())
+  ruleId String
+  rule BudgetRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  revision Int
+  divisions Json
+  mapping Json
+  createdAt DateTime @default(now())
+  @@unique([ruleId, revision])
+}
+
+model RequestBudget {
+  key String @id
+  count Int
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+model ShareProposal {
+  id String @id @default(uuid())
+  shareId String
+  share ExpenseShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  proposerId String
+  kind String
+  amountCents Int
+  baseRevision Int
+  status String @default("pending")
+  createdAt DateTime @default(now())
+  decidedAt DateTime?
+  @@index([shareId, status])
 }

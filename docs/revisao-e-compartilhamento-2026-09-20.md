@@ -1,5 +1,7 @@
 # Revisão técnica e contas compartilhadas
 
+> Registro da versão 1.4.0. O estado atualizado dos débitos e das correções do PR #5 está em [Débitos técnicos — 24/09/2026](debitos-tecnicos-2026-09-24.md).
+
 ## Resultado proposto para 1.4.0
 
 Membros sem conta continuam disponíveis. Um membro com e-mail pode receber um convite **dentro do Portal**. A resposta não revela ao remetente se aquele e-mail já possui cadastro. O destinatário entra com esse e-mail principal verificado no Clerk e aceita ou recusa o vínculo. O convite vale sete dias; convites expirados podem ser renovados. Vínculos recusados ou encerrados não são reabertos automaticamente.

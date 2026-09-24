@@ -1,6 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { createDatabaseClient } from './src/Infrastructure/Database/createDatabaseClient';
 
-const prisma = new PrismaClient();
+if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DISPOSABLE_DATABASE_RESET !== 'yes') throw new Error('Reset is allowed only for an explicitly disposable database.');
+const prisma = createDatabaseClient();
 
 async function resetDb() {
     try {

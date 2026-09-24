@@ -13,6 +13,10 @@ export function summarize(transactions: Transaction[], members: GroupMember[]): 
             if (t.payer === 'me' && balances[split.memberId] !== undefined) balances[split.memberId] += cents(split.amount);
             else if (split.memberId === 'me' && balances[t.payer] !== undefined) balances[t.payer] -= cents(split.amount);
         }
+        for (const payment of t.settlements || []) {
+            if (t.payer === 'me' && balances[payment.memberId] !== undefined) balances[payment.memberId] -= cents(payment.paidAmount);
+            else if (t.payer === payment.memberId && balances[payment.memberId] !== undefined) balances[payment.memberId] += cents(payment.paidAmount);
+        }
     }
     return { totalIncome: income / 100, totalSpent: spent / 100, currentBalance: (income - spent) / 100,
         netBalance: Object.values(balances).reduce((sum, n) => sum + n, 0) / 100,

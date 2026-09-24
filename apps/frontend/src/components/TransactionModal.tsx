@@ -1,3 +1,4 @@
+import { useModalDialog } from '../hooks/useModalDialog';
 import { currency, splitEqually } from '../utils/money';
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, Repeat, Calendar } from 'lucide-react';
@@ -11,8 +12,9 @@ interface Props {
 }
 
 export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransaction }) => {
-    const { addTransaction, updateTransaction, categories, members, isProcessing } = useFinance();
+    const { addTransaction, updateTransaction, categories, members, isProcessing, requestError } = useFinance();
 
+    const dialogRef = useModalDialog(isOpen);
     const [type, setType] = useState<TransactionType>('expense');
     const [description, setDescription] = useState('');
     const [amountStr, setAmountStr] = useState('');
@@ -39,7 +41,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                 if (description !== editTransaction.description) setDescription(editTransaction.description);
 
                 setAmountStr(editTransaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-                setCategoryId(editTransaction.category);
+                setCategoryId(editTransaction.categoryId || categories.find(c => c.name === editTransaction.category && c.type === editTransaction.type)?.id || "");
                 setDate(new Date(editTransaction.date).toISOString().split('T')[0]);
                 setIsShared(editTransaction.isShared);
                 setPayer(editTransaction.payer);
@@ -182,7 +184,8 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             description,
             amount: totalAmount,
             type,
-            category: categoryId,
+            category: categories.find(c => c.id === categoryId)?.name || "",
+            categoryId,
             date: `${date}T12:00:00`,
             isShared: type === 'expense' ? isShared : false,
             payer: isShared && type === 'expense' ? payer : 'me',
@@ -221,7 +224,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
             zIndex: 1000, backdropFilter: 'blur(4px)', overflow: 'hidden',
             touchAction: 'none', overscrollBehavior: 'none'
         }}>
-            <div className="card" role="dialog" aria-modal="true" aria-labelledby="transaction-heading" style={{
+            <dialog ref={dialogRef} onCancel={e => { e.preventDefault(); onClose(); }} className="card native-modal" aria-labelledby="transaction-heading" style={{
                 width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto',
                 boxShadow: 'var(--shadow-lg)', touchAction: 'pan-y'
             }}>
@@ -263,7 +266,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
 
                     <div className="form-group">
                         <label htmlFor="transaction-description">Descrição</label>
-                        <input id="transaction-description" autoFocus required minLength={2} maxLength={200} value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Mercado..." />
+                        <input id="transaction-description" required minLength={2} maxLength={200} value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Mercado..." />
                     </div>
 
                     <div className="form-group">
@@ -276,7 +279,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         <select id="transaction-category" required value={categoryId} onChange={e => setCategoryId(e.target.value)}>
                             <option value="">Selecione...</option>
                             {filteredCategories.map(c => (
-                                <option key={c.id} value={c.name}>{c.name}</option>
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>
@@ -294,7 +297,7 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                                 <Calendar size={20} color="var(--text-secondary)" />
                             </div>
                             <input
-                                type="date"
+                                type="date" disabled={!!editTransaction?.isFixed}
                                 id="transaction-date"
                                 required
                                 value={date}
@@ -458,7 +461,8 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, editTransac
                         <button type="submit" disabled={isProcessing} className="btn-primary">Salvar</button>
                     </div>
                 </form>
-            </div>
+                {requestError && <p role="alert">{requestError}</p>}
+            </dialog>
         </div>
     );
 };

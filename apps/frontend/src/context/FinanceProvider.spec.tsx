@@ -24,7 +24,7 @@ describe('Account cache and write feedback', () => {
             if (options.method === 'DELETE') return new Response(JSON.stringify({ error: 'Conta aceita não pode ser excluída.' }), { status: 409 });
             let data: unknown = [];
             if (path === '/auth/me') data = { id: auth.user.id, name: auth.user.id, email: `${auth.user.id}@example.test` };
-            if (path.startsWith('/transactions')) data = [{ id: 'owned', description: 'Private', amount: 10, type: 'expense', date: '2026-09-20', userId: auth.user.id }];
+            if (path.startsWith('/transactions/page')) data = {items:[{ id: 'owned', description: 'Private', amount: 10, type: 'expense', date: '2026-09-20', userId: auth.user.id }], nextCursor:null};
             if (path.startsWith('/budget-rules')) data = { divisions: [], mapping: {} };
             if (path === '/sharing') data = { connections: [], shares: [] };
             return new Response(JSON.stringify(data), { status: 200 });
@@ -36,12 +36,14 @@ describe('Account cache and write feedback', () => {
         await screen.findByText('alice');
         fireEvent.click(screen.getByText('Set September'));
         await screen.findByText('Set October');
-        const txCalls = calls.filter(c => c.path === '/transactions?year=2026').length;
+        const annualCalls = calls.filter(c => c.path === '/transactions/annual?year=2026').length;
         fireEvent.click(screen.getByText('Set October'));
         await waitFor(() => expect(calls.some(c => c.path === '/budget-rules/2026-10')).toBe(true));
         expect(calls.filter(c => c.path === '/auth/me')).toHaveLength(1);
         expect(calls.filter(c => c.path === '/members')).toHaveLength(1);
-        expect(calls.filter(c => c.path === '/transactions?year=2026')).toHaveLength(txCalls);
+        expect(calls.filter(c => c.path === '/transactions/annual?year=2026')).toHaveLength(annualCalls);
+        expect(calls.some(c=>c.path === '/transactions/page?month=2026-10')).toBe(true);
+        expect(calls.some(c=>c.path.startsWith('/transactions?year='))).toBe(false);
     });
     it('retains the item and shows an error when deletion is rejected', async () => {
         render(<FinanceProvider><Probe /></FinanceProvider>);

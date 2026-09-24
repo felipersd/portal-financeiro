@@ -1,3 +1,4 @@
+import { ShareSettlement } from './ShareSettlement';
 import { useFinance } from '../context/FinanceContext';
 import { currency } from '../utils/money';
 import './sharing.css';
@@ -6,7 +7,7 @@ const labels: Record<string, string> = { pending: 'Aguardando aceite', accepted:
     revoked: 'Vínculo encerrado', expired: 'Convite expirado', cancelled: 'Cancelado' };
 
 export function SharingCenter() {
-    const { sharing, sharingError, isProcessing, decideConnection, decideShare, refreshSharing, members } = useFinance();
+    const { sharing, sharingError, isProcessing, decideConnection, decideShare, refreshSharing, members, hasMoreSharing, isLoadingMoreSharing, loadMoreSharing } = useFinance();
     const incoming = sharing.connections.filter(c => c.direction === 'incoming' && ['pending', 'accepted'].includes(c.status));
     const shares = sharing.shares;
     return <section className="sharing-center" aria-label="Convites e contas compartilhadas">
@@ -32,12 +33,14 @@ export function SharingCenter() {
                 <p><strong>{s.direction === 'incoming' ? 'Sua parte' : 'Parte do membro'}: {currency(s.amount)}</strong> · Total da conta: {currency(s.total)}</p>
                 {s.direction === 'incoming' && s.status === 'pending' && <p>{s.paidByRecipient ? 'Você foi indicado como pagador. Confira antes de aceitar.' : 'Confira o valor e a descrição antes de aceitar.'}</p>}
             </div>
+            {s.status === 'accepted' && <ShareSettlement share={s} />}
             {s.status === 'pending' && <div className="sharing-actions">
                 {s.direction === 'incoming' ? <><button className="btn-primary" disabled={isProcessing} onClick={() => void decideShare(s.id, 'accept')}>Aceitar conta</button>
                     <button className="btn-secondary" disabled={isProcessing} onClick={() => void decideShare(s.id, 'decline')}>Recusar conta</button></> :
                     <button className="btn-secondary" disabled={isProcessing} onClick={() => void decideShare(s.id, 'cancel')}>Cancelar envio</button>}
             </div>}
         </article>)}
+        {hasMoreSharing && <button className="btn-secondary" disabled={isLoadingMoreSharing} onClick={loadMoreSharing}>{isLoadingMoreSharing ? 'Carregando…' : 'Carregar mais convites e contas'}</button>}
     </section>;
 }
 
@@ -55,11 +58,11 @@ export function MemberConnectionActions({ memberId, email }: { memberId: string;
     </div>;
 }
 
-export function ShareExpenseActions({ transactionId, memberIds }: { transactionId: string; memberIds: string[] }) {
+export function ShareExpenseActions({ transactionId, memberIds, sharedWith }: { transactionId: string; memberIds: string[]; sharedWith?: Array<{memberId:string;status:string}> }) {
     const { sharing, members, shareExpense, isProcessing } = useFinance();
     const linked = sharing.connections.filter(c => c.direction === 'outgoing' && c.status === 'accepted' && c.memberId && memberIds.includes(c.memberId));
     return <div className="sharing-actions">{linked.map(c => {
-        const share = sharing.shares.find(s => s.transactionId === transactionId && s.memberId === c.memberId);
+        const share = sharedWith?.find(s => s.memberId === c.memberId) || sharing.shares.find(s => s.transactionId === transactionId && s.memberId === c.memberId);
         const name = members.find(m => m.id === c.memberId)?.name || 'membro';
         return share ? <span className="sharing-badge" key={c.id}>{name}: {labels[share.status]}</span> :
             <button key={c.id} className="btn-secondary" disabled={isProcessing} onClick={() => void shareExpense(transactionId, c.memberId!)}>Enviar para aceite de {name}</button>;

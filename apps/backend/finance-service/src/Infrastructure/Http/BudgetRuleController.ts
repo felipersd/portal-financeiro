@@ -1,3 +1,5 @@
+import { FinanceError } from '../../Domain/FinanceError';
+import { pathParam } from './pathParam';
 import { Request, Response } from 'express';
 import { GetBudgetRule } from '../../Application/UseCases/GetBudgetRule';
 import { UpdateBudgetRule } from '../../Application/UseCases/UpdateBudgetRule';
@@ -13,7 +15,7 @@ export class BudgetRuleController {
     async handleGet(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const month = req.params.month;
+            const month = pathParam(req, 'month');
 
             if (!month.match(/^(19|20|21|22)\d{2}-(0[1-9]|1[0-2])$/)) {
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM.' });
@@ -30,7 +32,7 @@ export class BudgetRuleController {
     async handleUpdate(req: Request, res: Response) {
         try {
             const userId = (req as any).internalUserId;
-            const month = req.params.month;
+            const month = pathParam(req, 'month');
             
             if (!month.match(/^(19|20|21|22)\d{2}-(0[1-9]|1[0-2])$/)) {
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM.' });
@@ -41,6 +43,7 @@ export class BudgetRuleController {
             const rule = await this.updateBudgetRule.execute(userId, month, parsed.data);
             res.json(rule);
         } catch (error: any) {
+            if (error instanceof FinanceError) return res.status(error.status).json({ error: error.message });
             Logger.error('Error updating budget rule', error);
             if (error.message === 'Rule not found for this month') {
                 return res.status(404).json({ error: error.message });

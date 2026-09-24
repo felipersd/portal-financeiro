@@ -1,3 +1,8 @@
+import { FixedRecurrences } from '../Infrastructure/Database/FixedRecurrences';
+import { TransactionQueries } from '../Infrastructure/Database/TransactionQueries';
+import { ShareLedger } from '../Application/UseCases/ShareLedger';
+import { accountRateLimit } from '../Infrastructure/Http/Middleware/AccountRateLimit';
+import { pathParam } from '../Infrastructure/Http/pathParam';
 import '../Infrastructure/Environment';
 import express from 'express';
 import { internalAuth } from '../Infrastructure/Http/Middleware/InternalAuthMiddleware';
@@ -25,7 +30,7 @@ dotenv.config();
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', 1);
+app.set('trust proxy', false);
 app.use(cors({
     origin: process.env.ALLOWED_ORIGIN || 'http://localhost:8080',
     credentials: true
@@ -88,7 +93,7 @@ const transactionController = new TransactionController(
 import { UpdateCategory } from '../Application/UseCases/UpdateCategory';
 
 // BudgetRule Dependencies
-const budgetRuleRepository = new PrismaBudgetRuleRepository();
+const budgetRuleRepository = new PrismaBudgetRuleRepository(prisma);
 
 // Category Dependencies
 const categoryRepository = new PrismaCategoryRepository(prisma);
@@ -119,29 +124,45 @@ const budgetRuleController = new BudgetRuleController(
     updateBudgetRuleUseCase
 );
 
-app.post('/transactions', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleCreate(req, res));
-app.get('/transactions', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleGet(req, res));
-app.put('/transactions/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleUpdate(req, res));
-app.delete('/transactions/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => transactionController.handleDelete(req, res));
+app.use(['/transactions', '/categories', '/members', '/sharing', '/budget-rules'], sessionAuth, userResolutionMiddleware, accountRateLimit(prisma));
 
-app.post('/categories', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleCreate(req, res));
-app.get('/categories', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => {
+app.post('/transactions/:id/stop-recurrence', async (req, res, next) => {
+    try { await new FixedRecurrences(prisma).stop((req as any).internalUserId, pathParam(req, 'id')); res.json({success:true}); } catch (error) { next(error); }
+});
+app.post('/transactions', (req: express.Request, res: express.Response) => transactionController.handleCreate(req, res));
+const transactionQueries = new TransactionQueries(prisma);
+app.get('/transactions/page', async (req, res, next) => {
+    try {
+        if (typeof req.query.month !== 'string' || (req.query.cursor !== undefined && typeof req.query.cursor !== 'string')) return res.status(400).json({error:'Página inválida.'});
+        res.json(await transactionQueries.page((req as any).internalUserId, req.query.month, req.query.cursor));
+    } catch (error) { next(error); }
+});
+app.get('/transactions/annual', async (req, res, next) => {
+    try { res.json(await transactionQueries.annual((req as any).internalUserId, Number(req.query.year))); }
+    catch (error) { next(error); }
+});
+app.get('/transactions', (req: express.Request, res: express.Response) => transactionController.handleGet(req, res));
+app.put('/transactions/:id', (req: express.Request, res: express.Response) => transactionController.handleUpdate(req, res));
+app.delete('/transactions/:id', (req: express.Request, res: express.Response) => transactionController.handleDelete(req, res));
+
+app.post('/categories', (req: express.Request, res: express.Response) => categoryController.handleCreate(req, res));
+app.get('/categories', (req: express.Request, res: express.Response) => {
     return categoryController.handleGet(req, res);
 });
-app.put('/categories/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleUpdate(req, res));
-app.delete('/categories/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => categoryController.handleDelete(req, res));
+app.put('/categories/:id', (req: express.Request, res: express.Response) => categoryController.handleUpdate(req, res));
+app.delete('/categories/:id', (req: express.Request, res: express.Response) => categoryController.handleDelete(req, res));
 
-app.post('/members', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleCreate(req, res));
-app.get('/members', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => {
+app.post('/members', (req: express.Request, res: express.Response) => groupMemberController.handleCreate(req, res));
+app.get('/members', (req: express.Request, res: express.Response) => {
     return groupMemberController.handleGet(req, res);
 });
-app.put('/members/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleUpdate(req, res));
-app.delete('/members/:id', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => groupMemberController.handleDelete(req, res));
+app.put('/members/:id', (req: express.Request, res: express.Response) => groupMemberController.handleUpdate(req, res));
+app.delete('/members/:id', (req: express.Request, res: express.Response) => groupMemberController.handleDelete(req, res));
 
-app.use('/sharing', sessionAuth, userResolutionMiddleware, sharingRouter(new SharingService(prisma)));
+app.use('/sharing', sharingRouter(new SharingService(prisma), new ShareLedger(prisma)));
 
-app.get('/budget-rules/:month', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => budgetRuleController.handleGet(req, res));
-app.put('/budget-rules/:month', sessionAuth, userResolutionMiddleware, (req: express.Request, res: express.Response) => budgetRuleController.handleUpdate(req, res));
+app.get('/budget-rules/:month', (req: express.Request, res: express.Response) => budgetRuleController.handleGet(req, res));
+app.put('/budget-rules/:month', (req: express.Request, res: express.Response) => budgetRuleController.handleUpdate(req, res));
 
 app.get('/health', async (req: express.Request, res: express.Response) => {
     try {
@@ -158,7 +179,7 @@ const deleteUserFinancialData = new DeleteUserFinancialData(prisma);
 
 app.post('/internal/users/:userId/seed', internalAuth, async (req: express.Request, res: express.Response) => {
     try {
-        const userId = req.params.userId;
+        const userId = pathParam(req, 'userId');
         if (!userId) return res.status(400).json({ error: 'userId is required' });
         
         await seedCategories.execute(userId);
@@ -171,7 +192,7 @@ app.post('/internal/users/:userId/seed', internalAuth, async (req: express.Reque
 
 app.delete('/internal/users/:userId/delete', internalAuth, async (req: express.Request, res: express.Response) => {
     try {
-        const userId = req.params.userId;
+        const userId = pathParam(req, 'userId');
         if (!userId) return res.status(400).json({ error: 'userId is required' });
         
         await deleteUserFinancialData.execute(userId);

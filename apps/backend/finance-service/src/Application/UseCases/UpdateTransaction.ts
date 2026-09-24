@@ -1,5 +1,6 @@
 import { Transaction } from '../../Domain/Entities/Transaction';
 import { TransactionRepository } from '../../Domain/Interfaces/TransactionRepository';
+import { FinanceError } from '../../Domain/FinanceError';
 
 export class UpdateTransaction {
     constructor(private transactionRepository: TransactionRepository) { }
@@ -9,6 +10,7 @@ export class UpdateTransaction {
         amount: number;
         type: 'income' | 'expense';
         category: string;
+        categoryId?: string;
         date: Date;
         isShared: boolean;
         payer: string;
@@ -22,6 +24,9 @@ export class UpdateTransaction {
 
         if (transaction.userId !== data.userId) {
             throw new Error('Unauthorized');
+        }
+        if (transaction.isFixed && transaction.date.toISOString().slice(0,10) !== data.date.toISOString().slice(0,10)) {
+            throw new FinanceError(400, 'Para mudar o dia de uma conta fixa, encerre esta recorrência e crie outra.');
         }
 
         // Create a new instance with updated values (or update the existing one)
@@ -40,7 +45,7 @@ export class UpdateTransaction {
             transaction.createdAt,
             transaction.recurrenceId,
             data.splitDetails,
-            transaction.isFixed
+            transaction.isFixed, data.categoryId
         );
 
         const changes = [updatedTransaction];
@@ -61,7 +66,7 @@ export class UpdateTransaction {
                     f.createdAt,
                     f.recurrenceId,
                     data.splitDetails,
-                    f.isFixed
+                    f.isFixed, data.categoryId
                 );
             });
             changes.push(...toUpdate);

@@ -42,6 +42,14 @@ describe('CreateTransaction', () => {
         expect(result.description).toBe('Test');
         expect(mockTransactionRepository.createMany).toHaveBeenCalledTimes(1);
     });
+    it('creates only one seed occurrence for a fixed rule instead of ten years of rows', async () => {
+        await useCase.execute({description:'Rent',amount:100,type:'expense',category:'Casa',date:new Date('2026-09-23'),
+            isShared:false,payer:'me',userId:'user-1',frequency:'fixed'});
+        const saved: Transaction[] = mockTransactionRepository.createMany.mock.calls[0][0];
+        expect(saved).toHaveLength(1);
+        expect(saved[0].isFixed).toBe(true);
+        expect(saved[0].recurrenceId).toBeTruthy();
+    });
 
     it('should create recurring transactions', async () => {
         const data = {

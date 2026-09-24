@@ -4,7 +4,7 @@ import { CategoryRepository } from '../../Domain/Interfaces/CategoryRepository';
 export class UpdateCategory {
     constructor(private repository: CategoryRepository) { }
 
-    async execute(id: string, name: string, userId: string): Promise<Category> {
+    async execute(id: string, name: string, userId: string, type?: 'income' | 'expense'): Promise<Category> {
         const category = await this.repository.findById(id);
         
         if (!category) {
@@ -15,6 +15,6 @@ export class UpdateCategory {
             throw new Error('Unauthorized');
         }
 
-        return await this.repository.update(id, name);
+        return await this.repository.update(id, name, type);
     }
 }

@@ -11,7 +11,8 @@ export class BudgetRule {
         public readonly userId: string,
         public readonly month: string,
         public divisions: BudgetDivision[],
-        public mapping: Record<string, string> // categoryName -> divisionId
+        public mapping: Record<string, string>, // categoryId -> divisionId
+        public readonly revision: number = 0
     ) {
         this.validate();
     }

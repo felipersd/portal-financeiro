@@ -12,6 +12,7 @@ export class Transaction {
         public readonly createdAt: Date,
         public readonly recurrenceId?: string | null,
         public readonly splitDetails?: any | null,
-        public readonly isFixed: boolean = false
+        public readonly isFixed: boolean = false,
+        public readonly categoryId?: string
     ) { }
 }

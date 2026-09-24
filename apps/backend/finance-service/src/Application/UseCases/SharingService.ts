@@ -9,18 +9,33 @@ const notFound = () => new FinanceError(404, 'Convite ou conta não encontrado.'
 export class SharingService {
     constructor(private db: PrismaClient) {}
 
-    async list(actor: SharingActor) {
-        const [connections, shares] = await Promise.all([
-            this.db.memberConnection.findMany({
-                where: { OR: [{ ownerId: actor.id }, { recipientId: actor.id }, { email: actor.email, status: 'pending', expiresAt: { gt: new Date() } }] },
-                orderBy: { createdAt: 'desc' }, take: 200,
-            }),
-            this.db.expenseShare.findMany({
-                where: { OR: [{ ownerId: actor.id }, { recipientId: actor.id }] }, orderBy: { createdAt: 'desc' }, take: 200,
-            }),
+    async list(actor: SharingActor, page: { connections?: string; shares?: string } = {}) {
+        const incoming = { ownerId: { not: actor.id }, OR: [{ recipientId: actor.id }, { email: actor.email, status: 'pending', expiresAt: { gt: new Date() } }] };
+        const visibleShares = { OR: [{ ownerId: actor.id }, { recipientId: actor.id }] };
+        if (page.connections && page.connections !== 'end' && !await this.db.memberConnection.findFirst({ where: { ...incoming, id: page.connections }, select: { id: true } })) throw new FinanceError(400, 'Página inválida.');
+        if (page.shares && page.shares !== 'end' && !await this.db.expenseShare.findFirst({ where: { ...visibleShares, id: page.shares }, select: { id: true } })) throw new FinanceError(400, 'Página inválida.');
+        const [outgoing, connectionRows, shareRows, pendingLinks, pendingShares, pendingProposals] = await Promise.all([
+            !page.connections ? this.db.memberConnection.findMany({ where: { ownerId: actor.id }, orderBy: { id: 'asc' } }) : [],
+            page.connections === 'end' ? [] : this.db.memberConnection.findMany({ where: incoming,
+                orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 51,
+                ...(page.connections ? { cursor: { id: page.connections }, skip: 1 } : {}) }),
+            page.shares === 'end' ? [] : this.db.expenseShare.findMany({
+                include: { transaction: { include: { splits: true } }, proposals: { where: { status: 'pending' }, take: 1 } },
+                where: visibleShares, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 51,
+                ...(page.shares ? { cursor: { id: page.shares }, skip: 1 } : {}) }),
+            this.db.memberConnection.count({ where: { ...incoming, status: 'pending', expiresAt: { gt: new Date() } } }),
+            this.db.expenseShare.count({ where: { recipientId: actor.id, status: 'pending' } }),
+            this.db.shareProposal.count({ where: { status: 'pending', proposerId: { not: actor.id }, share: visibleShares } }),
         ]);
+        const connections = [...outgoing, ...connectionRows.slice(0, 50)];
+        const shares = shareRows.slice(0, 50);
         // Do not expose internal recipient ids, or another person's private member record.
         return {
+            nextCursor: connectionRows.length > 50 || shareRows.length > 50 ? {
+                connections: connectionRows.length > 50 ? connectionRows[49].id : 'end',
+                shares: shareRows.length > 50 ? shareRows[49].id : 'end',
+            } : null,
+            attentionCount: pendingLinks + pendingShares + pendingProposals,
             connections: connections.map(c => ({ id: c.id, memberId: c.ownerId === actor.id ? c.memberId : undefined,
                 ownerName: c.ownerName, email: c.ownerId === actor.id ? c.email : undefined,
                 status: c.status === 'pending' && c.expiresAt <= new Date() ? 'expired' : c.status,
@@ -29,7 +44,13 @@ export class SharingService {
                 memberId: s.ownerId === actor.id ? s.memberId : undefined, ownerName: s.ownerName,
                 description: s.description, amount: s.amountCents / 100, total: s.totalCents / 100,
                 date: s.date, paidByRecipient: s.paidByRecipient, status: s.status,
-                direction: s.ownerId === actor.id ? 'outgoing' : 'incoming' })),
+                direction: s.ownerId === actor.id ? 'outgoing' : 'incoming',
+                paidAmount: s.paidCents / 100,
+                settlementAmount: (s.transaction.payer === 'me' ? s.amountCents : s.transaction.payer === s.memberId ? s.transaction.splits.find(p => p.participantKey === 'me')?.amountCents || 0 : 0) / 100,
+                canAdjust: ['me', s.memberId].includes(s.transaction.payer),
+                debtor: s.transaction.payer === 'me' ? (s.ownerId === actor.id ? 'other' : 'me') : s.transaction.payer === s.memberId ? (s.ownerId === actor.id ? 'me' : 'other') : 'thirdParty',
+                proposal: s.proposals[0] ? { id: s.proposals[0].id, kind: s.proposals[0].kind, amount: s.proposals[0].amountCents / 100,
+                    proposedByMe: s.proposals[0].proposerId === actor.id } : null })),
         };
     }
 
@@ -82,9 +103,9 @@ export class SharingService {
         return atomic(this.db, async tx => {
             const link = await tx.memberConnection.findFirst({ where: { memberId, ownerId: actor.id, status: 'accepted' } });
             if (!link?.recipientId) throw new FinanceError(409, 'O membro precisa aceitar o vínculo antes de receber contas.');
-            const source = await tx.transaction.findFirst({ where: { id: transactionId, userId: actor.id } });
+            const source = await tx.transaction.findFirst({ where: { id: transactionId, userId: actor.id, deletedAt:null }, include: { splits: true } });
             if (!source) throw notFound();
-            const parsed = transactionSchema.safeParse({ ...source, date: source.date.toISOString() });
+            const parsed = transactionSchema.safeParse({ ...source, amount: Number(source.amount), splitDetails: { splits: source.splits.map(s => ({ memberId: s.participantKey, amount: s.amountCents / 100 })) }, date: source.date.toISOString() });
             if (!parsed.success || !source.isShared) throw new FinanceError(400, 'Revise os valores da divisão antes de compartilhar.');
             const split = parsed.data.splitDetails?.splits.find(s => s.memberId === memberId);
             if (!split || split.amount <= 0) throw new FinanceError(400, 'Este membro não possui uma parte nesta conta.');
@@ -93,7 +114,7 @@ export class SharingService {
             if (prior) return { id: prior.id, status: prior.status };
             const result = await tx.expenseShare.create({ data: { transactionId, memberId, ownerId: actor.id,
                 recipientId: link.recipientId, ownerName: actor.name, description: source.description,
-                amountCents: Math.round(split.amount * 100), totalCents: Math.round(source.amount * 100),
+                amountCents: Math.round(split.amount * 100), totalCents: Number(source.amount.mul(100)),
                 date: source.date, paidByRecipient: source.payer === memberId } });
             return { id: result.id, status: result.status };
         });

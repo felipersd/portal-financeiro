@@ -8,7 +8,8 @@ import { AdBanner } from './AdBanner';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 export const Dashboard: React.FC = () => {
-    const { filteredTransactions, transactions, getSummary, selectedDate } = useFinance();
+    const { filteredTransactions, annualTotals, getSummary, selectedDate } = useFinance();
+    const currentYear = selectedDate.getFullYear();
     const summary = getSummary();
 
     const balanceText = summary.netBalance === 0
@@ -45,26 +46,7 @@ export const Dashboard: React.FC = () => {
         ],
     };
 
-    // Annual History Data (All Transactions)
-    const currentYear = selectedDate.getFullYear();
-    const monthlyData = Array(12).fill(0).map((_, i) => {
-        const monthTransactions = transactions.filter(t => {
-            const d = new Date(t.date);
-            return d.getMonth() === i && d.getFullYear() === currentYear;
-        });
-
-        const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-        const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => {
-            let amount = t.amount;
-            if (t.isShared && t.type === 'expense' && t.splitDetails?.splits) {
-                const meSplit = t.splitDetails.splits.find(s => s.memberId === 'me');
-                amount = meSplit ? meSplit.amount : 0;
-            }
-            return acc + amount;
-        }, 0);
-
-        return { income, expense };
-    });
+    const monthlyData = annualTotals;
 
     const barData = {
         labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],

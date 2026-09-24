@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient, useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import { FinanceContext } from './FinanceContext';
 import { Login } from '../components/Login';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { summarize } from '../utils/summary';
-import type { User, Transaction, Category, GroupMember, BudgetRule, SharingState } from '../types';
+import type { User, Transaction, Category, GroupMember, BudgetRule, SharingState, ShareHistoryPage, AnnualTotal } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 class ApiError extends Error {
@@ -52,11 +52,28 @@ const FinanceData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
     const profile = useQuery({ queryKey: ['profile'], queryFn: ({ signal }) => api<User>('/auth/me', { signal }), staleTime: 300000 });
     const enabled = profile.isSuccess;
-    const txQuery = useQuery({ queryKey: ['transactions', year], queryFn: ({ signal }) => api<Transaction[]>(`/transactions?year=${year}`, { signal }), enabled });
+    const txQuery = useQuery({ queryKey: ['transactions', 'month', month], queryFn: async ({ signal }) => {
+        const items = new Map<string, Transaction>();
+        let cursor: string | null = null;
+        const seen = new Set<string>();
+        do {
+            const page: {items:Transaction[];nextCursor:string|null} = await api(`/transactions/page?month=${month}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, {signal});
+            for (const item of page.items) items.set(item.id, item);
+            cursor = page.nextCursor;
+            if (cursor && seen.has(cursor)) throw new Error('Não foi possível concluir a leitura dos lançamentos.');
+            if (cursor) seen.add(cursor);
+        } while (cursor);
+        // Publish totals only after the entire selected month has loaded, never from a partial page.
+        return [...items.values()];
+    }, enabled });
+    const annualQuery = useQuery({queryKey:['transactions','annual',year], queryFn:({signal}) => api<AnnualTotal[]>(`/transactions/annual?year=${year}`,{signal}), enabled});
     const catQuery = useQuery({ queryKey: ['categories'], queryFn: ({ signal }) => api<Category[]>('/categories', { signal }), enabled });
     const memberQuery = useQuery({ queryKey: ['members'], queryFn: ({ signal }) => api<GroupMember[]>('/members', { signal }), enabled });
     const budgetQuery = useQuery({ queryKey: ['budget', month], queryFn: ({ signal }) => api<BudgetRule>(`/budget-rules/${month}`, { signal }), enabled });
-    const sharingQuery = useQuery({ queryKey: ['sharing'], queryFn: ({ signal }) => api<SharingState>('/sharing', { signal }), enabled, refetchInterval: 60000 });
+    const sharingQuery = useInfiniteQuery({ queryKey: ['sharing'],
+        initialPageParam: undefined as SharingState['nextCursor'],
+        queryFn: ({ signal, pageParam }) => api<SharingState>(`/sharing${pageParam ? `?connections=${pageParam.connections}&shares=${pageParam.shares}` : ''}`, { signal }),
+        getNextPageParam: lastPage => lastPage.nextCursor || undefined, enabled, refetchInterval: 60000 });
     const mutation = useMutation({ mutationFn: (input: { path: string; method: string; body?: unknown }) =>
         api(input.path, { method: input.method, body: input.body === undefined ? undefined : JSON.stringify(input.body) }) });
 
@@ -77,35 +94,41 @@ const FinanceData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const categories = catQuery.data || [];
     const members = memberQuery.data || [];
     const filteredTransactions = transactions.filter(t => t.date.slice(0, 7) === month);
-    const queries = [profile, txQuery, catQuery, memberQuery, budgetQuery];
+    const queries = [profile, txQuery, annualQuery, catQuery, memberQuery, budgetQuery];
     const initialError = queries.find(q => q.isError && q.data === undefined);
     const refreshError = queries.find(q => q.isError && q.data !== undefined);
     if (initialError) return <main className="card" role="alert"><h2>Não foi possível carregar suas finanças</h2>
         <p>{initialError.error?.message}</p><button className="btn-primary" onClick={() => void client.refetchQueries()}>Tentar novamente</button>
         <button className="btn-secondary" onClick={() => { client.clear(); void signOut(); }}>Sair</button></main>;
-    if (profile.isPending || txQuery.isPending || catQuery.isPending || memberQuery.isPending || budgetQuery.isPending) return <LoadingScreen />;
+    if (profile.isPending || txQuery.isPending || annualQuery.isPending || catQuery.isPending || memberQuery.isPending || budgetQuery.isPending) return <LoadingScreen />;
     return <FinanceContext.Provider value={{
-        user: profile.data || null, transactions, filteredTransactions, categories, members, selectedDate, setSelectedDate,
+        annualTotals: annualQuery.data || [], requestError: errorMessage, user: profile.data || null, transactions, filteredTransactions, categories, members, selectedDate, setSelectedDate,
         budgetRule: budgetQuery.data || null,
         getSummary: () => summarize(filteredTransactions, members),
         addTransaction: t => write('/transactions', 'POST', t, ['transactions', 'sharing']),
         updateTransaction: (id, t) => write(`/transactions/${id}`, 'PUT', t, ['transactions']),
+        stopRecurrence: id => write(`/transactions/${id}/stop-recurrence`, 'POST', undefined, ['transactions','sharing']),
         removeTransaction: id => write(`/transactions/${id}`, 'DELETE', undefined, ['transactions', 'sharing']),
         addCategory: (name, type) => write('/categories', 'POST', { name, type }, ['categories']),
-        updateCategory: (id, name, type) => write(`/categories/${id}`, 'PUT', { name, type }, ['categories']),
+        updateCategory: (id, name, type) => write(`/categories/${id}`, 'PUT', { name, type }, ['categories', 'transactions', 'budget']),
         removeCategory: id => write(`/categories/${id}`, 'DELETE', undefined, ['categories']),
         addMember: (name, surname, email, category) => write('/members', 'POST', { name, surname, email, category }, ['members']),
         updateMember: (id, name, surname, email, category) => write(`/members/${id}`, 'PUT', { name, surname, email, category }, ['members']),
         removeMember: id => write(`/members/${id}`, 'DELETE', undefined, ['members', 'sharing']),
         fetchBudgetRule: async () => { await client.invalidateQueries({ queryKey: ['budget'] }); return true; },
-        updateBudgetRule: (period, data) => write(`/budget-rules/${period}`, 'PUT', data, ['budget']),
-        sharing: sharingQuery.data || { connections: [], shares: [] },
+        updateBudgetRule: (period, data) => write(`/budget-rules/${period}`, 'PUT', { ...data, revision: budgetQuery.data?.revision }, ['budget']),
+        sharing: { connections: sharingQuery.data?.pages.flatMap(p => p.connections) || [], shares: sharingQuery.data?.pages.flatMap(p => p.shares) || [], attentionCount: sharingQuery.data?.pages[0]?.attentionCount || 0 },
+        hasMoreSharing: sharingQuery.hasNextPage, isLoadingMoreSharing: sharingQuery.isFetchingNextPage,
+        loadMoreSharing: () => { if (!sharingQuery.isFetching) void sharingQuery.fetchNextPage(); },
         sharingError: sharingQuery.error?.message || null,
         isProcessing: mutation.isPending,
         inviteMember: memberId => write('/sharing/connections', 'POST', { memberId }, ['sharing']),
         decideConnection: (id, action) => write(`/sharing/connections/${id}/${action}`, 'POST', undefined, ['sharing']),
-        shareExpense: (id, memberId) => write(`/sharing/transactions/${id}`, 'POST', { memberId }, ['sharing']),
+        shareExpense: (id, memberId) => write(`/sharing/transactions/${id}`, 'POST', { memberId }, ['sharing', 'transactions']),
         decideShare: (id, action) => write(`/sharing/expenses/${id}/${action}`, 'POST', undefined, ['sharing', 'transactions']),
+        proposeShareChange: (id, kind, amount) => write(`/sharing/expenses/${id}/proposals`, 'POST', {kind,amount}, ['sharing']),
+        decideProposal: (id, action) => write(`/sharing/proposals/${id}/${action}`, 'POST', undefined, ['sharing','transactions']),
+        getShareHistory: (id, cursor) => api<ShareHistoryPage>(`/sharing/expenses/${id}/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
         refreshSharing: () => { void client.invalidateQueries({ queryKey: ['sharing'] }); void client.invalidateQueries({ queryKey: ['transactions'] }); },
         logout: () => { client.clear(); void signOut(); },
     }}>

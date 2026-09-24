@@ -17,3 +17,4 @@
 .operation-status { position: fixed; top: 0.5rem; right: 1rem; z-index: 10000; background: var(--bg-card); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 1rem; }
 button:disabled { cursor: wait; opacity: 0.6; }
 @media(max-width: 640px) { .sharing-heading, .sharing-item { flex-direction: column; } .sharing-actions { width: 100%; } .sharing-actions button { flex: 1; } }
+.share-settlement { min-width: 0; width: min(100%, 320px); } .share-settlement summary { cursor: pointer; padding: .75rem 0; } .share-settlement form { display: grid; gap: .5rem; margin: .75rem 0; } .share-settlement > button { margin-top: .75rem; }

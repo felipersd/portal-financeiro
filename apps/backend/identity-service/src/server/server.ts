@@ -1,9 +1,10 @@
+import { internalAuth } from '../Infrastructure/Http/Middleware/InternalAuthMiddleware';
 import '../Infrastructure/Environment';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
-import { PrismaClient } from '@prisma/client';
+import { createDatabaseClient } from '../Infrastructure/Database/createDatabaseClient';
 import { sessionAuth } from '../Infrastructure/Http/Middleware/SessionAuth';
 import { PrismaUserRepository } from '../Infrastructure/Database/PrismaUserRepository';
 import { GetOrCreateUser } from '../Application/UseCases/GetOrCreateUser';
@@ -15,7 +16,7 @@ dotenv.config();
 
 const app = express();
 
-app.set('trust proxy', 1);
+app.set('trust proxy', false);
 app.disable('x-powered-by');
 
 app.use(cors({
@@ -24,7 +25,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'svix-id', 'svix-timestamp', 'svix-signature']
 }));
 
-const prisma = new PrismaClient();
+const prisma = createDatabaseClient();
 const userRepository = new PrismaUserRepository(prisma);
 const getOrCreateUser = new GetOrCreateUser(userRepository);
 const deleteUserAccount = new DeleteUserAccount(userRepository);
@@ -35,12 +36,20 @@ const webhookController = new WebhookController(deleteUserAccount);
 // Rota de Webhook DEVE vir antes do express.json() para retermos o "Raw Body" nativo do Buffer exigido pelo Svix
 app.post('/auth/webhooks', express.raw({ type: 'application/json' }), (req: express.Request, res: express.Response) => webhookController.handle(req, res));
 
-app.use(express.json());
+app.use(express.json({ limit: '64kb' }));
+app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.use(cookieParser());
 
 // Identity fields come exclusively from a verified Clerk session.
 app.get('/auth/me', sessionAuth, (req: express.Request, res: express.Response) => authController.me(req, res));
 
+app.post('/internal/identities/resolve', internalAuth, async (req: express.Request, res: express.Response) => {
+    const clerkId = req.body?.clerkId;
+    if (typeof clerkId !== 'string' || clerkId.length > 255 || !clerkId.startsWith('user_')) return res.status(400).json({ error: 'Invalid identity' });
+    const user = await userRepository.findByProviderId('clerk', clerkId);
+    if (!user) return res.status(404).json({ error: 'Identity not found' });
+    res.json({ id: user.id });
+});
 app.get('/health', async (req: express.Request, res: express.Response) => {
     try {
         await prisma.$queryRaw`SELECT 1`;
