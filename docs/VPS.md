@@ -50,17 +50,17 @@ Uma VPS com Compose permite operação simples e reproduzível, mas não oferece
 
 As credenciais que já estiveram em commits antigos precisam de rotação no provedor; retirar arquivos da árvore atual não apaga o histórico. Auditorias bloqueiam vulnerabilidades altas/críticas. As correções de dependências e o estado das pendências estão no [registro de débitos de 24/09/2026](debitos-tecnicos-2026-09-24.md).
 
-## Backup externo preparado no PR #5
+## Backup externo R2
 
-O webhook Clerk de exclusão já foi ativado e recebeu uma entrega assinada com HTTP 200. Os scripts de R2 abaixo ainda exigem configuração; a presença dos arquivos no repositório não significa que o backup externo esteja funcionando.
+O webhook Clerk de exclusão já foi ativado e recebeu uma entrega assinada com HTTP 200. O backup R2 e a restauração remota foram ativados e verificados em 24/09/2026, depois da publicação de 1.5.0. Consulte [evidências e recuperação](backup-r2.md). Os passos abaixo descrevem a configuração para manutenção/reinstalação.
 
 1. Criar uma credencial R2 de objetos com leitura/escrita apenas em `backup-financas`, restrita ao IP da VPS. Usar o prefixo dedicado `portal-financeiro/restic`.
-2. Instalar `restic` pelo repositório oficial do sistema. Configurar `/srv/portal-financeiro/secrets/restic.env` conforme `deploy/restic.env.example`, proprietário `portal`, modo `0600`. Manter a senha de criptografia em arquivo privado separado e guardar uma cópia de recuperação fora da VPS; sem essa senha os arquivos externos são irrecuperáveis.
-3. Como `portal`, carregar as variáveis do arquivo e inicializar o repositório com `restic init` somente se ele ainda não existir. Nunca registrar credenciais no terminal, histórico Git ou logs.
-4. Instalar `backup.sh`, `offsite-backup.sh` e `restore-check.sh` em `/srv/portal-financeiro`. Executar o backup e depois a restauração isolada; ambos devem concluir com sucesso antes da migração da aplicação.
+2. Configurar `/srv/portal-financeiro/secrets/restic.env` conforme `deploy/restic.env.example`, proprietário `portal`, modo `0600`. Manter a senha de criptografia em arquivo privado separado e guardar uma cópia de recuperação fora da VPS; sem essa senha os arquivos externos são irrecuperáveis.
+3. Instalar `restic.sh`: ele executa a imagem oficial fixada por digest em container com saída IPv4, preservando a restrição de IP do token. Como `portal`, executar `bash /srv/portal-financeiro/restic.sh init` somente se o repositório ainda não existir. Nunca registrar credenciais no terminal, histórico Git ou logs.
+4. Instalar `backup.sh`, `offsite-backup.sh`, `restore-check.sh` e `restic.sh` em `/srv/portal-financeiro`. Executar o backup e depois a restauração isolada; ambos devem concluir com sucesso antes da migração da aplicação. O script de release também verifica no R2 o dump anterior à migração e atualiza os scripts operacionais após a publicação.
 5. Instalar/habilitar os serviços e timers de backup/restauração fornecidos em `deploy`. O backup mantém 14 diários, 8 semanais e 12 mensais; a restauração semanal também recupera espaço com `prune` após sucesso.
 6. Conferir `/srv/portal-financeiro/backups/offsite-last-success` e `restore-last-success`. O monitor no GitHub exige cópia externa com menos de 26 horas e restauração com menos de 8 dias. Integrá-lo somente depois desses testes reais.
 
-`restore-check.sh` restaura em um container PostgreSQL descartável sem rede, portas ou volumes de produção. O teste local de 24/09 comprovou a recuperação do dump disponível, mas o teste remoto com R2 continua pendente. Após a migração do contrato 2, o rollback para 1.4.0 é bloqueado; consulte o registro de débitos antes de publicar.
+`restore-check.sh` restaura em um container PostgreSQL descartável sem rede, portas ou volumes de produção. A restauração a partir do R2 foi comprovada em 24/09. Após a migração do contrato 2, o rollback para 1.4.0 é bloqueado; consulte o registro de débitos antes de publicar.
 
 Referências: [publicação de imagens no GitHub Actions](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images), [Compose em produção](https://docs.docker.com/compose/how-tos/production/), [imports do Caddy](https://caddyserver.com/docs/caddyfile/directives/import).

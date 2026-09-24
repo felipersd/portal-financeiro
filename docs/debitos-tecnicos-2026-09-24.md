@@ -1,5 +1,7 @@
 # Débitos técnicos: implementação e pendências operacionais
 
+> Atualização operacional posterior: PR #5 integrado pelo usuário e versão 1.5.0 publicada. R2 ativado e restauração remota comprovada em 24/09; consulte [Backup R2](backup-r2.md). As marcações de R2 pendente abaixo descrevem o estado anterior à ativação. Rotação de credenciais antigas e homologação entre duas contas continuam pendentes.
+
 Este documento atualiza a lista de débitos da revisão de 20/09. As alterações de código estão no PR #5, branch `codex/technical-debt`. A aplicação em produção permanece na versão 1.4.0; a nova migração ainda não foi aplicada.
 
 ## Correções implementadas no PR

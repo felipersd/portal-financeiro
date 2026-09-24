@@ -6,4 +6,5 @@ Requires=docker.service
 [Service]
 Type=oneshot
 User=portal
+WorkingDirectory=/srv/portal-financeiro
 ExecStart=/bin/bash /srv/portal-financeiro/backup.sh

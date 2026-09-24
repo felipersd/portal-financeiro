@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 umask 077
 ROOT=/srv/portal-financeiro
+restic() { bash "$ROOT/restic.sh" "$@"; }
 exec 9>"$ROOT/deploy.lock"
 flock -w 600 9
 source "$ROOT/secrets/restic.env"
