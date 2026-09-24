@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 umask 077
 ROOT=/srv/portal-financeiro
+restic() { bash "$ROOT/restic.sh" "$@"; }
 DUMP=${1:?Backup archive required}
 [[ $(realpath -- "$DUMP") == "$ROOT/backups/"*.dump ]] || exit 1
 test -s "$DUMP"

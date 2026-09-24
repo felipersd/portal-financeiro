@@ -4,6 +4,7 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 User=portal
-ExecStart=/bin/bash -c 'exec /bin/bash "$(cat /srv/portal-financeiro/current-release)/restore-check.sh"'
+WorkingDirectory=/srv/portal-financeiro
+ExecStart=/bin/bash /srv/portal-financeiro/restore-check.sh
 TimeoutStartSec=30min
 NoNewPrivileges=true

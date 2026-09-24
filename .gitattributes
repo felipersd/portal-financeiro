@@ -2,4 +2,6 @@
 *.sql text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
 Dockerfile text eol=lf

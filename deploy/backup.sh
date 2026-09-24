@@ -14,7 +14,7 @@ mv -- "$OUTPUT.partial" "$OUTPUT"
 sha256sum "$OUTPUT" > "$OUTPUT.sha256"
 # Local success alone is insufficient when offsite backup is enabled.
 if [[ -f "$ROOT/secrets/restic.env" ]]; then
-  bash "$RELEASE_DIR/offsite-backup.sh" "$OUTPUT"
+  bash "$ROOT/offsite-backup.sh" "$OUTPUT"
 else
   echo 'Offsite backup is not configured.' >&2
   exit 1
