@@ -81,6 +81,10 @@ jobs:
           bash deploy/tests/financial-migration.sh
           export IDENTITY_IMAGE=identity:test FINANCE_IMAGE=finance:test FRONTEND_IMAGE=frontend:test GATEWAY_IMAGE=gateway:test
           docker compose --env-file deploy/.env.vps.example -f deploy/compose.vps.yml config --quiet
+      - name: Verify push secret access with production runtime image
+        run: |
+          docker build -t portal-finance-runtime:test apps/backend/finance-service
+          bash deploy/tests/push-secret.sh portal-finance-runtime:test
   image:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: verify
