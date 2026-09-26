@@ -76,11 +76,14 @@ jobs:
           DATABASE_URL='postgresql://portal:test-only-password@localhost:5432/finance_db?schema=finance' INTEGRATION_TESTS=1 npm test -- --runInBand --testPathPatterns=integration
       - name: Validate deployment configuration
         run: |
-          for script in deploy/*.sh apps/backend/*/entrypoint.sh; do bash -n "$script"; done
+          for script in deploy/*.sh deploy/tests/*.sh apps/backend/*/entrypoint.sh; do bash -n "$script"; done
           bash deploy/tests/rollback-compatibility.sh
           bash deploy/tests/financial-migration.sh
+          node --test deploy/tests/*.test.cjs
+          bash deploy/tests/blue-green.sh
           export IDENTITY_IMAGE=identity:test FINANCE_IMAGE=finance:test FRONTEND_IMAGE=frontend:test GATEWAY_IMAGE=gateway:test
           docker compose --env-file deploy/.env.vps.example -f deploy/compose.vps.yml config --quiet
+          DEPLOYMENT_SLOT=blue docker compose --env-file deploy/.env.vps.example -f deploy/compose.slot.yml config --quiet
       - name: Verify push secret access with production runtime image
         run: |
           docker build -t portal-finance-runtime:test apps/backend/finance-service

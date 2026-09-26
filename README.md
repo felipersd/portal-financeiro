@@ -47,7 +47,7 @@ portal-financeiro/
 │   └── backup/                # Serviço de backup automático
 ├── .github/workflows/         # Pipelines de CI/CD
 ├── docker-compose.yml         # Orquestração para Desenvolvimento
-└── deploy/compose.vps.yml     # Produção com imagens por digest
+└── deploy/compose.slot.yml    # Slots blue/green com imagens por digest
 ```
 
 ## 🛠️ Como Rodar Localmente
@@ -98,6 +98,6 @@ Veja a [análise técnica de 19/09/2026](docs/analise-tecnica-2026-09-19.md) par
 
 Produção usa GitHub Actions → GitHub Container Registry → VPS com Docker Compose. Cada tag de versão aprovada pelos testes gera quatro imagens, publicadas e implantadas pelo digest SHA-256. O Caddy existente na VPS fornece HTTPS para `portalfinanceiro.net`.
 
-Consulte [o guia de operação da VPS](docs/VPS.md) para configuração, publicação, backup e rollback. O antigo `docker-compose.prod.yml` não é usado pelo fluxo atual.
+O fluxo preparado para 1.8.0 usa blue/green: prepara e testa a candidata antes de trocar o tráfego no Caddy, preservando a versão ativa em falhas de preparação. O banco permanece independente; novas migrações exigem uma operação compatível e revisada antes da publicação. Consulte [o guia blue/green](docs/blue-green.md) e [a operação da VPS](docs/VPS.md). O antigo `docker-compose.prod.yml` não é usado pelo fluxo atual.
 
 Pull requests e alterações em `main` executam lint, testes, builds, auditoria de dependências e migrações em PostgreSQL descartável. Apenas tags `vX.Y.Z`, correspondentes ao arquivo `VERSION` e contidas em `main`, publicam em produção.

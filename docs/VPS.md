@@ -1,16 +1,16 @@
 # Operação da VPS
 
-O Portal usa `portalfinanceiro.net`, uma base PostgreSQL nova e serviços separados do One Piece. O Caddy do One Piece é o ponto de entrada HTTPS compartilhado. O gateway do Portal participa da rede externa `onepiece-library_default`; apenas `127.0.0.1:8081` é publicado para verificações locais. APIs e banco não publicam portas.
+O Portal usa `portalfinanceiro.net`, PostgreSQL e serviços separados do One Piece. O Caddy do One Piece é o ponto de entrada HTTPS compartilhado. Os gateways dos slots blue/green participam da rede externa `onepiece-library_default`, sem publicar portas. O gateway legado usa `127.0.0.1:8081` até sua retirada. APIs e banco não publicam portas.
 
 ## Fluxo de entrega
 
-1. Abra um PR para `main`. O workflow verifica frontend, APIs, auditoria de dependências, migrações em banco vazio, reaplicação e diferenças do schema.
+1. Envie a branch com commit e push. Quando solicitado, abra um PR para `main`. O workflow verifica frontend, APIs, auditoria de dependências, migrações em banco vazio, reaplicação, diferenças do schema e falhas de blue/green em ambiente isolado.
 2. Atualize `VERSION` e integre o PR. Crie e envie a tag correspondente, por exemplo `v1.3.0`.
 3. O GitHub Actions constrói quatro imagens Linux amd64 e publica no GHCR com metadados de procedência e SBOM.
 4. O job do ambiente `production` envia somente os manifestos e scripts à VPS via SSH com chave dedicada e host verificado. O código compilado chega nas imagens; não há checkout de código na produção.
-5. A VPS baixa as imagens pelos digests, faz backup, aplica `prisma migrate deploy`, aguarda saúde e confere revisão de frontend e APIs. A publicação é serializada com `flock` e concorrência do Actions.
+5. A VPS baixa as imagens pelos digests, verifica compatibilidade do banco, faz backup local/R2 e inicia a candidata no slot inativo. Após conferir saúde e revisões, troca o tráfego por recarga do Caddy. A publicação é serializada com `flock` e concorrência do Actions.
 
-Não use `latest`, Watchtower ou `prisma db push` na produção. Alterações de schema devem ser compatíveis com a versão anterior. Em falha na migração/inicialização/verificações locais, o script tenta voltar às imagens anteriores. O banco nunca é restaurado automaticamente. Uma falha da verificação HTTPS externa marca o workflow como falho e requer diagnóstico.
+Não use `latest`, Watchtower ou `prisma db push` na produção. O deploy de aplicação **não aplica migrações**: uma migração pendente ou alterada bloqueia a publicação, preservando o serviço ativo. Alterações de schema exigem uma operação separada e compatível com a aplicação em execução. Falhas após a troca acionam tentativa de recuperação da rota anterior; o banco nunca é restaurado automaticamente. Consulte [sequência, limites e operação blue/green](blue-green.md).
 
 ## Configuração
 
@@ -31,12 +31,13 @@ Na VPS, como `portal`:
 
 ```bash
 release=$(cat /srv/portal-financeiro/current-release)
-docker compose --env-file /srv/portal-financeiro/config.env --env-file "$release/images.env" -f "$release/compose.vps.yml" ps
+slot=$(cat /srv/portal-financeiro/runtime/active-slot)
+DEPLOYMENT_SLOT="$slot" docker compose -p "portal-financeiro-$slot" --env-file /srv/portal-financeiro/config.env --env-file "$release/images.env" -f "$release/compose.slot.yml" ps
 bash /srv/portal-financeiro/backup.sh
 bash "$release/rollback.sh"
 ```
 
-O rollback usa `previous-release`, preserva o volume e requer que as imagens anteriores continuem disponíveis localmente. Não remova volumes para resolver uma falha de aplicação. Migrações destrutivas exigem um plano específico de recuperação, porque voltar imagens não desfaz schema nem restaura dados.
+Os comandos acima se aplicam após a ativação blue/green. O rollback usa `previous-release` e `deployment/previous-slot`, verifica os containers preservados e troca o tráfego. Na primeira transição a versão anterior ainda pode ser legada; use sempre o script novo, conforme o [guia de recuperação](blue-green.md#inspeção-e-rollback). Não remova volumes para resolver uma falha de aplicação. Voltar a aplicação não desfaz schema nem restaura dados.
 
 ## Backups
 
@@ -46,7 +47,7 @@ Para testar recuperação, crie um banco separado, restaure com `pg_restore --ex
 
 ## Limites e manutenção
 
-Uma VPS com Compose permite operação simples e reproduzível, mas não oferece alta disponibilidade nem garante interrupção zero durante atualizações. Atualize imagens base periodicamente por uma nova release e monitore espaço, timer e healthchecks. Node das APIs roda sem root, filesystem somente leitura, limites de recursos e sem capabilities.
+Blue/green preserva a aplicação durante a preparação da candidata e permite trocar o tráfego sem reiniciar o proxy. Uma única VPS continua sem alta disponibilidade contra falhas do host ou do banco. Atualize imagens base por uma nova release e monitore memória, conexões, espaço, timers e healthchecks. Node das APIs roda sem root, filesystem somente leitura, limites de recursos e sem capabilities.
 
 As credenciais que já estiveram em commits antigos precisam de rotação no provedor; retirar arquivos da árvore atual não apaga o histórico. Auditorias bloqueiam vulnerabilidades altas/críticas. As correções de dependências e o estado das pendências estão no [registro de débitos de 24/09/2026](debitos-tecnicos-2026-09-24.md).
 

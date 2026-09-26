@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { FixedRecurrences } from './FixedRecurrences';
 import { atomic } from './atomic';
 import { autoShare } from './autoShare';
+import { isActiveWorker } from '../activeWorker';
 
 export async function sendDueRecurrences(db: PrismaClient, now = new Date()) {
     const month = now.toISOString().slice(0, 7);
@@ -29,6 +30,7 @@ export function startRecurrenceWorker(db: PrismaClient) {
     async function run() {
         let delay = 5000;
         try {
+            if (!isActiveWorker()) return;
             const now = new Date();
             const month = now.toISOString().slice(0, 7);
             const rules = await db.fixedRule.findMany({
