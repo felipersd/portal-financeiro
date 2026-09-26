@@ -3,7 +3,7 @@ import { TransactionRepository } from '../../Domain/Interfaces/TransactionReposi
 import { randomUUID as uuidv4 } from 'crypto';
 
 export class CreateTransaction {
-    constructor(private transactionRepository: TransactionRepository) { }
+    constructor(private transactionRepository: TransactionRepository) {}
 
     async execute(data: {
         description: string;
@@ -11,6 +11,7 @@ export class CreateTransaction {
         type: 'income' | 'expense';
         category: string;
         categoryId?: string;
+        tagIds?: string[];
         date: Date;
         isShared: boolean;
         payer: string;
@@ -23,12 +24,14 @@ export class CreateTransaction {
     }): Promise<Transaction> {
         const frequency = data.frequency || 'monthly';
         const isFixed = data.isFixed || frequency === 'fixed';
-        const installments = isFixed ? 1 : (data.installments || 1);
+        const installments = isFixed ? 1 : data.installments || 1;
 
         // If installments > 1, generate a recurrenceId if not provided
-        const recurrenceId = ((installments > 1 || isFixed) && !data.recurrenceId) ? uuidv4() : data.recurrenceId;
+        const recurrenceId =
+            (installments > 1 || isFixed) && !data.recurrenceId ? uuidv4() : data.recurrenceId;
 
-        if (!Number.isInteger(installments) || installments < 1 || installments > 120) throw new Error('Invalid installment count');
+        if (!Number.isInteger(installments) || installments < 1 || installments > 120)
+            throw new Error('Invalid installment count');
         const transactions: Transaction[] = [];
 
         for (let i = 0; i < installments; i++) {
@@ -39,10 +42,12 @@ export class CreateTransaction {
                     const day = transactionDate.getUTCDate();
                     transactionDate.setUTCDate(1);
                     transactionDate.setUTCMonth(transactionDate.getUTCMonth() + i);
-                    const lastDay = new Date(Date.UTC(transactionDate.getUTCFullYear(), transactionDate.getUTCMonth() + 1, 0)).getUTCDate();
+                    const lastDay = new Date(
+                        Date.UTC(transactionDate.getUTCFullYear(), transactionDate.getUTCMonth() + 1, 0),
+                    ).getUTCDate();
                     transactionDate.setUTCDate(Math.min(day, lastDay));
                 } else if (frequency === 'weekly') {
-                    transactionDate.setUTCDate(transactionDate.getUTCDate() + (i * 7));
+                    transactionDate.setUTCDate(transactionDate.getUTCDate() + i * 7);
                 } else if (frequency === 'daily') {
                     transactionDate.setUTCDate(transactionDate.getUTCDate() + i);
                 } else if (frequency === 'yearly') {
@@ -52,9 +57,10 @@ export class CreateTransaction {
                 }
             }
 
-            const description = (!isFixed && installments > 1)
-                ? `${data.description} (${i + 1}/${installments})`
-                : data.description;
+            const description =
+                !isFixed && installments > 1
+                    ? `${data.description} (${i + 1}/${installments})`
+                    : data.description;
 
             const transaction = new Transaction(
                 uuidv4(),
@@ -69,7 +75,9 @@ export class CreateTransaction {
                 new Date(),
                 recurrenceId,
                 data.splitDetails,
-                isFixed, data.categoryId
+                isFixed,
+                data.categoryId,
+                data.tagIds,
             );
 
             transactions.push(transaction);

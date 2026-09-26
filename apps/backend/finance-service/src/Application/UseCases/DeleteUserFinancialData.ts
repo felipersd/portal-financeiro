@@ -8,19 +8,35 @@ export class DeleteUserFinancialData {
     async execute(userId: string): Promise<void> {
         try {
             Logger.info(`Starting GDPR data cascade deletion for user ${userId}`);
-            
+
             // Ordem importa devido a foreign keys (se houver), ou apenas rodar tudo em batch sync
             await this.prisma.$transaction([
-                this.prisma.expenseShare.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
-                this.prisma.memberConnection.deleteMany({ where: { OR: [{ ownerId: userId }, { recipientId: userId }] } }),
+                this.prisma.notification.deleteMany({ where: { userId } }),
+                this.prisma.pushSubscription.deleteMany({ where: { userId } }),
+                this.prisma.financePreferences.deleteMany({ where: { userId } }),
+                this.prisma.tag.deleteMany({ where: { userId } }),
+                this.prisma.expenseShare.deleteMany({
+                    where: { OR: [{ ownerId: userId }, { recipientId: userId }] },
+                }),
+                this.prisma.memberConnection.deleteMany({
+                    where: { OR: [{ ownerId: userId }, { recipientId: userId }] },
+                }),
                 this.prisma.transaction.deleteMany({ where: { userId } }),
-                this.prisma.fixedRule.deleteMany({where:{userId}}),
-                this.prisma.requestBudget.deleteMany({where:{key:{in:['read','write','sharing'].map(scope=>createHash('sha256').update(`${scope}:${userId}`).digest('hex'))}}}),
+                this.prisma.fixedRule.deleteMany({ where: { userId } }),
+                this.prisma.requestBudget.deleteMany({
+                    where: {
+                        key: {
+                            in: ['read', 'write', 'sharing'].map((scope) =>
+                                createHash('sha256').update(`${scope}:${userId}`).digest('hex'),
+                            ),
+                        },
+                    },
+                }),
                 this.prisma.category.deleteMany({ where: { userId } }),
                 this.prisma.groupMember.deleteMany({ where: { userId } }),
-                this.prisma.budgetRule.deleteMany({ where: { userId } })
+                this.prisma.budgetRule.deleteMany({ where: { userId } }),
             ]);
-            
+
             Logger.info(`Successfully wiped all financial data for user ${userId}`);
         } catch (error) {
             Logger.error(`Failed to wipe financial data for user ${userId}`, error);

@@ -22,6 +22,7 @@ model Transaction {
   fixedRuleId String?
   fixedRule FixedRule? @relation(fields: [fixedRuleId], references: [id], onDelete: Restrict)
   occurrenceMonth String?
+  shareAfterMonth String?
   deletedAt DateTime?
   splitDetails Json?
   
@@ -30,11 +31,13 @@ model Transaction {
   categoryId String?
   categoryRef Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   splits TransactionSplit[]
+  tags TransactionTag[]
   @@index([categoryId])
 
   @@index([userId, date])
   @@index([userId, recurrenceId, date])
   @@unique([fixedRuleId, occurrenceMonth])
+  @@index([shareAfterMonth])
 }
 
 model FixedRule {
@@ -108,6 +111,9 @@ model ExpenseShare {
   memberId String
   ownerName String
   description String
+  categoryName String @default("Outros")
+  tagNames String[] @default([])
+  notifications Notification[]
   amountCents Int
   totalCents Int
   date DateTime
@@ -122,6 +128,69 @@ model ExpenseShare {
   @@index([recipientId, status, date])
   @@index([ownerId, status])
   @@index([memberId, status])
+}
+
+model FinancePreferences {
+  userId String @id
+  tagsEnabled Boolean @default(false)
+  tagsInitialized Boolean @default(false)
+}
+
+model Tag {
+  id String @id @default(uuid())
+  userId String
+  name String
+  normalizedName String
+  color String @default("#55b9a2")
+  transactions TransactionTag[]
+  @@unique([userId, normalizedName])
+}
+
+model TransactionTag {
+  transactionId String
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tagId String
+  tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([transactionId, tagId])
+  @@index([tagId])
+}
+
+model Notification {
+  id String @id @default(uuid())
+  userId String
+  kind String
+  shareId String?
+  share ExpenseShare? @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  deliveries PushDelivery[]
+  @@index([userId, createdAt, id])
+  @@index([userId, readAt])
+}
+
+model PushSubscription {
+  id String @id @default(uuid())
+  userId String
+  endpoint String @unique
+  p256dh String
+  auth String
+  createdAt DateTime @default(now())
+  deliveries PushDelivery[]
+  @@index([userId])
+}
+
+model PushDelivery {
+  id String @id @default(uuid())
+  notificationId String
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  leaseUntil DateTime?
+  status String @default("pending")
+  @@unique([notificationId, subscriptionId])
+  @@index([status, availableAt])
 }
 
 model BudgetRule {

@@ -13,7 +13,7 @@ export const CategoryManager: React.FC = () => {
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newCatName.trim()) {
-            if (!await addCategory(newCatName, newCatType)) return;
+            if (!(await addCategory(newCatName, newCatType))) return;
             setNewCatName('');
         }
     };
@@ -24,16 +24,22 @@ export const CategoryManager: React.FC = () => {
                 <Tag size={24} className="text-primary" /> Gerenciar Categorias
             </h2>
 
-            <form onSubmit={handleAdd} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+            <form
+                onSubmit={handleAdd}
+                style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}
+            >
                 <input
+                    aria-label="Nome da categoria"
+                    maxLength={80}
                     value={newCatName}
-                    onChange={e => setNewCatName(e.target.value)}
+                    onChange={(e) => setNewCatName(e.target.value)}
                     placeholder="Nova categoria..."
                     style={{ flex: 2, minWidth: '200px' }}
                 />
                 <select
+                    aria-label="Tipo da categoria"
                     value={newCatType}
-                    onChange={e => setNewCatType(e.target.value as 'income' | 'expense')}
+                    onChange={(e) => setNewCatType(e.target.value as 'income' | 'expense')}
                     style={{ flex: 1, minWidth: '120px' }}
                 >
                     <option value="expense">Despesa</option>
@@ -44,30 +50,59 @@ export const CategoryManager: React.FC = () => {
                 </button>
             </form>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-                {categories.map(cat => (
-                    <div key={cat.id} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '0.5rem', border: '1px solid var(--border)'
-                    }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 250px), 1fr))',
+                    gap: '1rem',
+                }}
+            >
+                {categories.map((cat) => (
+                    <div
+                        key={cat.id}
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem',
+                            backgroundColor: 'var(--bg-body)',
+                            borderRadius: '0.5rem',
+                            border: '1px solid var(--border)',
+                        }}
+                    >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                backgroundColor: cat.type === 'income' ? 'var(--success)' : 'var(--danger)'
-                            }}></div>
+                            <div
+                                style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    backgroundColor:
+                                        cat.type === 'income' ? 'var(--success)' : 'var(--danger)',
+                                }}
+                            ></div>
                             <span>{cat.name}</span>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
                                 onClick={() => setEditingCategory(cat)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                }}
                                 title="Editar"
                             >
                                 <Edit2 size={18} />
                             </button>
                             <button
                                 onClick={() => removeCategory(cat.id)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                }}
                                 title="Excluir"
                             >
                                 <Trash2 size={18} />

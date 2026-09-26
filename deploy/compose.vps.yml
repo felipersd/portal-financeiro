@@ -63,7 +63,9 @@ services:
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:?Set Clerk public key}
       INTERNAL_API_TOKEN_FILE: /run/secrets/internal_api_token
       ALLOWED_ORIGIN: ${PUBLIC_URL:-https://portalfinanceiro.net}
-    secrets: [finance_database_url, clerk_secret_key, internal_api_token]
+      VAPID_CONFIG_FILE: /run/secrets/vapid_keys
+      VAPID_SUBJECT: ${PUBLIC_URL:-https://portalfinanceiro.net}
+    secrets: [finance_database_url, clerk_secret_key, internal_api_token, vapid_keys]
     healthcheck:
       test: [CMD, node, -e, "fetch('http://127.0.0.1:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
@@ -124,3 +126,5 @@ secrets:
     file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/internal_api_token
   clerk_webhook_secret:
     file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/clerk_webhook_secret
+  vapid_keys:
+    file: ${SECRETS_DIR:-/srv/portal-financeiro/secrets}/vapid_keys

@@ -1,3 +1,6 @@
+import { startRecurrenceWorker } from '../Infrastructure/Database/RecurrenceWorker';
+import { experienceRouter } from '../Infrastructure/Http/ExperienceRouter';
+import { startPushWorker } from '../Infrastructure/Notifications/PushWorker';
 import { FixedRecurrences } from '../Infrastructure/Database/FixedRecurrences';
 import { TransactionQueries } from '../Infrastructure/Database/TransactionQueries';
 import { ShareLedger } from '../Application/UseCases/ShareLedger';
@@ -31,13 +34,18 @@ dotenv.config();
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', false);
-app.use(cors({
-    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:8080',
-    credentials: true
-}));
+app.use(
+    cors({
+        origin: process.env.ALLOWED_ORIGIN || 'http://localhost:8080',
+        credentials: true,
+    }),
+);
 app.use(compression());
 app.use(express.json({ limit: '64kb' }));
-app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+});
 app.use(cookieParser());
 
 // Request Logging Middleware
@@ -52,7 +60,7 @@ app.use((req, res, next) => {
             status: res.statusCode,
             duration: `${duration}ms`,
             ip: req.ip,
-            userAgent: req.get('user-agent')
+            userAgent: req.get('user-agent'),
         });
     });
     next();
@@ -87,7 +95,7 @@ const transactionController = new TransactionController(
     createTransaction,
     getTransactions,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
 );
 
 import { UpdateCategory } from '../Application/UseCases/UpdateCategory';
@@ -102,7 +110,12 @@ const createCategory = new CreateCategory(categoryRepository);
 const deleteCategory = new DeleteCategory(categoryRepository);
 const updateCategory = new UpdateCategory(categoryRepository);
 const seedCategories = new SeedDefaultCategories(categoryRepository, budgetRuleRepository);
-const categoryController = new CategoryController(getCategories, createCategory, deleteCategory, updateCategory);
+const categoryController = new CategoryController(
+    getCategories,
+    createCategory,
+    deleteCategory,
+    updateCategory,
+);
 
 // GroupMember Dependencies
 const groupMemberRepository = new PrismaGroupMemberRepository(prisma);
@@ -114,60 +127,117 @@ const groupMemberController = new GroupMemberController(
     addGroupMember,
     getGroupMembersUseCase,
     updateGroupMemberUseCase,
-    deleteGroupMemberUseCase
+    deleteGroupMemberUseCase,
 );
 
 const getBudgetRuleUseCase = new GetBudgetRule(budgetRuleRepository);
 const updateBudgetRuleUseCase = new UpdateBudgetRule(budgetRuleRepository);
-const budgetRuleController = new BudgetRuleController(
-    getBudgetRuleUseCase,
-    updateBudgetRuleUseCase
+const budgetRuleController = new BudgetRuleController(getBudgetRuleUseCase, updateBudgetRuleUseCase);
+
+app.use(
+    [
+        '/transactions',
+        '/categories',
+        '/members',
+        '/sharing',
+        '/budget-rules',
+        '/tags',
+        '/preferences',
+        '/notifications',
+    ],
+    sessionAuth,
+    userResolutionMiddleware,
+    accountRateLimit(prisma),
 );
 
-app.use(['/transactions', '/categories', '/members', '/sharing', '/budget-rules'], sessionAuth, userResolutionMiddleware, accountRateLimit(prisma));
+app.use(experienceRouter(prisma));
 
 app.post('/transactions/:id/stop-recurrence', async (req, res, next) => {
-    try { await new FixedRecurrences(prisma).stop((req as any).internalUserId, pathParam(req, 'id')); res.json({success:true}); } catch (error) { next(error); }
+    try {
+        await new FixedRecurrences(prisma).stop((req as any).internalUserId, pathParam(req, 'id'));
+        res.json({ success: true });
+    } catch (error) {
+        next(error);
+    }
 });
-app.post('/transactions', (req: express.Request, res: express.Response) => transactionController.handleCreate(req, res));
+app.post('/transactions', (req: express.Request, res: express.Response) =>
+    transactionController.handleCreate(req, res),
+);
 const transactionQueries = new TransactionQueries(prisma);
 app.get('/transactions/page', async (req, res, next) => {
     try {
-        if (typeof req.query.month !== 'string' || (req.query.cursor !== undefined && typeof req.query.cursor !== 'string')) return res.status(400).json({error:'Página inválida.'});
-        res.json(await transactionQueries.page((req as any).internalUserId, req.query.month, req.query.cursor));
-    } catch (error) { next(error); }
+        if (
+            typeof req.query.month !== 'string' ||
+            (req.query.cursor !== undefined && typeof req.query.cursor !== 'string')
+        )
+            return res.status(400).json({ error: 'Página inválida.' });
+        res.json(
+            await transactionQueries.page((req as any).internalUserId, req.query.month, req.query.cursor),
+        );
+    } catch (error) {
+        next(error);
+    }
 });
 app.get('/transactions/annual', async (req, res, next) => {
-    try { res.json(await transactionQueries.annual((req as any).internalUserId, Number(req.query.year))); }
-    catch (error) { next(error); }
+    try {
+        res.json(await transactionQueries.annual((req as any).internalUserId, Number(req.query.year)));
+    } catch (error) {
+        next(error);
+    }
 });
-app.get('/transactions', (req: express.Request, res: express.Response) => transactionController.handleGet(req, res));
-app.put('/transactions/:id', (req: express.Request, res: express.Response) => transactionController.handleUpdate(req, res));
-app.delete('/transactions/:id', (req: express.Request, res: express.Response) => transactionController.handleDelete(req, res));
+app.get('/transactions', (req: express.Request, res: express.Response) =>
+    transactionController.handleGet(req, res),
+);
+app.put('/transactions/:id', (req: express.Request, res: express.Response) =>
+    transactionController.handleUpdate(req, res),
+);
+app.delete('/transactions/:id', (req: express.Request, res: express.Response) =>
+    transactionController.handleDelete(req, res),
+);
 
-app.post('/categories', (req: express.Request, res: express.Response) => categoryController.handleCreate(req, res));
+app.post('/categories', (req: express.Request, res: express.Response) =>
+    categoryController.handleCreate(req, res),
+);
 app.get('/categories', (req: express.Request, res: express.Response) => {
     return categoryController.handleGet(req, res);
 });
-app.put('/categories/:id', (req: express.Request, res: express.Response) => categoryController.handleUpdate(req, res));
-app.delete('/categories/:id', (req: express.Request, res: express.Response) => categoryController.handleDelete(req, res));
+app.put('/categories/:id', (req: express.Request, res: express.Response) =>
+    categoryController.handleUpdate(req, res),
+);
+app.delete('/categories/:id', (req: express.Request, res: express.Response) =>
+    categoryController.handleDelete(req, res),
+);
 
-app.post('/members', (req: express.Request, res: express.Response) => groupMemberController.handleCreate(req, res));
+app.post('/members', (req: express.Request, res: express.Response) =>
+    groupMemberController.handleCreate(req, res),
+);
 app.get('/members', (req: express.Request, res: express.Response) => {
     return groupMemberController.handleGet(req, res);
 });
-app.put('/members/:id', (req: express.Request, res: express.Response) => groupMemberController.handleUpdate(req, res));
-app.delete('/members/:id', (req: express.Request, res: express.Response) => groupMemberController.handleDelete(req, res));
+app.put('/members/:id', (req: express.Request, res: express.Response) =>
+    groupMemberController.handleUpdate(req, res),
+);
+app.delete('/members/:id', (req: express.Request, res: express.Response) =>
+    groupMemberController.handleDelete(req, res),
+);
 
 app.use('/sharing', sharingRouter(new SharingService(prisma), new ShareLedger(prisma)));
 
-app.get('/budget-rules/:month', (req: express.Request, res: express.Response) => budgetRuleController.handleGet(req, res));
-app.put('/budget-rules/:month', (req: express.Request, res: express.Response) => budgetRuleController.handleUpdate(req, res));
+app.get('/budget-rules/:month', (req: express.Request, res: express.Response) =>
+    budgetRuleController.handleGet(req, res),
+);
+app.put('/budget-rules/:month', (req: express.Request, res: express.Response) =>
+    budgetRuleController.handleUpdate(req, res),
+);
 
 app.get('/health', async (req: express.Request, res: express.Response) => {
     try {
         await prisma.$queryRaw`SELECT 1`;
-        res.json({ status: 'ok', service: 'finance-service', revision: process.env.APP_REVISION || 'development' });
+        res.json({
+            status: 'ok',
+            service: 'finance-service',
+            revision: process.env.APP_REVISION || 'development',
+        });
     } catch {
         res.status(503).json({ status: 'unavailable' });
     }
@@ -177,40 +247,56 @@ app.get('/health', async (req: express.Request, res: express.Response) => {
 import { DeleteUserFinancialData } from '../Application/UseCases/DeleteUserFinancialData';
 const deleteUserFinancialData = new DeleteUserFinancialData(prisma);
 
-app.post('/internal/users/:userId/seed', internalAuth, async (req: express.Request, res: express.Response) => {
-    try {
-        const userId = pathParam(req, 'userId');
-        if (!userId) return res.status(400).json({ error: 'userId is required' });
-        
-        await seedCategories.execute(userId);
-        return res.status(200).json({ status: 'seeded' });
-    } catch (err: any) {
-        Logger.error('Error seeding data:', err);
-        return res.status(500).json({ error: 'Internal error seeding data' });
-    }
-});
+app.post(
+    '/internal/users/:userId/seed',
+    internalAuth,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const userId = pathParam(req, 'userId');
+            if (!userId) return res.status(400).json({ error: 'userId is required' });
 
-app.delete('/internal/users/:userId/delete', internalAuth, async (req: express.Request, res: express.Response) => {
-    try {
-        const userId = pathParam(req, 'userId');
-        if (!userId) return res.status(400).json({ error: 'userId is required' });
-        
-        await deleteUserFinancialData.execute(userId);
-        return res.status(200).json({ status: 'deleted' });
-    } catch (err: any) {
-        Logger.error('Error deleting GDPR data:', err);
-        return res.status(500).json({ error: 'Internal error wiping data' });
-    }
-});
+            await seedCategories.execute(userId);
+            return res.status(200).json({ status: 'seeded' });
+        } catch (err: any) {
+            Logger.error('Error seeding data:', err);
+            return res.status(500).json({ error: 'Internal error seeding data' });
+        }
+    },
+);
+
+app.delete(
+    '/internal/users/:userId/delete',
+    internalAuth,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const userId = pathParam(req, 'userId');
+            if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+            await deleteUserFinancialData.execute(userId);
+            return res.status(200).json({ status: 'deleted' });
+        } catch (err: any) {
+            Logger.error('Error deleting GDPR data:', err);
+            return res.status(500).json({ error: 'Internal error wiping data' });
+        }
+    },
+);
 
 const PORT = process.env.PORT || 3002;
 
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (error instanceof ZodError) { res.status(400).json({ error: 'Dados inválidos.', details: error.issues }); return; }
-    if ([400, 401, 413].includes(error.status)) { res.status(error.status).json({ error: 'Requisição inválida ou não autenticada.' }); return; }
+    if (error instanceof ZodError) {
+        res.status(400).json({ error: 'Dados inválidos.', details: error.issues });
+        return;
+    }
+    if ([400, 401, 413].includes(error.status)) {
+        res.status(error.status).json({ error: 'Requisição inválida ou não autenticada.' });
+        return;
+    }
     respondError(res, error);
 });
 
 app.listen(Number(PORT), '0.0.0.0', () => {
     Logger.info(`Finance Service running on port ${PORT}`);
+    startPushWorker(prisma);
+    startRecurrenceWorker(prisma);
 });
