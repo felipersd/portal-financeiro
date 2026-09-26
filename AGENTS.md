@@ -1,5 +1,14 @@
 # Convenções do projeto
 
+## Entrega das alterações
+
+Por orientação do usuário, a entrega padrão termina após commit e push.
+
+- Não abra pull requests nem acompanhe PRs ou execuções do CI automaticamente. Faça essas ações somente quando o usuário pedir explicitamente.
+- Execute as verificações locais pertinentes à mudança antes do commit e push, sem monitoramento remoto posterior por padrão.
+- Informe brevemente o que mudou e o resultado do commit/push.
+- A regra de versão abaixo continua válida quando o usuário solicitar a abertura de um PR.
+
 ## Versão em cada pull request
 
 Por orientação do usuário, todo novo PR deve incluir a atualização do arquivo `VERSION`, para facilitar a publicação.

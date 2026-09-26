@@ -24,13 +24,10 @@ COMPOSE=(docker compose --env-file "$ROOT/config.env" --env-file "$RELEASE_DIR/i
 source "$RELEASE_DIR/rollback-compatibility.sh"
 "${COMPOSE[@]}" config --quiet
 "${COMPOSE[@]}" pull
-# Stable VAPID identity: generate once; never rotate during routine deployments.
-if [[ ! -s "$ROOT/secrets/vapid_keys" ]]; then
-  finance_image=$(sed -n 's/^FINANCE_IMAGE=//p' "$RELEASE_DIR/images.env")
-  docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --entrypoint node "$finance_image" -e 'process.stdout.write(JSON.stringify(require("web-push").generateVAPIDKeys()))' > "$ROOT/secrets/vapid_keys.tmp"
-  chmod 600 "$ROOT/secrets/vapid_keys.tmp"
-  mv -- "$ROOT/secrets/vapid_keys.tmp" "$ROOT/secrets/vapid_keys"
-fi
+finance_image=$(sed -n 's/^FINANCE_IMAGE=//p' "$RELEASE_DIR/images.env")
+# Resolve the effective path from Compose, including a configured SECRETS_DIR.
+vapid_file=$("${COMPOSE[@]}" config --format json | docker run --rm -i --network none --read-only --cap-drop ALL --security-opt no-new-privileges --entrypoint node "$finance_image" -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0,"utf8")).secrets.vapid_keys.file)')
+bash "$RELEASE_DIR/prepare-push-secret.sh" "$finance_image" "$vapid_file"
 "${COMPOSE[@]}" up -d --wait --wait-timeout 120 db
 # The database is backed up before migrations, including the first empty database.
 BACKUP="$ROOT/backups/pre-release-$(date -u +%Y%m%dT%H%M%SZ)-$REVISION.dump"
