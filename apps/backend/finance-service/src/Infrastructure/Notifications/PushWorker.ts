@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import webpush from 'web-push';
 import { isPushEndpoint } from './PushEndpoint';
+import { isActiveWorker } from '../activeWorker';
 
 export async function deliverPendingPush(db: PrismaClient) {
     const jobs = await db.$queryRaw<Array<{ id: string }>>`
@@ -79,6 +80,7 @@ export function startPushWorker(db: PrismaClient) {
     let iterations = 0;
     async function run() {
         try {
+            if (!isActiveWorker()) return;
             if (configured) await deliverPendingPush(db);
             if (++iterations % 720 === 0) {
                 await db.notification.deleteMany({

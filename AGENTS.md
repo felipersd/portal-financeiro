@@ -18,3 +18,9 @@ Por orientação do usuário, todo novo PR deve incluir a atualização do arqui
 - Faça a atualização no próprio PR antes de abri-lo. Ao atualizar o mesmo PR, mantenha a versão escolhida, salvo se ela já tiver sido publicada ou o escopo exigir outra versão.
 - A versão de publicação é definida pelo arquivo `VERSION` da raiz; não altere versões dos pacotes internos apenas para espelhá-la.
 - Atualizar `VERSION` não significa criar a tag, integrar o PR ou publicar em produção. Siga a autorização do usuário para essas ações.
+
+## Compatibilidade de publicação
+
+- O deploy blue/green prepara o slot inativo e preserva a aplicação ativa. Não reintroduza `compose down` ou migrações automáticas no deploy de aplicação.
+- Mudanças de banco exigem plano separado de expansão/contração, compatibilidade com a versão ativa e validação em banco descartável. Migrações pendentes bloqueiam a publicação por padrão.
+- Preserve compatibilidade das APIs e dos dados durante a janela de rollback, inclusive com abas usando o frontend anterior. Consulte `docs/blue-green.md` antes de alterar os scripts de publicação.
