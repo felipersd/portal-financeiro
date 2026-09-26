@@ -1,0 +1,80 @@
+name: Deploy production
+run-name: Deploy ${{ inputs.tag }} by @${{ github.actor }}
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Prepared release tag (for example v1.8.1)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://portalfinanceiro.net
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    concurrency: portal-production
+    steps:
+      - name: Validate requested tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: '[[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+      - name: Validate release commit
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$RELEASE_TAG" == "v$(cat VERSION)" ]]
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+          printf 'RELEASE_SHA=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Retrieve images from successful tag build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs" \
+            -f event=push -f head_sha="$RELEASE_SHA" -f status=success -f per_page=100 > "$RUNNER_TEMP/release-runs.json"
+          RUN_ID=$(node -e 'const runs=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).workflow_runs; const run=runs.find(r=>r.head_branch===process.env.RELEASE_TAG && r.head_sha===process.env.RELEASE_SHA && r.event==="push" && r.conclusion==="success"); if(run) process.stdout.write(String(run.id));' "$RUNNER_TEMP/release-runs.json")
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo 'No successful preparation for this tag. Wait for Verify and prepare release to finish successfully.' >&2; exit 1; }
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name release-manifest --dir "$RUNNER_TEMP/release-manifest"
+          node deploy/validate-release-manifest.cjs "$RUNNER_TEMP/release-manifest/release.json" "$RELEASE_SHA" >> "$GITHUB_ENV"
+      - name: Deploy release by digest
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$VPS_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$VPS_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/portal
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/portal ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/portal' EXIT
+          SSH=(-i ~/.ssh/portal -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=15)
+          REMOTE="/srv/portal-financeiro/releases/$RELEASE_SHA"
+          printf 'IDENTITY_IMAGE=%s\nFINANCE_IMAGE=%s\nFRONTEND_IMAGE=%s\nGATEWAY_IMAGE=%s\n' "$IDENTITY_IMAGE" "$FINANCE_IMAGE" "$FRONTEND_IMAGE" "$GATEWAY_IMAGE" > deploy/images.env
+          ssh "${SSH[@]}" "$VPS_USER@$VPS_HOST" "mkdir -p '$REMOTE'"
+          scp "${SSH[@]}" -r deploy "$VPS_USER@$VPS_HOST:$REMOTE/"
+          printf '%s' "$REGISTRY_TOKEN" | ssh "${SSH[@]}" "$VPS_USER@$VPS_HOST" "bash '$REMOTE/deploy/release.sh' '$GITHUB_ACTOR'"
+      - name: Verify public release
+        if: vars.PUBLIC_DNS_READY == 'true'
+        run: |
+          curl -fsS --retry 6 --retry-all-errors --max-time 20 https://portalfinanceiro.net/version.json | grep -F "$RELEASE_SHA"

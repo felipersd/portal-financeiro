@@ -96,8 +96,8 @@ Veja a [análise técnica de 19/09/2026](docs/analise-tecnica-2026-09-19.md) par
 
 ## 📦 Deploy e Produção
 
-Produção usa GitHub Actions → GitHub Container Registry → VPS com Docker Compose. Cada tag de versão aprovada pelos testes gera quatro imagens, publicadas e implantadas pelo digest SHA-256. O Caddy existente na VPS fornece HTTPS para `portalfinanceiro.net`.
+Produção usa GitHub Actions → GitHub Container Registry → VPS com Docker Compose. Cada tag de versão aprovada pelos testes gera quatro imagens no GHCR e um manifesto de digests SHA-256. O deploy é manual e utiliza essas mesmas imagens, sem reconstrução. O Caddy existente na VPS fornece HTTPS para `portalfinanceiro.net`.
 
 O fluxo preparado para 1.8.0 usa blue/green: prepara e testa a candidata antes de trocar o tráfego no Caddy, preservando a versão ativa em falhas de preparação. O banco permanece independente; novas migrações exigem uma operação compatível e revisada antes da publicação. Consulte [o guia blue/green](docs/blue-green.md) e [a operação da VPS](docs/VPS.md). O antigo `docker-compose.prod.yml` não é usado pelo fluxo atual.
 
-Pull requests e alterações em `main` executam lint, testes, builds, auditoria de dependências e migrações em PostgreSQL descartável. Apenas tags `vX.Y.Z`, correspondentes ao arquivo `VERSION` e contidas em `main`, publicam em produção.
+Pull requests e alterações em `main` executam lint, testes, builds, auditoria de dependências e migrações em PostgreSQL descartável. Tags `vX.Y.Z`, correspondentes ao arquivo `VERSION` e contidas em `main`, apenas preparam a release. Para publicar, abra **Actions → Deploy production → Run workflow**, mantenha a branch `main`, informe a tag preparada e confirme. Esse fluxo está disponível a partir de `v1.8.1`.

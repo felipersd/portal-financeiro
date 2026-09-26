@@ -2,7 +2,7 @@
 
 A partir do fluxo preparado para 1.8.0, a versão atual continua atendendo enquanto a próxima inicia em outro conjunto de containers. O Caddy recebe uma recarga de configuração somente depois das verificações. Não há `compose down`, recriação do banco ou parada da aplicação ativa durante essa preparação.
 
-O código está preparado para a VPS atual. A ativação ocorre quando uma tag desta implementação, integrada em `main`, for publicada pelo workflow; desenvolver e enviar a branch não altera o tráfego de produção.
+O código está preparado para a VPS atual. A partir de 1.8.1, a tag apenas prepara imagens. A ativação ocorre somente ao executar manualmente `Deploy production` em `main`, informando a tag já preparada; commit, push e tag não alteram o tráfego de produção.
 
 ## Componentes
 

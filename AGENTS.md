@@ -2,22 +2,15 @@
 
 ## Entrega das alterações
 
-Por orientação do usuário, a entrega padrão termina após commit e push.
+Por orientação do usuário, trabalhar diretamente em `main`, sem criar branches ou pull requests por padrão.
 
-- Não abra pull requests nem acompanhe PRs ou execuções do CI automaticamente. Faça essas ações somente quando o usuário pedir explicitamente.
-- Execute as verificações locais pertinentes à mudança antes do commit e push, sem monitoramento remoto posterior por padrão.
-- Informe brevemente o que mudou e o resultado do commit/push.
-- A regra de versão abaixo continua válida quando o usuário solicitar a abertura de um PR.
-
-## Versão em cada pull request
-
-Por orientação do usuário, todo novo PR deve incluir a atualização do arquivo `VERSION`, para facilitar a publicação.
-
-- Compare a versão da branch base e as tags existentes antes de escolher a próxima versão.
-- Use versionamento semântico: patch para correções, minor para novas funcionalidades e major para mudanças incompatíveis da interface pública.
-- Faça a atualização no próprio PR antes de abri-lo. Ao atualizar o mesmo PR, mantenha a versão escolhida, salvo se ela já tiver sido publicada ou o escopo exigir outra versão.
-- A versão de publicação é definida pelo arquivo `VERSION` da raiz; não altere versões dos pacotes internos apenas para espelhá-la.
-- Atualizar `VERSION` não significa criar a tag, integrar o PR ou publicar em produção. Siga a autorização do usuário para essas ações.
+- Sincronize `main` com o remoto sem sobrescrever alterações existentes e execute as verificações pertinentes.
+- Atualize `VERSION`, faça commit e push direto em `main`; depois crie uma tag anotada `vX.Y.Z` para esse mesmo commit e envie a tag.
+- Compare a versão e as tags existentes antes de escolher a próxima versão. Use semver: patch para correções, minor para funcionalidades e major para incompatibilidades públicas.
+- Não mova nem sobrescreva tags publicadas. A versão de publicação é `VERSION`; não espelhe automaticamente nos pacotes internos.
+- Não abra PRs nem acompanhe execuções do CI automaticamente, salvo pedido explícito.
+- O envio da tag autoriza testes e preparação de imagens, nunca o deploy. A produção é publicada somente por execução manual de `Deploy production`, iniciada pelo usuário ou mediante pedido explícito dele.
+- Informe o commit enviado, a versão/tag e as verificações realizadas. Não dispare o deploy ao terminar a entrega.
 
 ## Compatibilidade de publicação
 

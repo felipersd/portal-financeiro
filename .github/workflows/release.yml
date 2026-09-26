@@ -1,4 +1,4 @@
-name: Verify and deploy Portal Financeiro
+name: Verify and prepare release
 on:
   push:
     branches: [main]
@@ -96,11 +96,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      identity: ghcr.io/felipersd/portal-financeiro-identity@${{ steps.identity.outputs.digest }}
-      finance: ghcr.io/felipersd/portal-financeiro-finance@${{ steps.finance.outputs.digest }}
-      frontend: ghcr.io/felipersd/portal-financeiro-frontend@${{ steps.frontend.outputs.digest }}
-      gateway: ghcr.io/felipersd/portal-financeiro-gateway@${{ steps.gateway.outputs.digest }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Validate release
@@ -166,46 +161,18 @@ jobs:
           tags: ghcr.io/felipersd/portal-financeiro-gateway:${{ github.ref_name }}
           provenance: true
           sbom: true
-  deploy:
-    needs: image
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    environment:
-      name: production
-      url: https://portalfinanceiro.net
-    permissions:
-      contents: read
-      packages: read
-    concurrency: portal-production
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Deploy release by digest
+      - name: Save immutable release manifest
         env:
-          IDENTITY_IMAGE: ${{ needs.image.outputs.identity }}
-          FINANCE_IMAGE: ${{ needs.image.outputs.finance }}
-          FRONTEND_IMAGE: ${{ needs.image.outputs.frontend }}
-          GATEWAY_IMAGE: ${{ needs.image.outputs.gateway }}
-          VPS_HOST: ${{ vars.VPS_HOST }}
-          VPS_USER: ${{ vars.VPS_USER }}
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IDENTITY_IMAGE: ghcr.io/felipersd/portal-financeiro-identity@${{ steps.identity.outputs.digest }}
+          FINANCE_IMAGE: ghcr.io/felipersd/portal-financeiro-finance@${{ steps.finance.outputs.digest }}
+          FRONTEND_IMAGE: ghcr.io/felipersd/portal-financeiro-frontend@${{ steps.frontend.outputs.digest }}
+          GATEWAY_IMAGE: ghcr.io/felipersd/portal-financeiro-gateway@${{ steps.gateway.outputs.digest }}
         run: |
-          set -Eeuo pipefail
-          [[ "$VPS_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
-          [[ "$VPS_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/portal
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/portal ~/.ssh/known_hosts
-          trap 'rm -f ~/.ssh/portal' EXIT
-          SSH=(-i ~/.ssh/portal -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=15)
-          REMOTE="/srv/portal-financeiro/releases/$GITHUB_SHA"
-          printf 'IDENTITY_IMAGE=%s\nFINANCE_IMAGE=%s\nFRONTEND_IMAGE=%s\nGATEWAY_IMAGE=%s\n' "$IDENTITY_IMAGE" "$FINANCE_IMAGE" "$FRONTEND_IMAGE" "$GATEWAY_IMAGE" > deploy/images.env
-          ssh "${SSH[@]}" "$VPS_USER@$VPS_HOST" "mkdir -p '$REMOTE'"
-          scp "${SSH[@]}" -r deploy "$VPS_USER@$VPS_HOST:$REMOTE/"
-          printf '%s' "$REGISTRY_TOKEN" | ssh "${SSH[@]}" "$VPS_USER@$VPS_HOST" "bash '$REMOTE/deploy/release.sh' '$GITHUB_ACTOR'"
-      - name: Verify public release
-        if: vars.PUBLIC_DNS_READY == 'true'
-        run: |
-          curl -fsS --retry 6 --retry-all-errors --max-time 20 https://portalfinanceiro.net/version.json | grep -F "$GITHUB_SHA"
+          node -e 'const images=Object.fromEntries(["IDENTITY","FINANCE","FRONTEND","GATEWAY"].map(service=>[service+"_IMAGE",process.env[service+"_IMAGE"]])); require("fs").writeFileSync("release.json",JSON.stringify({revision:process.env.GITHUB_SHA,images}));'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-manifest
+          path: release.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90

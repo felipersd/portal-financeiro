@@ -4,11 +4,15 @@ O Portal usa `portalfinanceiro.net`, PostgreSQL e serviços separados do One Pie
 
 ## Fluxo de entrega
 
-1. Envie a branch com commit e push. Quando solicitado, abra um PR para `main`. O workflow verifica frontend, APIs, auditoria de dependências, migrações em banco vazio, reaplicação, diferenças do schema e falhas de blue/green em ambiente isolado.
-2. Atualize `VERSION` e integre o PR. Crie e envie a tag correspondente, por exemplo `v1.3.0`.
-3. O GitHub Actions constrói quatro imagens Linux amd64 e publica no GHCR com metadados de procedência e SBOM.
-4. O job do ambiente `production` envia somente os manifestos e scripts à VPS via SSH com chave dedicada e host verificado. O código compilado chega nas imagens; não há checkout de código na produção.
-5. A VPS baixa as imagens pelos digests, verifica compatibilidade do banco, faz backup local/R2 e inicia a candidata no slot inativo. Após conferir saúde e revisões, troca o tráfego por recarga do Caddy. A publicação é serializada com `flock` e concorrência do Actions.
+1. Atualize `VERSION`, faça commit e push diretamente em `main`, sem PR por padrão, e crie/envie a tag anotada correspondente (por exemplo `v1.8.1`).
+2. **Verify and prepare release** executa as verificações e, para tags, constrói quatro imagens Linux amd64 no GHCR com procedência e SBOM. Salva o artefato `release-manifest`, vinculando os digests ao commit. Nenhum job desse workflow acessa a VPS.
+3. Após a preparação concluir com sucesso, abra **Actions → Deploy production → Run workflow**. Mantenha `main` no seletor de branch, informe a tag no campo `tag` e clique em **Run workflow**. Esta é a única entrada de deploy; enviar/reexecutar uma tag não publica automaticamente.
+4. O deploy verifica tag, versão e inclusão do commit em `main`, localiza a preparação bem-sucedida daquela tag/commit e valida os quatro digests do artefato. Usa as imagens já construídas, sem recompilar. Preparação ausente, falha, em andamento ou artefato indisponível impede acesso à VPS.
+5. O job do ambiente `production` envia os scripts da tag e os digests à VPS por SSH. A VPS confere o schema, faz backup local/R2, inicia a candidata e troca o tráfego pelo Caddy após as verificações. `flock` e a concorrência `portal-production` serializam publicações.
+
+O manifesto é retido por 90 dias (sujeito aos limites do repositório). Se expirar, reexecute a preparação original da tag e depois solicite o deploy manual. Tags anteriores a 1.8.1 não têm esse artefato e não são aceitas pelo novo fluxo. Para rollback de uma versão já implantada, use o procedimento blue/green abaixo.
+
+Workflows de tags antigas mantêm a configuração que existia naquele commit: não reexecute um deploy antigo esperando que o novo bloqueio manual se aplique retroativamente.
 
 Não use `latest`, Watchtower ou `prisma db push` na produção. O deploy de aplicação **não aplica migrações**: uma migração pendente ou alterada bloqueia a publicação, preservando o serviço ativo. Alterações de schema exigem uma operação separada e compatível com a aplicação em execução. Falhas após a troca acionam tentativa de recuperação da rota anterior; o banco nunca é restaurado automaticamente. Consulte [sequência, limites e operação blue/green](blue-green.md).
 
