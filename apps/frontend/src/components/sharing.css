@@ -1,20 +1,275 @@
-.sharing-center { margin: 2rem 0; }
-.sharing-heading, .sharing-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.sharing-heading h2, .sharing-item h3 { margin: 0.5rem 0; }
-.sharing-center p, .sharing-member small { color: var(--text-secondary); line-height: 1.6; }
-.sharing-item { margin: 1rem 0; }
-.sharing-item > div { min-width: 0; overflow-wrap: anywhere; }
-.member-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; overflow-wrap: anywhere; }
-.member-card > .sharing-member { grid-column: 1 / -1; grid-row: 2; }
-.sharing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
-.sharing-actions button { min-height: 44px; }
-.sharing-member { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.75rem; font-size: 0.85rem; }
-.sharing-badge { display: inline-block; padding: 0.25rem 0.65rem; border-radius: 1rem; background: rgba(99,102,241,0.15); color: var(--text-primary); font-size: 0.8rem; }
-.status-accepted { background: rgba(16,185,129,0.15); }
-.sharing-empty { border: 1px dashed var(--border); padding: 1.5rem; border-radius: 1rem; }
-.operation-error { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 10000; background: #7f1d1d; color: white; padding: 1rem; border-radius: 0.75rem; width: min(90vw, 650px); display: flex; gap: 1rem; box-shadow: 0 8px 30px #0005; }
-.operation-error button { margin-left: auto; background: transparent; color: white; border: 0; font-size: 1.5rem; cursor: pointer; }
-.operation-status { position: fixed; top: 0.5rem; right: 1rem; z-index: 10000; background: var(--bg-card); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 1rem; }
-button:disabled { cursor: wait; opacity: 0.6; }
-@media(max-width: 640px) { .sharing-heading, .sharing-item { flex-direction: column; } .sharing-actions { width: 100%; } .sharing-actions button { flex: 1; } }
-.share-settlement { min-width: 0; width: min(100%, 320px); } .share-settlement summary { cursor: pointer; padding: .75rem 0; } .share-settlement form { display: grid; gap: .5rem; margin: .75rem 0; } .share-settlement > button { margin-top: .75rem; }
+.sharing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 9px;
+    margin-top: 12px;
+}
+.sharing-badge {
+    display: inline-flex;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    background: #eef2ef;
+    color: #5f7567;
+    white-space: nowrap;
+}
+.status-pending,
+.status-expired {
+    background: #f7f0df;
+    color: #89691f;
+}
+.status-accepted {
+    background: #e5f2e9;
+    color: #1b6b43;
+}
+.status-declined,
+.status-cancelled,
+.status-revoked {
+    background: #f4eceb;
+    color: #956562;
+}
+.share-list {
+    display: grid;
+    gap: 15px;
+}
+.share-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.share-person {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+.share-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 23px 0;
+}
+.share-main h3 {
+    font-size: 18px;
+}
+.share-main p {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin: 6px 0;
+}
+.share-main .chip {
+    font-size: 9px;
+    padding: 3px 7px;
+}
+.share-amount {
+    text-align: right;
+    flex-shrink: 0;
+}
+.share-amount strong {
+    display: block;
+    font-size: 25px;
+    font-weight: 500;
+    letter-spacing: -0.6px;
+}
+.share-amount small {
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+.share-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    border-top: 1px solid var(--border);
+    padding-top: 17px;
+}
+.share-card-bottom p {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.share-card-bottom .sharing-actions {
+    margin: 0;
+}
+.share-correction {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+}
+.share-correction summary {
+    cursor: pointer;
+    padding: 10px 0;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 550;
+}
+.share-correction p {
+    font-size: 12px;
+}
+.correction-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    margin: 15px 0;
+}
+.correction-form label {
+    max-width: 280px;
+}
+.correction-form input {
+    margin-top: 5px;
+}
+.history-row {
+    border-bottom: 1px solid var(--border);
+    padding: 13px 0;
+}
+.history-row small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 10px;
+    margin-top: 5px;
+}
+.inline-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.people-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+}
+.person-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.person-heading > div {
+    flex: 1;
+}
+.person-heading h3 {
+    font-size: 15px;
+}
+.person-heading p {
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+.person-email {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin: 16px 0;
+    overflow-wrap: anywhere;
+}
+.sharing-member {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+.sharing-member .btn-secondary {
+    font-size: 10px;
+    min-height: 32px;
+    padding: 7px 10px;
+}
+.text-button {
+    border: 0;
+    background: none;
+    padding: 5px 0;
+    color: var(--primary);
+    font-size: 10px;
+    cursor: pointer;
+}
+.person-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 20px;
+}
+.invitation-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.invitation-card p {
+    font-size: 12px;
+    margin-top: 8px;
+}
+.compact-link {
+    font-size: 10px;
+    margin-top: 8px;
+}
+.operation-error {
+    position: fixed;
+    right: 20px;
+    bottom: 24px;
+    max-width: min(520px, 90vw);
+    background: #9d3333;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    z-index: 140;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 12px;
+    box-shadow: var(--shadow-lg);
+}
+.operation-error button {
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: 22px;
+}
+.operation-status {
+    position: fixed;
+    top: 85px;
+    right: 24px;
+    border: 1px solid var(--border);
+    background: white;
+    padding: 9px 15px;
+    border-radius: 8px;
+    z-index: 140;
+    font-size: 12px;
+}
+@media (max-width: 768px) {
+    .people-grid {
+        grid-template-columns: 1fr;
+    }
+    .share-main {
+        gap: 12px;
+    }
+    .share-main h3 {
+        font-size: 16px;
+    }
+    .share-amount strong {
+        font-size: 21px;
+    }
+    .share-card-bottom,
+    .invitation-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .share-card-bottom .sharing-actions > * {
+        flex: 1;
+    }
+    .operation-error {
+        bottom: 80px;
+        left: 15px;
+        right: 15px;
+        max-width: unset;
+    }
+    .correction-form {
+        flex-wrap: wrap;
+    }
+    .share-card-top {
+        gap: 8px;
+    }
+    .share-person {
+        font-size: 10px;
+    }
+}

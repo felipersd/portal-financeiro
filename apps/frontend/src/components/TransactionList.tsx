@@ -1,185 +1,222 @@
-import { cents } from '../utils/money';
-import { ShareExpenseActions } from './SharingCenter';
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ArrowDownLeft, ArrowUpRight, Edit2, Inbox, Repeat2, Search, Trash2 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
-import { Inbox, ArrowUpCircle, ArrowDownCircle, Edit2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { currency } from '../utils/money';
+import { personalCents } from '../utils/monthlyAnalysis';
 import { TransactionModal } from './TransactionModal';
 import type { Transaction } from '../types';
 
-const CategorySection = ({ 
-    category, 
-    transactions, 
-    type,
-    renderTransaction
-}: { 
-    category: string; 
-    transactions: Transaction[]; 
-    type: 'income' | 'expense';
-    renderTransaction: (t: Transaction) => React.ReactNode;
-}) => {
-    const [isExpanded, setIsExpanded] = useState(true);
-
-    const categoryTotal = transactions.reduce((acc, t) => {
-        const amount = t.isShared && t.type === 'expense' && t.splitDetails?.splits
-            ? (t.splitDetails.splits.find(s => s.memberId === 'me')?.amount || 0)
-            : t.amount;
-        return acc + cents(amount);
-    }, 0);
-
-    return (
-        <div style={{ marginBottom: '1.5rem' }}>
-            <button type="button" aria-expanded={isExpanded}
-                onClick={() => setIsExpanded(!isExpanded)}
-                style={{ 
-                    display: 'flex', width:'100%', background:'transparent', border:0, color:'inherit',
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    marginBottom: isExpanded ? '0.75rem' : '0',
-                    borderBottom: '1px solid var(--border)',
-                    paddingBottom: '0.5rem',
-                    transition: 'margin 0.2s'
-                }}
-            >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
-                    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                    <span style={{ fontSize: '1rem', margin: 0 }}>
-                        {category}
-                    </span>
-                </span>
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: type === 'income' ? 'var(--success)' : 'var(--text-primary)' }}>
-                    {type === 'income' ? '+' : '-'} R$ {(categoryTotal / 100).toFixed(2)}
-                </span>
-            </button>
-            
-            {isExpanded && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {transactions.map(t => renderTransaction(t))}
-                </div>
-            )}
-        </div>
+export function TransactionList() {
+    const { filteredTransactions, removeTransaction, stopRecurrence, isProcessing, tagsEnabled } =
+        useFinance();
+    const [editing, setEditing] = useState<Transaction | null>(null);
+    const [search, setSearch] = useState('');
+    const [type, setType] = useState('all');
+    const [category, setCategory] = useState('');
+    const [tag, setTag] = useState('');
+    const [limit, setLimit] = useState(50);
+    const categories = [...new Set(filteredTransactions.map((item) => item.category))].sort();
+    const tags = [
+        ...new Set(filteredTransactions.flatMap((item) => item.tags?.map((value) => value.name) || [])),
+    ].sort();
+    const results = useMemo(
+        () =>
+            filteredTransactions
+                .filter(
+                    (item) =>
+                        (type === 'all' || item.type === type) &&
+                        (!category || item.category === category) &&
+                        (!tag || item.tags?.some((value) => value.name === tag)) &&
+                        `${item.description} ${item.category} ${item.sharedFromName || ''} ${item.tags?.map((value) => value.name).join(' ') || ''}`
+                            .toLocaleLowerCase('pt-BR')
+                            .includes(search.trim().toLocaleLowerCase('pt-BR')),
+                )
+                .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)),
+        [filteredTransactions, search, type, category, tag],
     );
-};
-
-export const TransactionList: React.FC = () => {
-    const { filteredTransactions, removeTransaction, stopRecurrence, members, isProcessing } = useFinance();
-    const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-
-    if (filteredTransactions.length === 0) {
-        return (
-            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '3rem' }}>
-                <Inbox size={48} style={{ marginBottom: '1rem' }} />
-                <p>Nenhuma transação encontrada.</p>
-            </div>
-        );
+    const net =
+        results.reduce((sum, item) => sum + personalCents(item) * (item.type === 'income' ? 1 : -1), 0) / 100;
+    function filter(update: () => void) {
+        update();
+        setLimit(50);
     }
-
-    const grouped = filteredTransactions.reduce((acc, t) => {
-        if (!acc[t.type]) acc[t.type] = {};
-        if (!acc[t.type][t.category]) acc[t.type][t.category] = [];
-        acc[t.type][t.category].push(t);
-        return acc;
-    }, {} as Record<string, Record<string, Transaction[]>>);
-
-    const renderTransaction = (t: Transaction) => (
-        <div key={t.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', gap: '1rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    {t.type === 'income' ? <ArrowUpCircle size={16} className="text-success" style={{ flexShrink: 0 }} /> : <ArrowDownCircle size={16} className="text-danger" style={{ flexShrink: 0 }} />}
-                    <span style={{ wordBreak: 'break-word' }}>{t.description}</span>
-                    {t.isShared && (
-                        <span style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
-                            Compartilhado ({t.payer === 'me' ? 'Eu' : members.find(m => m.id === t.payer)?.name || 'Membro'})
-                        </span>
-                    )}
-                    {t.readOnly && <span className="sharing-badge">Aceita · de {t.sharedFromName}</span>}
-                    {t.recurrenceId && (
-                        <span style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
-                            Recorrente
-                        </span>
-                    )}
-                </div>
-                <span className="text-secondary" style={{ fontSize: '0.875rem' }}>
-                    {t.category}
-                </span>
-                {t.isFixed && !t.readOnly && <button className="btn-secondary" disabled={isProcessing} onClick={() => { if (confirm('Encerrar esta conta fixa a partir deste mês, incluindo esta ocorrência? Meses anteriores serão preservados. Contas com aceite precisam ser preservadas.')) void stopRecurrence(t.id); }}>Encerrar recorrência</button>}
-                {t.isShared && <ShareExpenseActions sharedWith={t.sharedWith} transactionId={t.id} memberIds={t.splitDetails?.splits.map(s => s.memberId) || []} />}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '1.125rem', color: t.type === 'income' ? 'var(--success)' : 'var(--text-primary)', textAlign: 'right' }}>
-                    {t.type === 'income' ? '+' : '-'} R$ {(
-                        t.isShared && t.type === 'expense' && t.splitDetails?.splits
-                            ? (t.splitDetails.splits.find(s => s.memberId === 'me')?.amount || 0)
-                            : t.amount
-                    ).toFixed(2)}
-                    {t.isShared && t.type === 'expense' && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                            (Total: R$ {t.amount.toFixed(2)})
-                        </div>
-                    )}
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                        className="icon-btn edit"
-                        disabled={t.readOnly}
-                        onClick={() => setEditingTransaction(t)}
-                        title="Editar transação"
-                    >
-                        <Edit2 size={18} />
-                    </button>
-                    <button
-                        className="icon-btn delete"
-                        disabled={t.readOnly}
-                        onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir?')) {
-                                removeTransaction(t.id);
-                            }
-                        }}
-                        title="Excluir transação"
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderTypeSection = (type: 'income' | 'expense', title: string, color: string) => {
-        const categories = grouped[type];
-        if (!categories || Object.keys(categories).length === 0) return null;
-
-        return (
-            <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ color, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {type === 'income' ? <ArrowUpCircle size={24} /> : <ArrowDownCircle size={24} />}
-                    {title}
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {Object.entries(categories).map(([category, transactions]) => (
-                        <CategorySection 
-                            key={category} 
-                            category={category} 
-                            transactions={transactions} 
-                            type={type} 
-                            renderTransaction={renderTransaction} 
-                        />
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
     return (
-        <div>
-            {renderTypeSection('income', 'Receitas', 'var(--success)')}
-            {renderTypeSection('expense', 'Despesas', 'var(--danger)')}
-
-            <TransactionModal
-                isOpen={!!editingTransaction}
-                onClose={() => setEditingTransaction(null)}
-                editTransaction={editingTransaction}
-            />
+        <div className="page-stack">
+            <div className="page-intro">
+                <div>
+                    <span className="eyebrow">CADA MOVIMENTO CONTA</span>
+                    <h2>Seu mês, em detalhes</h2>
+                    <p>Encontre um lançamento e entenda sua parte em cada despesa.</p>
+                </div>
+            </div>
+            <section className="card transaction-panel">
+                <div className="transaction-filters">
+                    <label className="search-field">
+                        <Search size={17} />
+                        <input
+                            aria-label="Buscar lançamentos"
+                            placeholder="Buscar descrição, pessoa ou tag"
+                            value={search}
+                            onChange={(event) => filter(() => setSearch(event.target.value))}
+                        />
+                    </label>
+                    <select
+                        aria-label="Tipo de lançamento"
+                        value={type}
+                        onChange={(event) => filter(() => setType(event.target.value))}
+                    >
+                        <option value="all">Todos os tipos</option>
+                        <option value="income">Receitas</option>
+                        <option value="expense">Despesas</option>
+                    </select>
+                    <select
+                        aria-label="Filtrar categoria"
+                        value={category}
+                        onChange={(event) => filter(() => setCategory(event.target.value))}
+                    >
+                        <option value="">Todas as categorias</option>
+                        {categories.map((name) => (
+                            <option key={name}>{name}</option>
+                        ))}
+                    </select>
+                    {tagsEnabled && (
+                        <select
+                            aria-label="Filtrar tag"
+                            value={tag}
+                            onChange={(event) => filter(() => setTag(event.target.value))}
+                        >
+                            <option value="">Todas as tags</option>
+                            {tags.map((name) => (
+                                <option key={name}>{name}</option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+                <div className="transaction-summary">
+                    <span>
+                        {results.length} lançamento{results.length !== 1 ? 's' : ''}
+                    </span>
+                    <span>
+                        Resultado neste filtro <strong>{currency(net)}</strong>
+                    </span>
+                </div>
+                {!results.length && (
+                    <div className="empty-state">
+                        <Inbox size={30} />
+                        <h3>Nenhum lançamento encontrado</h3>
+                        <p>Adicione uma receita ou despesa, ou ajuste os filtros.</p>
+                    </div>
+                )}
+                {results.slice(0, limit).map((item, index) => {
+                    const locked =
+                        item.readOnly ||
+                        item.sharedWith?.some((share) => ['pending', 'accepted'].includes(share.status));
+                    return (
+                        <div key={item.id}>
+                            {(index === 0 ||
+                                results[index - 1].date.slice(0, 10) !== item.date.slice(0, 10)) && (
+                                <h3 className="transaction-date">
+                                    {new Date(item.date).toLocaleDateString('pt-BR', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        weekday: 'short',
+                                        timeZone: 'UTC',
+                                    })}
+                                </h3>
+                            )}
+                            <article className="transaction-row">
+                                <span className={`transaction-symbol ${item.type}`}>
+                                    {item.type === 'income' ? (
+                                        <ArrowDownLeft size={19} />
+                                    ) : (
+                                        <ArrowUpRight size={19} />
+                                    )}
+                                </span>
+                                <div className="transaction-description">
+                                    <strong>{item.description}</strong>
+                                    <small>
+                                        {item.category}
+                                        {item.sharedFromName && ` · De ${item.sharedFromName}`}
+                                        {item.isFixed && ' · Recorrente'}
+                                    </small>
+                                    <div className="chip-list">
+                                        {tagsEnabled &&
+                                            item.tags?.map((value) => (
+                                                <span className="chip" key={value.id}>
+                                                    #{value.name}
+                                                </span>
+                                            ))}
+                                    </div>
+                                    {(item.readOnly || Boolean(item.sharedWith?.length)) && (
+                                        <a className="text-link compact-link" href="#sharing">
+                                            {item.sharedWith?.some((share) => share.status === 'pending')
+                                                ? 'Aguardando aceite'
+                                                : 'Ver compartilhamento'}
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="transaction-value">
+                                    <strong className={item.type === 'income' ? 'text-success' : ''}>
+                                        {item.type === 'income' ? '+' : '−'}{' '}
+                                        {currency(personalCents(item) / 100)}
+                                    </strong>
+                                    {item.isShared && (
+                                        <small>Sua parte · total {currency(item.amount)}</small>
+                                    )}
+                                </div>
+                                <div className="transaction-actions">
+                                    {!locked && (
+                                        <>
+                                            <button
+                                                className="icon-btn"
+                                                aria-label={`Editar ${item.description}`}
+                                                disabled={isProcessing}
+                                                onClick={() => setEditing(item)}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                className="icon-btn"
+                                                aria-label={`Excluir ${item.description}`}
+                                                disabled={isProcessing}
+                                                onClick={() => {
+                                                    if (confirm('Excluir este lançamento?'))
+                                                        void removeTransaction(item.id);
+                                                }}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                            {item.isFixed && (
+                                                <button
+                                                    className="icon-btn"
+                                                    aria-label={`Encerrar recorrência de ${item.description}`}
+                                                    disabled={isProcessing}
+                                                    onClick={() => {
+                                                        if (
+                                                            confirm(
+                                                                'Encerrar esta recorrência a partir deste mês? Os meses anteriores serão preservados.',
+                                                            )
+                                                        )
+                                                            void stopRecurrence(item.id);
+                                                    }}
+                                                >
+                                                    <Repeat2 size={16} />
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </article>
+                        </div>
+                    );
+                })}
+                {results.length > limit && (
+                    <button className="btn-secondary" onClick={() => setLimit((value) => value + 50)}>
+                        Ver mais lançamentos
+                    </button>
+                )}
+            </section>
+            <TransactionModal isOpen={!!editing} onClose={() => setEditing(null)} editTransaction={editing} />
         </div>
     );
-};
+}

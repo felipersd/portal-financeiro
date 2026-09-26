@@ -1,5 +1,7 @@
 # Débitos técnicos: implementação e pendências operacionais
 
+> Revisão de experiência de 25/09: consulte [implementação e pendências atuais](experiencia-2026-09-25.md). Ela substitui novas propostas de pagamento/devolução por correções consensuais, acrescenta tags e notificações e registra o e-mail de suporte/privacidade como dívida adiada a pedido do usuário. O contrato de dados dessa revisão é 3; o restante deste documento preserva o histórico do contrato 2.
+
 > Atualização operacional posterior: PR #5 integrado pelo usuário e versão 1.5.0 publicada. R2 ativado e restauração remota comprovada em 24/09; consulte [Backup R2](backup-r2.md). As marcações de R2 pendente abaixo descrevem o estado anterior à ativação. Rotação de credenciais antigas e homologação entre duas contas continuam pendentes.
 
 Este documento atualiza a lista de débitos da revisão de 20/09. As alterações de código estão no PR #5, branch `codex/technical-debt`. A aplicação em produção permanece na versão 1.4.0; a nova migração ainda não foi aplicada.

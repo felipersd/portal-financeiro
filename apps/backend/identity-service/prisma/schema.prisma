@@ -15,6 +15,7 @@ model User {
   createdAt DateTime @default(now())
 
   identities UserIdentity[]
+  contact UserContact?
 }
 
 model UserIdentity {
@@ -27,4 +28,18 @@ model UserIdentity {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
+}
+
+// Reserved for a future explicit opt-in. No public endpoint reads or writes these fields.
+model UserContact {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneE164 String?
+  addressLine1 String?
+  addressLine2 String?
+  city String?
+  region String?
+  postalCode String?
+  countryCode String? @db.Char(2)
+  updatedAt DateTime @updatedAt
 }

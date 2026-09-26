@@ -5,3 +5,10 @@
 *.service text eol=lf
 *.timer text eol=lf
 Dockerfile text eol=lf
+
+# Consistent source formatting across Windows development and Linux CI.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.prisma text eol=lf

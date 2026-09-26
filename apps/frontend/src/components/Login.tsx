@@ -1,61 +1,50 @@
-import React from 'react';
 import { SignInButton, SignUpButton } from '@clerk/clerk-react';
-
-export const Login: React.FC = () => {
+import { ArrowRight, ShieldCheck, Users, ChartNoAxesCombined } from 'lucide-react';
+import { Brand } from './Brand';
+export function Login() {
     return (
-        <div style={{
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'var(--bg-body)',
-            padding: '2rem'
-        }}>
-            <div style={{ marginBottom: '2rem' }}>
-                <img src="/logo-full.png?v=3" alt="Portal Financeiro" style={{ height: '160px', maxWidth: '100%', filter: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.3))' }} />
-            </div>
-
-            <div style={{
-                width: '100%',
-                maxWidth: '400px',
-                textAlign: 'center',
-                padding: '3rem 2rem',
-                background: 'rgba(30, 41, 59, 0.7)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '1rem'
-            }}>
-                <h2 style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.5rem' }}>Bem-vindo</h2>
-                <p style={{ marginBottom: '2.5rem', color: 'var(--text-secondary)' }}>
-                    Faça login ou cadastre-se para gerenciar suas finanças.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <main className="login-page">
+            <section className="login-story">
+                <Brand />
+                <div>
+                    <span className="eyebrow">SEU DIA A DIA, MAIS LEVE</span>
+                    <h1>
+                        Seu dinheiro.
+                        <br />
+                        Suas escolhas.
+                        <br />
+                        <em>Mais clareza.</em>
+                    </h1>
+                    <p>Organize o mês, entenda seus gastos e divida contas com quem faz parte da sua vida.</p>
+                    <div className="login-features">
+                        <span>
+                            <Users size={18} /> Contas compartilhadas, com aceite
+                        </span>
+                        <span>
+                            <ChartNoAxesCombined size={18} /> Um olhar completo para o seu mês
+                        </span>
+                    </div>
+                </div>
+                <small>Portal Financeiro · Feito para a vida real</small>
+            </section>
+            <section className="login-panel">
+                <div>
+                    <span className="eyebrow">BEM-VINDO AO SEU PORTAL</span>
+                    <h2>Vamos cuidar do seu mês?</h2>
+                    <p>Entre na sua conta para continuar de onde parou.</p>
                     <SignInButton mode="modal" fallbackRedirectUrl="/">
-                        <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '1rem', fontSize: '1.1rem', cursor: 'pointer' }}>
-                            Entrar
+                        <button className="btn-primary">
+                            Entrar na minha conta <ArrowRight size={18} />
                         </button>
                     </SignInButton>
-                    
                     <SignUpButton mode="modal" fallbackRedirectUrl="/">
-                        <button style={{ 
-                            width: '100%', 
-                            justifyContent: 'center', 
-                            padding: '1rem', 
-                            fontSize: '1.1rem',
-                            background: 'transparent',
-                            border: '1px solid var(--primary)',
-                            color: 'var(--primary)',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            fontWeight: 600
-                        }}>
-                            Criar conta
-                        </button>
+                        <button className="btn-secondary">Criar uma conta</button>
                     </SignUpButton>
+                    <small>
+                        <ShieldCheck size={15} /> Seus lançamentos são privados. Você escolhe o que dividir.
+                    </small>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
     );
-};
+}

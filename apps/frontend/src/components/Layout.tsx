@@ -1,300 +1,275 @@
-import React, { useState, lazy, Suspense } from 'react';
-import { LayoutDashboard, List, Scale, Plus, Tag, LogOut, Users, PieChart } from 'lucide-react';
-const Dashboard = lazy(() => import('./Dashboard').then(module => ({ default: module.Dashboard })));
-import { TransactionList } from './TransactionList';
-const Settlement = lazy(() => import('./Settlement').then(module => ({ default: module.Settlement })));
+import { lazy, Suspense, useEffect, useState } from 'react';
+import {
+    LayoutDashboard,
+    List,
+    Plus,
+    Tags,
+    LogOut,
+    Users,
+    ChartNoAxesCombined,
+    Bell,
+    Settings2,
+    ArrowLeftRight,
+    Menu,
+    X,
+} from 'lucide-react';
+import { useFinance } from '../context/FinanceContext';
+import { Brand } from './Brand';
 import { TransactionModal } from './TransactionModal';
-import { CategoryManager } from './CategoryManager';
 import { MonthYearPicker } from './MonthYearPicker';
-import { MobileDateTrigger, MobileDateCarousel } from './MobileDateSelector';
-const MemberReport = lazy(() => import('./MemberReport').then(module => ({ default: module.MemberReport })));
-import { MembersManager } from './MembersManager';
-const TermsOfService = lazy(() => import('./TermsOfService').then(module => ({ default: module.TermsOfService })));
-const PrivacyPolicy = lazy(() => import('./PrivacyPolicy').then(module => ({ default: module.PrivacyPolicy })));
 import { Footer } from './Footer';
 import { CookieConsent } from './CookieConsent';
-import { useFinance } from '../context/FinanceContext';
+const Dashboard = lazy(() => import('./Dashboard').then((module) => ({ default: module.Dashboard })));
+const TransactionList = lazy(() =>
+    import('./TransactionList').then((module) => ({ default: module.TransactionList })),
+);
+const MembersManager = lazy(() =>
+    import('./MembersManager').then((module) => ({ default: module.MembersManager })),
+);
+const SharingCenter = lazy(() =>
+    import('./SharingCenter').then((module) => ({ default: module.SharingCenter })),
+);
+const MonthlyReport = lazy(() =>
+    import('./MonthlyReport').then((module) => ({ default: module.MonthlyReport })),
+);
+const Organization = lazy(() =>
+    import('./Organization').then((module) => ({ default: module.Organization })),
+);
+const ProfileSettings = lazy(() =>
+    import('./ProfileSettings').then((module) => ({ default: module.ProfileSettings })),
+);
+const NotificationCenter = lazy(() =>
+    import('./NotificationCenter').then((module) => ({ default: module.NotificationCenter })),
+);
+const TermsOfService = lazy(() =>
+    import('./TermsOfService').then((module) => ({ default: module.TermsOfService })),
+);
+const PrivacyPolicy = lazy(() =>
+    import('./PrivacyPolicy').then((module) => ({ default: module.PrivacyPolicy })),
+);
+const navigation = [
+    { id: 'dashboard', label: 'Visão geral', short: 'Início', icon: LayoutDashboard },
+    { id: 'transactions', label: 'Lançamentos', short: 'Extrato', icon: List },
+    { id: 'sharing', label: 'Compartilhamentos', short: 'Dividir', icon: ArrowLeftRight },
+    { id: 'reports', label: 'Relatórios', short: 'Relatórios', icon: ChartNoAxesCombined },
+    { id: 'members', label: 'Membros', short: 'Membros', icon: Users },
+    { id: 'organization', label: 'Organização', short: 'Organizar', icon: Tags },
+];
+const views = [
+    'dashboard',
+    'transactions',
+    'sharing',
+    'reports',
+    'members',
+    'organization',
+    'settings',
+    'notifications',
+    'terms',
+    'privacy',
+];
+function activeView() {
+    const hash = window.location.hash.slice(1);
+    return views.includes(hash) ? hash : 'dashboard';
+}
 
-type View = 'dashboard' | 'transactions' | 'settlement' | 'categories' | 'members' | 'reports' | 'terms' | 'privacy';
-
-export const Layout: React.FC = () => {
-    const { user, logout, getSummary, sharing } = useFinance();
-    const [currentView, setCurrentView] = useState<View>('dashboard');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-    const [isMobileDateExpanded, setIsMobileDateExpanded] = useState(false);
-
-    const { hasSharedTransactions } = getSummary();
-
-    const renderContent = () => {
-        switch (currentView) {
-            case 'dashboard': return <Dashboard />;
-            case 'transactions': return <TransactionList />;
-            case 'settlement': return <Settlement />;
-            case 'categories': return <CategoryManager />;
-            case 'members': return <MembersManager />;
-            case 'reports': return <MemberReport />;
-            case 'terms': return <TermsOfService />;
-            case 'privacy': return <PrivacyPolicy />;
+export function Layout() {
+    const { user, logout, sharing, notifications } = useFinance();
+    const [view, setView] = useState(activeView);
+    const [modal, setModal] = useState(false);
+    const [menu, setMenu] = useState(false);
+    useEffect(() => {
+        const changed = () => {
+            setView(activeView());
+            setMenu(false);
+        };
+        window.addEventListener('hashchange', changed);
+        return () => window.removeEventListener('hashchange', changed);
+    }, []);
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }, [view]);
+    const go = (target: string) => {
+        window.location.hash = target;
+        setView(target);
+        setMenu(false);
+    };
+    const title =
+        navigation.find((item) => item.id === view)?.label ||
+        (
+            {
+                settings: 'Minha conta',
+                notifications: 'Notificações',
+                terms: 'Termos de uso',
+                privacy: 'Privacidade',
+            } as Record<string, string>
+        )[view];
+    const content = () => {
+        switch (view) {
+            case 'transactions':
+                return <TransactionList />;
+            case 'sharing':
+                return <SharingCenter />;
+            case 'members':
+                return <MembersManager />;
+            case 'organization':
+                return <Organization />;
+            case 'reports':
+                return <MonthlyReport />;
+            case 'settings':
+                return <ProfileSettings />;
+            case 'notifications':
+                return <NotificationCenter />;
+            case 'terms':
+                return <TermsOfService />;
+            case 'privacy':
+                return <PrivacyPolicy />;
+            default:
+                return <Dashboard />;
         }
     };
-
-    const getTitle = () => {
-        switch (currentView) {
-            case 'dashboard': return 'Dashboard';
-            case 'transactions': return 'Transações';
-            case 'settlement': return 'Acerto de Contas';
-            case 'categories': return 'Categorias';
-            case 'members': return 'Membros';
-            case 'reports': return 'Relatórios';
-            case 'terms': return 'Termos de Uso';
-            case 'privacy': return 'Política de Privacidade';
-        }
-    };
-
+    const navItems = navigation.map(({ id, label, icon: Icon }) => (
+        <a
+            key={id}
+            href={`#${id}`}
+            className={`nav-item ${view === id ? 'active' : ''}`}
+            aria-current={view === id ? 'page' : undefined}
+        >
+            <Icon size={19} />
+            <span>{label}</span>
+            {id === 'sharing' && (sharing.attentionCount || 0) > 0 && (
+                <span className="nav-count">{sharing.attentionCount}</span>
+            )}
+        </a>
+    ));
     return (
         <div className="app-container">
-            <CookieConsent />
-            {/* Desktop Sidebar */}
-            <nav className="sidebar">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
-                    <img src="/logo-full.png?v=3" alt="Portal Financeiro" style={{ height: '70px', maxWidth: '100%', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))' }} />
-                </div>
-
-                {/* User Profile */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem' }}>
-                    {user?.avatar && <img src={user.avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} />}
-                    <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
-                        <button type="button" className="btn-secondary" onClick={logout}>Sair</button>
-                    </div>
-                </div>
-
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '0.5rem', marginRight: '-0.5rem' }}>
-                    <li><button type="button" aria-current={currentView === 'dashboard' ? 'page' : undefined} onClick={() => setCurrentView('dashboard')}
-                        className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
-                    >
-                        <LayoutDashboard size={20} /> Dashboard
-                    </button></li>
-                    <li><button type="button" aria-current={currentView === 'transactions' ? 'page' : undefined} onClick={() => setCurrentView('transactions')}
-                        className={`nav-item ${currentView === 'transactions' ? 'active' : ''}`}
-                    >
-                        <List size={20} /> Transações
-                    </button></li>
-                    {hasSharedTransactions && (
-                        <li><button type="button" aria-current={currentView === 'settlement' ? 'page' : undefined} onClick={() => setCurrentView('settlement')}
-                            className={`nav-item ${currentView === 'settlement' ? 'active' : ''}`}
-                        >
-                            <Scale size={20} /> Acerto de Contas
-                        </button></li>
-                    )}
-                    <li><button type="button" aria-current={currentView === 'categories' ? 'page' : undefined} onClick={() => setCurrentView('categories')}
-                        className={`nav-item ${currentView === 'categories' ? 'active' : ''}`}
-                    >
-                        <Tag size={20} /> Categorias
-                    </button></li>
-                    <li><button type="button" aria-current={currentView === 'members' ? 'page' : undefined} onClick={() => setCurrentView('members')}
-                        className={`nav-item ${currentView === 'members' ? 'active' : ''}`}
-                    >
-                        <Users size={20} /> Membros {(sharing.attentionCount || 0) > 0 && <span className="sharing-badge">Novidades</span>}
-                    </button></li>
-                    <li><button type="button" aria-current={currentView === 'reports' ? 'page' : undefined} onClick={() => setCurrentView('reports')}
-                        className={`nav-item ${currentView === 'reports' ? 'active' : ''}`}
-                    >
-                        <PieChart size={20} /> Relatórios
-                    </button></li>
-                </ul>
-
-                <button onClick={logout} className="nav-item" style={{ marginTop: '0.5rem', border: 'none', background: 'none', width: '100%', flexShrink: 0 }}>
-                    <LogOut size={20} /> Sair
-                </button>
-            </nav>
-
-            {/* Main Content */}
-            <main className="main-content">
-                <header className="top-bar" style={{ flexDirection: 'column', padding: 0, gap: 0, height: 'auto' }}>
-                    <div style={{
-                        width: '100%',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '1.5rem 2rem',
-                        position: 'relative'
-                    }}>
-                        <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                            <h1>{getTitle()}</h1>
-                            <MonthYearPicker />
-                        </div>
-
-                        {/* Mobile Logo - Left */}
-                        <div className="show-mobile" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}>
-                            <img src="/logo-icon.png" alt="Logo" style={{ height: '60px', width: 'auto' }} />
-                        </div>
-
-                        {/* Mobile Date Trigger - Centered */}
-                        <div className="show-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-                            <MobileDateTrigger isExpanded={isMobileDateExpanded} onToggle={() => setIsMobileDateExpanded(!isMobileDateExpanded)} />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', zIndex: 50 }}>
-                            {/* Mobile Profile Menu */}
-                            <div
-                                className="show-mobile"
-                                style={{ position: 'relative', marginLeft: '0.25rem' }}
-                            >
-                                <button type="button" aria-label="Abrir opções da conta" aria-expanded={isProfileMenuOpen}
-                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                    style={{
-                                        cursor: 'pointer',
-                                        padding: '2px',
-                                        border: isProfileMenuOpen ? '2px solid var(--primary)' : '2px solid transparent',
-                                        borderRadius: '50%',
-                                        transition: 'all 0.2s',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    <img
-                                        src={user?.avatar || '/avatar-vazio.png'}
-                                        alt="Avatar"
-                                        style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'block', objectFit: 'cover' }}
-                                    />
-                                </button>
-
-                                {isProfileMenuOpen && (
-                                    <>
-                                        <div
-                                            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-                                            onClick={() => setIsProfileMenuOpen(false)}
-                                        />
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '120%',
-                                            right: 0,
-                                            background: 'var(--bg-card)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: 'var(--radius-md)',
-                                            padding: '0.5rem',
-                                            minWidth: '150px',
-                                            boxShadow: 'var(--shadow-lg)',
-                                            zIndex: 50,
-                                            animation: 'fadeIn 0.2s ease-out'
-                                        }}>
-                                            <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name}</div>
-                                            </div>
-                                            <button
-                                                onClick={logout}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.5rem',
-                                                    width: '100%',
-                                                    padding: '0.5rem',
-                                                    background: 'none',
-                                                    border: 'none',
-                                                    color: 'var(--danger)',
-                                                    cursor: 'pointer',
-                                                    borderRadius: 'var(--radius-sm)',
-                                                    fontSize: '0.875rem'
-                                                }}
-                                            >
-                                                <LogOut size={16} />
-                                                Sair
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="hide-mobile">
-                                <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-                                    <Plus size={20} /> <span>Nova Transação</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Mobile Date Carousel - Expandable Row */}
-                    <div className="show-mobile" style={{ width: '100%' }}>
-                        <MobileDateCarousel isExpanded={isMobileDateExpanded} />
-                    </div>
-                </header>
-
-                <div className="content-area">
-                    <Suspense fallback={<p role="status">Carregando…</p>}>{renderContent()}</Suspense>
-                    <Footer onNavigate={(view) => setCurrentView(view)} />
-                </div>
-            </main>
-
-            {/* Mobile Floating Action Button */}
-            <button
-                className="show-mobile"
-                onClick={() => setIsModalOpen(true)}
-                style={{
-                    position: 'fixed',
-                    bottom: '90px',
-                    right: '20px',
-                    background: 'var(--primary-gradient)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '60px',
-                    height: '60px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
-                    cursor: 'pointer',
-                    zIndex: 90
+            <a
+                href="#main-content"
+                className="skip-link"
+                onClick={(event) => {
+                    event.preventDefault();
+                    document.getElementById('main-content')?.focus();
                 }}
             >
-                <Plus size={32} />
-            </button>
-
-            {/* Mobile Bottom Nav */}
-            <nav className="bottom-nav">
-                <button
-                    onClick={() => setCurrentView('dashboard')}
-                    className={`nav-item-mobile ${currentView === 'dashboard' ? 'active' : ''}`}
-                >
-                    <LayoutDashboard size={24} />
-                    <span>Início</span>
-                </button>
-                <button
-                    onClick={() => setCurrentView('transactions')}
-                    className={`nav-item-mobile ${currentView === 'transactions' ? 'active' : ''}`}
-                >
-                    <List size={24} />
-                    <span>Lista</span>
-                </button>
-                {hasSharedTransactions && (
-                    <button
-                        onClick={() => setCurrentView('settlement')}
-                        className={`nav-item-mobile ${currentView === 'settlement' ? 'active' : ''}`}
-                    >
-                        <Scale size={24} />
-                        <span>Acertos</span>
+                Pular para o conteúdo
+            </a>
+            <CookieConsent />
+            <aside className="sidebar">
+                <a href="#dashboard" className="brand-link">
+                    <Brand />
+                </a>
+                <span className="nav-section-label">MINHAS FINANÇAS</span>
+                <nav aria-label="Navegação principal">{navItems}</nav>
+                <div className="sidebar-bottom">
+                    <a href="#settings" className={`nav-item ${view === 'settings' ? 'active' : ''}`}>
+                        <Settings2 size={19} /> Minha conta
+                    </a>
+                    <div className="sidebar-divider" />
+                    <button className="profile-trigger" onClick={() => go('settings')}>
+                        <span className="avatar">
+                            {user?.avatar ? <img src={user.avatar} alt="" /> : user?.name.slice(0, 1)}
+                        </span>
+                        <span>
+                            <strong>{user?.name}</strong>
+                            <small>Perfil e preferências</small>
+                        </span>
                     </button>
+                    <button className="nav-item logout" onClick={logout}>
+                        <LogOut size={17} /> Sair da conta
+                    </button>
+                </div>
+            </aside>
+            <main className="main-content" id="main-content" tabIndex={-1}>
+                <header className="top-bar">
+                    <div className="top-title">
+                        <span className="show-mobile">
+                            <Brand compact />
+                        </span>
+                        <h1>{title}</h1>
+                    </div>
+                    <div className="top-actions">
+                        <button
+                            className="notification-button icon-btn"
+                            aria-label={`Notificações, ${notifications.unread} não lidas`}
+                            onClick={() => go('notifications')}
+                        >
+                            <Bell size={20} />
+                            {notifications.unread > 0 && <span />}
+                        </button>
+                        <button
+                            aria-label="Novo lançamento"
+                            className="btn-primary new-transaction"
+                            onClick={() => setModal(true)}
+                        >
+                            <Plus size={18} />
+                            <span>Novo lançamento</span>
+                        </button>
+                        <button
+                            className="show-mobile icon-btn"
+                            aria-label={menu ? 'Fechar navegação' : 'Mais opções'}
+                            aria-expanded={menu}
+                            onClick={() => setMenu(!menu)}
+                        >
+                            {menu ? <X size={22} /> : <Menu size={22} />}
+                        </button>
+                    </div>
+                </header>
+                {menu && (
+                    <nav className="mobile-more show-mobile" aria-label="Mais opções">
+                        {navItems}
+                        <a href="#settings" className="nav-item">
+                            <Settings2 size={19} /> Minha conta
+                        </a>
+                        <button className="nav-item" onClick={logout}>
+                            <LogOut size={19} /> Sair
+                        </button>
+                    </nav>
                 )}
+                <div className="content-area">
+                    <div className="period-row">
+                        <span>
+                            {['dashboard', 'transactions', 'reports', 'sharing'].includes(view)
+                                ? 'Período de referência'
+                                : 'Seu espaço pessoal'}
+                        </span>
+                        {['dashboard', 'transactions', 'reports', 'sharing'].includes(view) && (
+                            <MonthYearPicker />
+                        )}
+                    </div>
+                    <Suspense
+                        fallback={
+                            <div role="status" className="card">
+                                Carregando seu espaço…
+                            </div>
+                        }
+                    >
+                        {content()}
+                    </Suspense>
+                    <Footer onNavigate={go} />
+                </div>
+            </main>
+            <nav className="bottom-nav" aria-label="Navegação móvel">
+                {navigation.slice(0, 4).map(({ id, short, icon: Icon }) => (
+                    <a
+                        key={id}
+                        href={`#${id}`}
+                        className={`nav-item-mobile ${view === id ? 'active' : ''}`}
+                        aria-current={view === id ? 'page' : undefined}
+                    >
+                        <Icon size={21} />
+                        <span>{short}</span>
+                    </a>
+                ))}
                 <button
-                    onClick={() => setCurrentView('categories')}
-                    className={`nav-item-mobile ${currentView === 'categories' ? 'active' : ''}`}
+                    className={`nav-item-mobile ${menu ? 'active' : ''}`}
+                    onClick={() => setMenu(!menu)}
+                    aria-expanded={menu}
                 >
-                    <Tag size={24} />
-                    <span>Categorias</span>
-                </button>
-                <button
-                    onClick={() => setCurrentView('members')}
-                    className={`nav-item-mobile ${currentView === 'members' ? 'active' : ''}`}
-                >
-                    <Users size={24} />
-                    <span>Membros{(sharing.attentionCount || 0) > 0 ? ' •' : ''}</span>
+                    <Menu size={21} />
+                    <span>Mais</span>
                 </button>
             </nav>
-
-            <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            <TransactionModal isOpen={modal} onClose={() => setModal(false)} />
         </div>
     );
-};
+}

@@ -13,6 +13,7 @@ export class Transaction {
         public readonly recurrenceId?: string | null,
         public readonly splitDetails?: any | null,
         public readonly isFixed: boolean = false,
-        public readonly categoryId?: string
-    ) { }
+        public readonly categoryId?: string,
+        public readonly tagIds: string[] = [],
+    ) {}
 }

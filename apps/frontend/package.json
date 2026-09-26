@@ -1,59 +1,58 @@
 {
-  "name": "@portal/frontend",
-  "private": true,
-  "version": "1.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest",
-    "coverage": "vitest run --coverage",
-    "docker:local": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.local.yml up -d --build",
-    "docker:down": "docker compose down",
-    "mobile:build": "npm run build && npx cap sync",
-    "mobile:open:android": "npx cap open android",
-    "mobile:open:ios": "npx cap open ios"
-  },
-  "dependencies": {
-    "@capacitor/android": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
-    "@capacitor/ios": "^8.0.0",
-    "@clerk/clerk-react": "^5.61.3",
-    "@clerk/localizations": "^4.2.2",
-    "@tanstack/react-query": "^5.103.1",
-    "chart.js": "^4.5.1",
-    "lucide-react": "^0.554.0",
-    "react": "^19.2.0",
-    "react-chartjs-2": "^5.3.1",
-    "react-dom": "^19.2.0",
-    "recharts": "^3.5.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.1",
-    "@types/node": "^24.10.4",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/coverage-v8": "^4.0.16",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "jsdom": "^27.3.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "vitest": "^4.0.16",
-    "@capacitor/cli": "^8.0.0"
-  },
-  "overrides": {
-    "brace-expansion": "^2.0.3",
-    "xcode": {
-      "uuid": "11.1.1"
+    "name": "@portal/frontend",
+    "private": true,
+    "version": "1.1.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc -b && vite build",
+        "lint": "eslint .",
+        "preview": "vite preview",
+        "test": "vitest",
+        "coverage": "vitest run --coverage",
+        "docker:local": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.local.yml up -d --build",
+        "docker:down": "docker compose down",
+        "mobile:build": "npm run build && npx cap sync",
+        "mobile:open:android": "npx cap open android",
+        "mobile:open:ios": "npx cap open ios"
+    },
+    "dependencies": {
+        "@capacitor/android": "^8.0.0",
+        "@capacitor/core": "^8.0.0",
+        "@capacitor/ios": "^8.0.0",
+        "@clerk/clerk-react": "^5.61.3",
+        "@clerk/localizations": "^4.2.2",
+        "@tanstack/react-query": "^5.103.1",
+        "lucide-react": "^0.554.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "recharts": "^3.5.0"
+    },
+    "devDependencies": {
+        "@capacitor/cli": "^8.0.0",
+        "@eslint/js": "^9.39.1",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.1",
+        "@types/node": "^24.10.4",
+        "@types/react": "^19.2.5",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.1",
+        "@vitest/coverage-v8": "^4.0.16",
+        "eslint": "^9.39.1",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-refresh": "^0.4.24",
+        "globals": "^16.5.0",
+        "jsdom": "^27.3.0",
+        "prettier": "3.9.9",
+        "typescript": "~5.9.3",
+        "typescript-eslint": "^8.46.4",
+        "vite": "^7.2.4",
+        "vitest": "^4.0.16"
+    },
+    "overrides": {
+        "brace-expansion": "^2.0.3",
+        "xcode": {
+            "uuid": "11.1.1"
+        }
     }
-  }
 }

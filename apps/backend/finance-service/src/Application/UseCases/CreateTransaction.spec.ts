@@ -7,7 +7,7 @@ describe('CreateTransaction', () => {
 
     beforeEach(() => {
         mockTransactionRepository = {
-            createMany: jest.fn().mockResolvedValue(undefined)
+            createMany: jest.fn().mockResolvedValue(undefined),
         };
         useCase = new CreateTransaction(mockTransactionRepository);
     });
@@ -17,11 +17,50 @@ describe('CreateTransaction', () => {
         ['yearly', '2024-02-29T12:00:00Z', ['2024-02-29', '2025-02-28', '2026-02-28']],
         ['daily', '2024-12-31T12:00:00Z', ['2024-12-31', '2025-01-01', '2025-01-02']],
     ])('keeps %s recurrences on real calendar dates', async (frequency, date, expected) => {
-        await useCase.execute({ description: 'Calendar', amount: 10, type: 'expense', category: 'Casa',
-            date: new Date(date as string), isShared: false, payer: 'me', userId: 'user-1', installments: 3,
-            frequency: frequency as 'monthly' | 'yearly' | 'daily' });
+        await useCase.execute({
+            description: 'Calendar',
+            amount: 10,
+            type: 'expense',
+            category: 'Casa',
+            date: new Date(date as string),
+            isShared: false,
+            payer: 'me',
+            userId: 'user-1',
+            installments: 3,
+            frequency: frequency as 'monthly' | 'yearly' | 'daily',
+        });
         const saved: Transaction[] = mockTransactionRepository.createMany.mock.calls[0][0];
-        expect(saved.map(t => t.date.toISOString().slice(0, 10))).toEqual(expected);
+        expect(saved.map((t) => t.date.toISOString().slice(0, 10))).toEqual(expected);
+    });
+
+    it('repeats salary income with tags and clamps the payday at month end', async () => {
+        await useCase.execute({
+            description: 'Salary',
+            amount: 2500,
+            type: 'income',
+            category: 'Trabalho',
+            date: new Date('2026-01-31T12:00:00Z'),
+            isShared: false,
+            payer: 'me',
+            userId: 'user-1',
+            frequency: 'monthly',
+            installments: 3,
+            tagIds: ['tag-1'],
+        });
+        const saved: Transaction[] = mockTransactionRepository.createMany.mock.calls[0][0];
+        expect(saved.map((transaction) => transaction.date.toISOString().slice(0, 10))).toEqual([
+            '2026-01-31',
+            '2026-02-28',
+            '2026-03-31',
+        ]);
+        expect(
+            saved.every(
+                (transaction) =>
+                    transaction.type === 'income' &&
+                    transaction.amount === 2500 &&
+                    transaction.tagIds[0] === 'tag-1',
+            ),
+        ).toBe(true);
     });
 
     it('should create a single transaction', async () => {
@@ -33,7 +72,7 @@ describe('CreateTransaction', () => {
             date: new Date('2023-01-01'),
             isShared: false,
             payer: 'me' as const,
-            userId: 'user-1'
+            userId: 'user-1',
         };
 
         const result = await useCase.execute(data);
@@ -43,8 +82,17 @@ describe('CreateTransaction', () => {
         expect(mockTransactionRepository.createMany).toHaveBeenCalledTimes(1);
     });
     it('creates only one seed occurrence for a fixed rule instead of ten years of rows', async () => {
-        await useCase.execute({description:'Rent',amount:100,type:'expense',category:'Casa',date:new Date('2026-09-23'),
-            isShared:false,payer:'me',userId:'user-1',frequency:'fixed'});
+        await useCase.execute({
+            description: 'Rent',
+            amount: 100,
+            type: 'expense',
+            category: 'Casa',
+            date: new Date('2026-09-23'),
+            isShared: false,
+            payer: 'me',
+            userId: 'user-1',
+            frequency: 'fixed',
+        });
         const saved: Transaction[] = mockTransactionRepository.createMany.mock.calls[0][0];
         expect(saved).toHaveLength(1);
         expect(saved[0].isFixed).toBe(true);
@@ -62,7 +110,7 @@ describe('CreateTransaction', () => {
             payer: 'me' as const,
             userId: 'user-1',
             installments: 3,
-            frequency: 'monthly' as const
+            frequency: 'monthly' as const,
         };
 
         const result = await useCase.execute(data);
@@ -98,7 +146,7 @@ describe('CreateTransaction', () => {
             payer: 'me' as const,
             userId: 'user-1',
             installments: 2,
-            frequency: 'weekly' as const
+            frequency: 'weekly' as const,
         };
 
         await useCase.execute(data);
@@ -119,7 +167,7 @@ describe('CreateTransaction', () => {
             payer: 'me' as const,
             userId: 'user-1',
             installments: 2,
-            frequency: 'yearly' as const
+            frequency: 'yearly' as const,
         };
 
         await useCase.execute(data);

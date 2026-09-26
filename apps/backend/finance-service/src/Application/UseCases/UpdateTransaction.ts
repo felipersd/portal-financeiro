@@ -3,20 +3,24 @@ import { TransactionRepository } from '../../Domain/Interfaces/TransactionReposi
 import { FinanceError } from '../../Domain/FinanceError';
 
 export class UpdateTransaction {
-    constructor(private transactionRepository: TransactionRepository) { }
+    constructor(private transactionRepository: TransactionRepository) {}
 
-    async execute(id: string, data: {
-        description: string;
-        amount: number;
-        type: 'income' | 'expense';
-        category: string;
-        categoryId?: string;
-        date: Date;
-        isShared: boolean;
-        payer: string;
-        userId: string;
-        splitDetails?: any | null;
-    }): Promise<Transaction> {
+    async execute(
+        id: string,
+        data: {
+            description: string;
+            amount: number;
+            type: 'income' | 'expense';
+            category: string;
+            categoryId?: string;
+            tagIds?: string[];
+            date: Date;
+            isShared: boolean;
+            payer: string;
+            userId: string;
+            splitDetails?: any | null;
+        },
+    ): Promise<Transaction> {
         const transaction = await this.transactionRepository.findById(id);
         if (!transaction) {
             throw new Error('Transaction not found');
@@ -25,8 +29,14 @@ export class UpdateTransaction {
         if (transaction.userId !== data.userId) {
             throw new Error('Unauthorized');
         }
-        if (transaction.isFixed && transaction.date.toISOString().slice(0,10) !== data.date.toISOString().slice(0,10)) {
-            throw new FinanceError(400, 'Para mudar o dia de uma conta fixa, encerre esta recorrência e crie outra.');
+        if (
+            transaction.isFixed &&
+            transaction.date.toISOString().slice(0, 10) !== data.date.toISOString().slice(0, 10)
+        ) {
+            throw new FinanceError(
+                400,
+                'Para mudar o dia de uma conta fixa, encerre esta recorrência e crie outra.',
+            );
         }
 
         // Create a new instance with updated values (or update the existing one)
@@ -45,30 +55,40 @@ export class UpdateTransaction {
             transaction.createdAt,
             transaction.recurrenceId,
             data.splitDetails,
-            transaction.isFixed, data.categoryId
+            transaction.isFixed,
+            data.categoryId,
+            data.tagIds ?? transaction.tagIds,
         );
 
         const changes = [updatedTransaction];
-        
+
         if (transaction.isFixed && transaction.recurrenceId) {
-            const futures = await this.transactionRepository.findFutureByRecurrenceId(transaction.recurrenceId, transaction.date, data.userId);
-            const toUpdate = futures.filter(f => f.id !== transaction.id).map(f => {
-                return new Transaction(
-                    f.id,
-                    data.description,
-                    data.amount,
-                    data.type,
-                    data.category,
-                    f.date,
-                    data.isShared,
-                    data.payer,
-                    f.userId,
-                    f.createdAt,
-                    f.recurrenceId,
-                    data.splitDetails,
-                    f.isFixed, data.categoryId
-                );
-            });
+            const futures = await this.transactionRepository.findFutureByRecurrenceId(
+                transaction.recurrenceId,
+                transaction.date,
+                data.userId,
+            );
+            const toUpdate = futures
+                .filter((f) => f.id !== transaction.id)
+                .map((f) => {
+                    return new Transaction(
+                        f.id,
+                        data.description,
+                        data.amount,
+                        data.type,
+                        data.category,
+                        f.date,
+                        data.isShared,
+                        data.payer,
+                        f.userId,
+                        f.createdAt,
+                        f.recurrenceId,
+                        data.splitDetails,
+                        f.isFixed,
+                        data.categoryId,
+                        data.tagIds ?? f.tagIds,
+                    );
+                });
             changes.push(...toUpdate);
         }
 

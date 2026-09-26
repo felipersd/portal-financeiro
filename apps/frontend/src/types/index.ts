@@ -17,7 +17,9 @@ export interface GroupMember {
 export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
-    sharedWith?: Array<{memberId: string; status: string}>;
+    tags?: Tag[];
+    tagIds?: string[];
+    sharedWith?: Array<{ memberId: string; status: string }>;
     settlements?: Array<{ memberId: string; paidAmount: number }>;
     readOnly?: boolean;
     sharedFromName?: string;
@@ -43,13 +45,41 @@ export interface Transaction {
 export interface SharingState {
     nextCursor?: { connections: string; shares: string } | null;
     attentionCount?: number;
-    connections: Array<{ id: string; memberId?: string; ownerName: string; email?: string;
-        status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired'; direction: 'incoming' | 'outgoing'; expiresAt: string }>;
-    shares: Array<{ id: string; transactionId?: string; memberId?: string; ownerName: string; description: string;
-        amount: number; total: number; date: string; paidByRecipient: boolean;
-        status: 'pending' | 'accepted' | 'declined' | 'cancelled'; direction: 'incoming' | 'outgoing';
-        paidAmount?: number; settlementAmount?: number; debtor?: 'me' | 'other' | 'thirdParty'; canAdjust?: boolean;
-        proposal?: { id: string; kind: 'adjustment' | 'payment' | 'refund'; amount: number; proposedByMe: boolean } | null }>;
+    connections: Array<{
+        id: string;
+        peerKey?: string;
+        memberId?: string;
+        ownerName: string;
+        email?: string;
+        status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
+        direction: 'incoming' | 'outgoing';
+        expiresAt: string;
+    }>;
+    shares: Array<{
+        id: string;
+        category?: string;
+        tags?: string[];
+        transactionId?: string;
+        memberId?: string;
+        ownerName: string;
+        description: string;
+        amount: number;
+        total: number;
+        date: string;
+        paidByRecipient: boolean;
+        status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+        direction: 'incoming' | 'outgoing';
+        paidAmount?: number;
+        settlementAmount?: number;
+        debtor?: 'me' | 'other' | 'thirdParty';
+        canAdjust?: boolean;
+        proposal?: {
+            id: string;
+            kind: 'adjustment' | 'payment' | 'refund';
+            amount: number;
+            proposedByMe: boolean;
+        } | null;
+    }>;
 }
 
 export interface FinanceSummary {
@@ -85,8 +115,38 @@ export interface BudgetRule {
 }
 
 export interface ShareHistoryPage {
-    items: Array<{id:string; kind:'adjustment'|'payment'|'refund'; amount:number; status:string; proposedByMe:boolean; createdAt:string; decidedAt:string|null}>;
+    items: Array<{
+        id: string;
+        kind: 'adjustment' | 'payment' | 'refund';
+        amount: number;
+        status: string;
+        proposedByMe: boolean;
+        createdAt: string;
+        decidedAt: string | null;
+    }>;
     nextCursor: string | null;
 }
 
-export interface AnnualTotal { month: number; income: number; expense: number }
+export interface AnnualTotal {
+    month: number;
+    income: number;
+    expense: number;
+}
+
+export interface Tag {
+    id: string;
+    name: string;
+    color: string;
+}
+export interface NotificationItem {
+    id: string;
+    kind: string;
+    shareId: string | null;
+    createdAt: string;
+    readAt: string | null;
+}
+export interface NotificationPage {
+    items: NotificationItem[];
+    unread: number;
+    nextCursor: string | null;
+}

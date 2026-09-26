@@ -1,3 +1,5 @@
+import { cents, currency } from '../utils/money';
+import { Settings2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { BudgetRuleConfigModal } from './BudgetRuleConfigModal';
@@ -12,52 +14,80 @@ export const BudgetRuleChart: React.FC = () => {
     const totalIncome = summary.totalIncome;
 
     const actuals: Record<string, number> = {};
-    budgetRule.divisions.forEach(d => actuals[d.id] = 0);
+    budgetRule.divisions.forEach((d) => (actuals[d.id] = 0));
 
-    filteredTransactions.filter(t => t.type === 'expense').forEach(t => {
-        let amount = t.amount;
-        if (t.isShared && t.splitDetails?.splits) {
-            const meSplit = t.splitDetails.splits.find((s: { memberId: string; amount: number }) => s.memberId === 'me');
-            if (meSplit) amount = meSplit.amount;
-            else amount = 0;
-        }
-
-        let divisionId = budgetRule.mapping[t.categoryId || t.category];
-        
-        // Fallback: se a categoria não estiver explicitamente mapeada (ex: criada antes da regra), 
-        // ela cai automaticamente na primeira divisão (Necessidades), igual o UI modal já faz visualmente.
-        if (!divisionId || actuals[divisionId] === undefined) {
-            if (budgetRule.divisions.length > 0) {
-                divisionId = budgetRule.divisions[0].id;
+    filteredTransactions
+        .filter((t) => t.type === 'expense')
+        .forEach((t) => {
+            let amount = t.amount;
+            if (t.isShared && t.splitDetails?.splits) {
+                const meSplit = t.splitDetails.splits.find(
+                    (s: { memberId: string; amount: number }) => s.memberId === 'me',
+                );
+                if (meSplit) amount = meSplit.amount;
+                else amount = 0;
             }
-        }
 
-        if (divisionId && actuals[divisionId] !== undefined) {
-            actuals[divisionId] += amount;
-        }
-    });
+            let divisionId = budgetRule.mapping[t.categoryId || t.category];
+
+            // Fallback: se a categoria não estiver explicitamente mapeada (ex: criada antes da regra),
+            // ela cai automaticamente na primeira divisão (Necessidades), igual o UI modal já faz visualmente.
+            if (!divisionId || actuals[divisionId] === undefined) {
+                if (budgetRule.divisions.length > 0) {
+                    divisionId = budgetRule.divisions[0].id;
+                }
+            }
+
+            if (divisionId && actuals[divisionId] !== undefined) {
+                actuals[divisionId] += cents(amount);
+            }
+        });
 
     const renderBar = (title: string, actual: number, targetPct: number, color: string) => {
         const targetAmount = totalIncome * (targetPct / 100);
         const overspent = actual > targetAmount;
-        const fillPct = targetAmount === 0 ? (actual > 0 ? 100 : 0) : Math.min((actual / targetAmount) * 100, 100);
-        
+        const fillPct =
+            targetAmount === 0 ? (actual > 0 ? 100 : 0) : Math.min((actual / targetAmount) * 100, 100);
+
         return (
             <div style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                    <span style={{ fontWeight: 600 }}>{title} ({targetPct}%)</span>
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        marginBottom: '0.25rem',
+                        fontSize: '0.875rem',
+                    }}
+                >
+                    <span style={{ fontWeight: 600 }}>
+                        {title} ({targetPct}%)
+                    </span>
                     <span>
-                        <span style={{ color: overspent ? 'var(--danger)' : 'inherit' }}>R$ {actual.toFixed(2)}</span>
-                        <span className="text-secondary"> / R$ {targetAmount.toFixed(2)}</span>
+                        <span style={{ color: overspent ? 'var(--danger)' : 'inherit' }}>
+                            {currency(actual)}
+                        </span>
+                        <span className="text-secondary"> / {currency(targetAmount)}</span>
                     </span>
                 </div>
-                <div style={{ width: '100%', height: '12px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{ 
-                        height: '100%', 
-                        width: `${fillPct}%`, 
-                        backgroundColor: overspent ? 'var(--danger)' : color,
-                        transition: 'width 0.3s ease'
-                    }} />
+                <div
+                    style={{
+                        width: '100%',
+                        height: '12px',
+                        backgroundColor: 'var(--border)',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <div
+                        style={{
+                            height: '100%',
+                            width: `${fillPct}%`,
+                            backgroundColor: overspent ? 'var(--danger)' : color,
+                            transition: 'width 0.3s ease',
+                        }}
+                    />
                 </div>
             </div>
         );
@@ -65,17 +95,24 @@ export const BudgetRuleChart: React.FC = () => {
 
     return (
         <div className="card" style={{ marginTop: '1.5rem', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '16px',
+                    marginBottom: '1.5rem',
+                }}
+            >
                 <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
-                        Metas de Orçamento
-                    </h2>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Metas de Orçamento</h2>
                     <p className="text-secondary" style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                        Proporção ativa: {budgetRule.divisions.map(d => `${d.percentage}%`).join(' / ')}
+                        Proporção ativa: {budgetRule.divisions.map((d) => `${d.percentage}%`).join(' / ')}
                     </p>
                 </div>
                 <button className="btn btn-secondary" onClick={() => setIsConfigOpen(true)}>
-                    ⚙️ Configurar
+                    <Settings2 size={16} /> Configurar
                 </button>
             </div>
 
@@ -85,17 +122,15 @@ export const BudgetRuleChart: React.FC = () => {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {budgetRule.divisions.map(div => (
+                    {budgetRule.divisions.map((div) => (
                         <React.Fragment key={div.id}>
-                            {renderBar(div.name, actuals[div.id], div.percentage, div.color)}
+                            {renderBar(div.name, actuals[div.id] / 100, div.percentage, div.color)}
                         </React.Fragment>
                     ))}
                 </div>
             )}
 
-            {isConfigOpen && (
-                <BudgetRuleConfigModal onClose={() => setIsConfigOpen(false)} />
-            )}
+            {isConfigOpen && <BudgetRuleConfigModal onClose={() => setIsConfigOpen(false)} />}
         </div>
     );
 };
